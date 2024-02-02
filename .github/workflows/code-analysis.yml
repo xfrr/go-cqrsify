@@ -1,0 +1,45 @@
+name: Codacy Security Scan
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ['main']
+  schedule:
+    # run every friday at 18:35 UTC
+    - cron: '35 18 * * 5'
+
+permissions:
+  contents: read
+
+jobs:
+  codacy-security-scan:
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+    name: Codacy Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.x'
+      - name: Run Codacy Aligncheck
+        uses: codacy/codacy-analysis-cli-action@v4
+        with:
+          tool: aligncheck
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          upload: true
+          verbose: true
+          max-allowed-issues: 2147483647
+      - name: Run Codacy Staticcheck
+        uses: codacy/codacy-analysis-cli-action@v4
+        with:
+          run-staticcheck: true
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          upload: true
+          verbose: true
+          max-allowed-issues: 2147483647

@@ -1,6 +1,8 @@
 # CQRSIFY
-
 CQRSIFY is a Go library that provides a set of tools to help you implement the CQRS and DDD patterns in your application. It is designed to be simple and easy to use.
+
+  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+  [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
 ## Installation
 
