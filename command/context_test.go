@@ -38,7 +38,7 @@ func TestContext(t *testing.T) {
 
 		for _, tt := range cases {
 			t.Run(tt.name, func(t *testing.T) {
-				ctx := command.NewContext(tt.args.ctx, tt.args.cmd)
+				ctx := command.WithContext(tt.args.ctx, tt.args.cmd)
 				if ctx.Command().ID() != tt.args.cmd.ID() {
 					t.Errorf("expected command id to be %v, got %v", tt.args.cmd.ID(), ctx.Command().ID())
 				}
@@ -57,7 +57,7 @@ func TestContext(t *testing.T) {
 
 	t.Run("CastContext", func(t *testing.T) {
 		t.Run("should return false when cast fails", func(t *testing.T) {
-			ctx := command.NewContext(context.Background(), command.New("id", 1))
+			ctx := command.WithContext(context.Background(), command.New("id", 1))
 			_, ok := command.CastContext[string](ctx)
 			if ok {
 				t.Errorf("expected cast to fail")
@@ -65,7 +65,7 @@ func TestContext(t *testing.T) {
 		})
 
 		t.Run("should return true when cast succeeds", func(t *testing.T) {
-			casted, ok := command.CastContext[string](command.NewContext(context.Background(), command.New("id", "msg")))
+			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "msg")))
 			if !ok {
 				t.Errorf("expected cast to succeed")
 			}
@@ -78,7 +78,7 @@ func TestContext(t *testing.T) {
 		})
 
 		t.Run("should return true when cast succeeds with aggregate", func(t *testing.T) {
-			casted, ok := command.CastContext[string](command.NewContext(context.Background(), command.New("id", "msg",
+			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "msg",
 				command.WithAggregate("aggregateID", "aggregateName"),
 			)))
 			if !ok {

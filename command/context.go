@@ -25,8 +25,8 @@ func (c cmdContext[P]) Command() Command[P] {
 	return c.cmd
 }
 
-// NewContext returns a context that carries a command.
-func NewContext[M any](base context.Context, cmd Command[M]) Context[M] {
+// WithContext returns a context that carries a command.
+func WithContext[M any](base context.Context, cmd Command[M]) Context[M] {
 	return cmdContext[M]{
 		Context: base,
 		cmd:     cmd,
@@ -40,5 +40,5 @@ func CastContext[To, From any](ctx Context[From]) (Context[To], bool) {
 		return nil, false
 	}
 
-	return NewContext[To](ctx, cmd), true
+	return WithContext[To](ctx, cmd), true
 }

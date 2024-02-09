@@ -1,4 +1,4 @@
-package command
+package event
 
 import (
 	"context"
@@ -8,32 +8,32 @@ import (
 	"time"
 )
 
-// DefaultBusBufferSize is the default number of commands
+// DefaultBusBufferSize is the default number of events
 // that can be queued for each subscriber.
 const DefaultBusBufferSize = 1
 
 var (
-	// ErrNoSubscribers is returned when a command is dispatched but no subscribers are registered.
+	// ErrNoSubscribers is returned when a event is published but no subscribers are registered.
 	ErrNoSubscribers = errors.New("no subscribers")
 )
 
-// Bus represents a command bus that can dispatch commands and subscribe to them.
-// The behaviour of the bus is defined by the implementation of the Dispatcher and Subscriber interfaces.
+// Bus represents a event bus that can publish events and subscribe to them.
+// The behaviour of the bus is defined by the implementation of the Publisher and Subscriber interfaces.
 type Bus interface {
-	Dispatcher
+	Publisher
 	Subscriber
 }
 
-// A Dispatcher dispatches commands to subscribed handlers based on the topic.
-type Dispatcher interface {
-	// Dispatch dispatches the provided command to the subscribers.
+// A Publisher publishes events to subscribed handlers based on the topic.
+type Publisher interface {
+	// Publish publishes the provided event to the subscribers.
 	// The behavior of this method depends on the implementation.
-	Dispatch(ctx context.Context, topic string, cmd Command[any]) error
+	Publish(ctx context.Context, reason string, evt Event[any]) error
 }
 
-// A Subscriber subscribes to commands with a given topic.
+// A Subscriber subscribes to events with a given topic.
 type Subscriber interface {
-	// Subscribe subscribes to the command with the provided topic.
+	// Subscribe subscribes to the event with the provided topic.
 	// The returned channels are closed when the context is canceled.
 	// The behavior of this method depends on the implementation.
 	Subscribe(ctx context.Context, topic string) (<-chan Context[any], error)
@@ -47,37 +47,37 @@ type bus struct {
 	bufferSize    uint
 	subscriptions map[string][]chan anyContext
 
-	// dispatchTimeout is the timeout for the dispatch operation.
-	dispatchTimeout         time.Duration
-	dispatchTimeoutFallback func(context.Context, string, Command[any])
+	// publishTimeout is the timeout for the publish operation.
+	publishTimeout         time.Duration
+	publishTimeoutFallback func(context.Context, string, Event[any])
 }
 
-// Dispatch dispatches the provided command to the subscribers.
+// Publish publishes the provided event to the subscribers.
 // If the context is canceled, the method returns an error.
-// If no subscribers are registered for the provided topic, the method returns an error.
-// The method blocks until all commands are dispatched.
-func (b *bus) Dispatch(ctx context.Context, topic string, cmd Command[any]) error {
+// If no subscribers are registered for the provided event reason, the method returns an error.
+// The method blocks until all events are published.
+func (b *bus) Publish(ctx context.Context, reason string, evt Event[any]) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	if !b.hasSubscribers(topic) {
-		return fmt.Errorf("%w: %s", ErrNoSubscribers, topic)
+	if !b.hasSubscribers(reason) {
+		return fmt.Errorf("%w: %s", ErrNoSubscribers, reason)
 	}
 
-	for _, sub := range b.subscriptions[topic] {
+	for _, sub := range b.subscriptions[reason] {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
-			cmdctx := WithContext(ctx, cmd)
+			evtctx := WithContext(ctx, evt)
 
-			if b.dispatchTimeout > 0 {
-				err := b.dispatchWithTimeout(cmdctx, sub, topic, cmd)
+			if b.publishTimeout > 0 {
+				err := b.publishWithTimeout(evtctx, sub, reason, evt)
 				if err != nil {
-					b.timeoutFallback(ctx, topic, cmd)
+					b.timeoutFallback(ctx, reason, evt)
 				}
 			} else {
-				sub <- cmdctx
+				sub <- evtctx
 			}
 		}
 	}
@@ -85,41 +85,41 @@ func (b *bus) Dispatch(ctx context.Context, topic string, cmd Command[any]) erro
 	return nil
 }
 
-// Subscribe subscribes to the command with the provided topic.
+// Subscribe subscribes to the event with the provided topic.
 // The returned channels are closed when the context is canceled.
 // The method returns an error if the context is canceled.
-func (b *bus) Subscribe(ctx context.Context, commandName string) (<-chan anyContext, error) {
+func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan anyContext, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	ch := b.newSubscription()
-	b.addSubscription(ctx, commandName, ch)
+	b.addSubscription(ctx, eventName, ch)
 
 	go func() {
 		<-ctx.Done()
-		b.removeSubscription(commandName, ch)
+		b.removeSubscription(eventName, ch)
 	}()
 
 	return ch, nil
 }
 
-func (b *bus) dispatchWithTimeout(cmdctx anyContext, sub chan Context[any], topic string, cmd Command[any]) error {
-	dispatchCtx, cancel := context.WithTimeout(cmdctx, b.dispatchTimeout)
+func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], topic string, evt Event[any]) error {
+	publishCtx, cancel := context.WithTimeout(evtctx, b.publishTimeout)
 	defer cancel()
 
 	select {
-	case sub <- cmdctx:
-	case <-dispatchCtx.Done():
-		return dispatchCtx.Err()
+	case sub <- evtctx:
+	case <-publishCtx.Done():
+		return publishCtx.Err()
 	}
 
 	return nil
 }
 
-// timeoutFallback calls the fallback function if the dispatch times out.
-func (b *bus) timeoutFallback(ctx context.Context, topic string, cmd Command[any]) {
-	if b.dispatchTimeoutFallback != nil {
-		b.dispatchTimeoutFallback(ctx, topic, cmd)
+// timeoutFallback calls the fallback function if the publish times out.
+func (b *bus) timeoutFallback(ctx context.Context, topic string, evt Event[any]) {
+	if b.publishTimeoutFallback != nil {
+		b.publishTimeoutFallback(ctx, topic, evt)
 	}
 }
 

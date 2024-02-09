@@ -1,14 +1,14 @@
-package command_test
+package event_test
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/cqrsify/event"
 )
 
-type MockCommandPayload struct {
+type MockEventPayload struct {
 	Greeting string
 }
 
@@ -16,7 +16,7 @@ type MockResponse struct {
 	Result string
 }
 
-func MockHandler(ctx command.Context[MockCommandPayload]) error {
+func MockHandler(ctx event.Context[MockEventPayload]) error {
 	return nil
 }
 
@@ -24,7 +24,7 @@ var (
 	bufferSizes = []uint{1, 10, 100, 500, 1000}
 )
 
-func BenchmarkBus_Dispatch(b *testing.B) {
+func BenchmarkBus_Publish(b *testing.B) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -32,30 +32,31 @@ func BenchmarkBus_Dispatch(b *testing.B) {
 		name := fmt.Sprintf("buffer-size-%d", bufferSize)
 		b.Run(name, func(b *testing.B) {
 
-			bus, err := command.NewBus(command.WithBufferSize(bufferSize))
+			bus, err := event.NewBus(event.WithBufferSize(bufferSize))
 			if err != nil {
 				panic(err)
 			}
 
-			handler := command.NewHandler[MockCommandPayload](bus)
-			_, err = handler.Handle(ctx, "Command", MockHandler)
+			handler := event.NewHandler[MockEventPayload](bus)
+			_, err = handler.Handle(ctx, "Event", MockHandler)
 			if err != nil {
 				panic(err)
 			}
 
-			payload := MockCommandPayload{
+			payload := MockEventPayload{
 				Greeting: "Hello World!",
 			}
 
-			cmd := command.New[MockCommandPayload](
-				"command-id",
+			evt := event.New[MockEventPayload](
+				"event-id",
+				"event-reason",
 				payload,
 			).Any()
 
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				err := bus.Dispatch(ctx, "Command", cmd)
+				err := bus.Publish(ctx, "Event", evt)
 				if err != nil {
 					panic(err)
 				}

@@ -38,7 +38,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	bus, err := command.NewInMemoryBus()
+	bus, err := command.NewBus()
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func main() {
 	}
 }
 
-func dispatchGreetingCommand(ctx context.Context, bus *command.InMemoryBus, message Message) error {
+func dispatchGreetingCommand(ctx context.Context, bus command.Bus, message Message) error {
 	cmd := command.New[Message](MockCommandID, message,
 		command.WithAggregate(MockAggregateID, MockAggregateName),
 	)
