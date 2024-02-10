@@ -17,7 +17,7 @@ go get github.com/xfrr/cqrsify
 ```
 
 ## Usage
-Check the [examples](./examples) folder for more details.
+Check the [examples](https://github.com/xfrr/cqrsify/tree/main/examples) folder for usage examples.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
