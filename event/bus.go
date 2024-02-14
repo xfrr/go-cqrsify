@@ -24,19 +24,19 @@ type Bus interface {
 	Subscriber
 }
 
-// A Publisher publishes events to subscribed handlers based on the topic.
+// A Publisher publishes events to subscribed handlers based on the subject.
 type Publisher interface {
 	// Publish publishes the provided event to the subscribers.
 	// The behavior of this method depends on the implementation.
 	Publish(ctx context.Context, reason string, evt Event[any]) error
 }
 
-// A Subscriber subscribes to events with a given topic.
+// A Subscriber subscribes to events with a given subject.
 type Subscriber interface {
-	// Subscribe subscribes to the event with the provided topic.
+	// Subscribe subscribes to the event with the provided subject.
 	// The returned channels are closed when the context is canceled.
 	// The behavior of this method depends on the implementation.
-	Subscribe(ctx context.Context, topic string) (<-chan Context[any], error)
+	Subscribe(ctx context.Context, subject string) (<-chan Context[any], error)
 }
 
 var _ Bus = (*bus)(nil)
@@ -85,7 +85,7 @@ func (b *bus) Publish(ctx context.Context, reason string, evt Event[any]) error 
 	return nil
 }
 
-// Subscribe subscribes to the event with the provided topic.
+// Subscribe subscribes to the event with the provided subject.
 // The returned channels are closed when the context is canceled.
 // The method returns an error if the context is canceled.
 func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan anyContext, error) {
@@ -103,7 +103,7 @@ func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan anyContex
 	return ch, nil
 }
 
-func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], topic string, evt Event[any]) error {
+func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], subject string, evt Event[any]) error {
 	publishCtx, cancel := context.WithTimeout(evtctx, b.publishTimeout)
 	defer cancel()
 
@@ -117,9 +117,9 @@ func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], topic
 }
 
 // timeoutFallback calls the fallback function if the publish times out.
-func (b *bus) timeoutFallback(ctx context.Context, topic string, evt Event[any]) {
+func (b *bus) timeoutFallback(ctx context.Context, subject string, evt Event[any]) {
 	if b.publishTimeoutFallback != nil {
-		b.publishTimeoutFallback(ctx, topic, evt)
+		b.publishTimeoutFallback(ctx, subject, evt)
 	}
 }
 
@@ -154,7 +154,7 @@ func (b *bus) removeSubscription(reason string, ch chan anyContext) {
 }
 
 // NewBus returns a new bus with the provided options.
-// The default buffer size is 10 messages per subscriber.
+// The default buffer size is 10 events per subscriber.
 func NewBus(opts ...BusOption) (*bus, error) {
 	b := &bus{
 		bufferSize: 10,

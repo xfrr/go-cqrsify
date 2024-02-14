@@ -15,13 +15,13 @@ func WithAggregate(id string, name string) Option {
 // Must be unique across all commands.
 type ID string
 
-// Command represents a command with an arbitrary message.
-type Command[M any] interface {
+// Command represents a command with an arbitrary payload.
+type Command[Payload any] interface {
 	// ID returns the command id.
 	ID() ID
 
-	// Message returns the command message.
-	Message() M
+	// Payload returns the command payload.
+	Payload() Payload
 
 	// AggregateID returns the id of the aggregate that the command acts on.
 	AggregateID() string
@@ -31,33 +31,33 @@ type Command[M any] interface {
 }
 
 // command is the internal implementation of Command.
-type command[Message any] struct {
-	props properties[Message]
+type command[Payload any] struct {
+	props properties[Payload]
 }
 
 // properties contains the fields of a Cmd.
-type properties[Message any] struct {
+type properties[Payload any] struct {
 	ID            ID
-	Message       Message
+	Payload       Payload
 	AggregateName string
 	AggregateID   string
 }
 
-// New returns a new command with the given name and message.
-func New[M any](id string, msg M, opts ...Option) command[M] {
+// New returns a new command with the given id, name and payload.
+func New[Payload any](id string, payload Payload, opts ...Option) command[Payload] {
 	c := command[any]{
 		props: properties[any]{
 			ID:      ID(id),
-			Message: msg,
+			Payload: payload,
 		},
 	}
 	for _, opt := range opts {
 		opt(&c)
 	}
-	return command[M]{
-		props: properties[M]{
+	return command[Payload]{
+		props: properties[Payload]{
 			ID:            c.props.ID,
-			Message:       c.props.Message.(M),
+			Payload:       c.props.Payload.(Payload),
 			AggregateName: c.props.AggregateName,
 			AggregateID:   c.props.AggregateID,
 		},
@@ -65,35 +65,35 @@ func New[M any](id string, msg M, opts ...Option) command[M] {
 }
 
 // ID returns the command id.
-func (c command[M]) ID() ID {
+func (c command[Payload]) ID() ID {
 	return c.props.ID
 }
 
-// Message returns the command message.
-func (c command[M]) Message() M {
-	return c.props.Message
+// Payload returns the command payload.
+func (c command[Payload]) Payload() Payload {
+	return c.props.Payload
 }
 
 // AggregateID returns the id of the aggregate that the command acts on.
-func (c command[M]) AggregateID() string {
+func (c command[Payload]) AggregateID() string {
 	return c.props.AggregateID
 }
 
 // AggregateName returns the name of the aggregate that the command acts on.
-func (c command[M]) AggregateName() string {
+func (c command[Payload]) AggregateName() string {
 	return c.props.AggregateName
 }
 
 // Any returns a new command with the same id and aggregate as the given command
-// but with an arbitrary message.
-func (c command[M]) Any() Command[any] {
-	return New[any](string(c.ID()), c.Message(), WithAggregate(c.AggregateID(), c.AggregateName()))
+// but with an arbitrary payload.
+func (c command[Payload]) Any() Command[any] {
+	return New[any](string(c.ID()), c.Payload(), WithAggregate(c.AggregateID(), c.AggregateName()))
 }
 
-// Cast tries to cast the message of the given command to the given `To`
-// type. If the message is not of type `To`, false is returned.
+// Cast tries to cast the payload of the given command to the given `To`
+// type. If the payload is not of type `To`, false is returned.
 func Cast[Dest, Source any](cmd Command[Source]) (Command[Dest], bool) {
-	out, ok := any(cmd.Message()).(Dest)
+	out, ok := any(cmd.Payload()).(Dest)
 	if !ok {
 		return nil, false
 	}

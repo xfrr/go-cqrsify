@@ -14,31 +14,31 @@ type mockBus struct {
 	lock sync.RWMutex
 
 	dispatchCalls int
-	dispatchFn    func(ctx context.Context, topic string, cmd command.Command[any]) error
+	dispatchFn    func(ctx context.Context, subject string, cmd command.Command[any]) error
 
 	subscribeCalls int
-	subscribeFn    func(ctx context.Context, topic string) (<-chan command.Context[any], error)
+	subscribeFn    func(ctx context.Context, subject string) (<-chan command.Context[any], error)
 }
 
-func (m *mockBus) Dispatch(ctx context.Context, topic string, cmd command.Command[any]) error {
+func (m *mockBus) Dispatch(ctx context.Context, subject string, cmd command.Command[any]) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.dispatchCalls++
 	if m.dispatchFn != nil {
-		return m.dispatchFn(ctx, topic, cmd)
+		return m.dispatchFn(ctx, subject, cmd)
 	}
 
 	return nil
 }
 
-func (m *mockBus) Subscribe(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+func (m *mockBus) Subscribe(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.subscribeCalls++
 	if m.subscribeFn != nil {
-		return m.subscribeFn(ctx, topic)
+		return m.subscribeFn(ctx, subject)
 	}
 
 	return nil, nil
@@ -83,17 +83,17 @@ func TestHandler(t *testing.T) {
 
 func TestHandle(t *testing.T) {
 	var (
-		mockTopic = "topic"
+		mockSubject = "subject"
 	)
 
 	t.Run("should return an error when handler is nil", func(t *testing.T) {
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return make(<-chan command.Context[any]), nil
 			},
 		}
 
-		_, err := command.Handle[MockCommandPayload](context.Background(), mockSubscriber, "topic", nil)
+		_, err := command.Handle[MockCommandPayload](context.Background(), mockSubscriber, "subject", nil)
 		if err == nil || !errors.Is(err, command.ErrNilHandler) {
 			t.Fatalf("expected error to be %v, got %v", command.ErrNilHandler, err)
 		}
@@ -102,12 +102,12 @@ func TestHandle(t *testing.T) {
 	t.Run("should return an error when subscribe fails", func(t *testing.T) {
 		mockErr := errors.New("something went wrong")
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return nil, mockErr
 			},
 		}
 
-		_, err := command.Handle[MockCommandPayload](context.Background(), mockSubscriber, "topic", func(ctx command.Context[MockCommandPayload]) error {
+		_, err := command.Handle[MockCommandPayload](context.Background(), mockSubscriber, "subject", func(ctx command.Context[MockCommandPayload]) error {
 			return nil
 		})
 		if err, ok := err.(command.ErrSubscribeFailed); !ok {
@@ -130,12 +130,12 @@ func TestHandle(t *testing.T) {
 		cancel()
 
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return make(<-chan command.Context[any]), nil
 			},
 		}
 
-		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, "topic", func(ctx command.Context[MockCommandPayload]) error {
+		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, "subject", func(ctx command.Context[MockCommandPayload]) error {
 			return nil
 		})
 		if err != nil {
@@ -162,12 +162,12 @@ func TestHandle(t *testing.T) {
 		ch := make(chan command.Context[any])
 
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, "topic",
+		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, "subject",
 			func(ctx command.Context[MockCommandPayload]) error {
 				return nil
 			})
@@ -200,12 +200,12 @@ func TestHandle(t *testing.T) {
 
 		ch := make(chan command.Context[any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, mockTopic,
+		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, mockSubject,
 			func(ctx command.Context[MockCommandPayload]) error {
 				return errors.New("handler failed")
 			})
@@ -241,12 +241,12 @@ func TestHandle(t *testing.T) {
 
 		ch := make(chan command.Context[any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, mockTopic,
+		errs, err := command.Handle[MockCommandPayload](ctx, mockSubscriber, mockSubject,
 			func(ctx command.Context[MockCommandPayload]) error {
 				return nil
 			})
@@ -278,14 +278,14 @@ func TestHandle(t *testing.T) {
 
 		ch := make(chan command.Context[any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, topic string) (<-chan command.Context[any], error) {
+			subscribeFn: func(ctx context.Context, subject string) (<-chan command.Context[any], error) {
 				return ch, nil
 			},
 		}
 
 		handled := make(chan struct{})
 		errs, err := command.Handle[MockCommandPayload](
-			ctx, mockSubscriber, mockTopic,
+			ctx, mockSubscriber, mockSubject,
 			func(ctx command.Context[MockCommandPayload]) error {
 				close(handled)
 				return nil

@@ -1,5 +1,6 @@
 # This makefile is used for development purposes only.
 
+.PHONY: bench
 bench:
 	go test -bench=. -benchmem -count=1 -run=^$$ ./...
 

@@ -22,7 +22,7 @@ func TestContext(t *testing.T) {
 				name: "should create a new context",
 				args: args{
 					ctx: context.Background(),
-					evt: event.New("id", "name", "msg").Any(),
+					evt: event.New("id", "name", "payload").Any(),
 				},
 			},
 		}
@@ -34,7 +34,7 @@ func TestContext(t *testing.T) {
 					t.Errorf("expected event id to be %v, got %v", tt.args.evt.ID(), ctx.Event().ID())
 				}
 				if ctx.Event().Payload() != tt.args.evt.Payload() {
-					t.Errorf("expected event message to be %v, got %v", tt.args.evt.Payload(), ctx.Event().Payload())
+					t.Errorf("expected event payload to be %v, got %v", tt.args.evt.Payload(), ctx.Event().Payload())
 				}
 				if ctx.Event().Reason() != tt.args.evt.Reason() {
 					t.Errorf("expected event reason to be %v, got %v", tt.args.evt.Reason(), ctx.Event().Reason())
@@ -56,15 +56,15 @@ func TestContext(t *testing.T) {
 		})
 
 		t.Run("should return true when cast succeeds", func(t *testing.T) {
-			casted, ok := event.CastContext[string](event.WithContext(context.Background(), event.New("id", "name", "msg")))
+			casted, ok := event.CastContext[string](event.WithContext(context.Background(), event.New("id", "name", "payload")))
 			if !ok {
 				t.Errorf("expected cast to succeed")
 			}
 			if casted.Event().ID() != "id" {
 				t.Errorf("expected casted event id to be %v, got %v", "id", casted.Event().ID())
 			}
-			if casted.Event().Payload() != "msg" {
-				t.Errorf("expected casted event message to be %v, got %v", "msg", casted.Event().Payload())
+			if casted.Event().Payload() != "payload" {
+				t.Errorf("expected casted event payload to be %v, got %v", "payload", casted.Event().Payload())
 			}
 		})
 	})

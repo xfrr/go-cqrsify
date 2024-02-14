@@ -14,22 +14,22 @@ const (
 	MockAggregateID   = "MockAggregateID"
 	MockAggregateName = "MockAggregate"
 
-	MockCommandTopic = "commands.greeting"
+	MockCommandSubject = "commands.greeting"
 )
 
 var (
 	done = make(chan struct{})
 )
 
-type Message struct {
+type Payload struct {
 	Greeting string `json:"greeting"`
 }
 
-func GreetingCommandHandler(ctx command.Context[Message]) error {
+func GreetingCommandHandler(ctx command.Context[Payload]) error {
 	fmt.Printf("[aggregate_id]: %s\n", ctx.Command().AggregateID())
 	fmt.Printf("[aggregate_name]: %s\n", ctx.Command().AggregateName())
 	fmt.Printf("[command_id]: %s\n", ctx.Command().ID())
-	fmt.Printf("[command_message]: %s\n", ctx.Command().Message().Greeting)
+	fmt.Printf("[command_payload]: %s\n", ctx.Command().Payload().Greeting)
 	done <- struct{}{}
 	return nil
 }
@@ -47,7 +47,7 @@ func main() {
 		panic(err)
 	}
 
-	if err = dispatchGreetingCommand(ctx, bus, Message{
+	if err = dispatchGreetingCommand(ctx, bus, Payload{
 		Greeting: "Hello World!",
 	}); err != nil {
 		panic(err)
@@ -59,12 +59,12 @@ func main() {
 	}
 }
 
-func dispatchGreetingCommand(ctx context.Context, bus command.Bus, message Message) error {
-	cmd := command.New[Message](MockCommandID, message,
+func dispatchGreetingCommand(ctx context.Context, bus command.Bus, payload Payload) error {
+	cmd := command.New[Payload](MockCommandID, payload,
 		command.WithAggregate(MockAggregateID, MockAggregateName),
 	)
 
-	err := bus.Dispatch(ctx, MockCommandTopic, cmd.Any())
+	err := bus.Dispatch(ctx, MockCommandSubject, cmd.Any())
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func dispatchGreetingCommand(ctx context.Context, bus command.Bus, message Messa
 }
 
 func handleCommands(ctx context.Context, bus command.Bus) error {
-	errs, err := command.Handle(ctx, bus, MockCommandTopic, GreetingCommandHandler)
+	errs, err := command.Handle(ctx, bus, MockCommandSubject, GreetingCommandHandler)
 	if err != nil {
 		return err
 	}

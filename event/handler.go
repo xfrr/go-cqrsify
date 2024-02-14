@@ -6,22 +6,22 @@ import (
 )
 
 // HandlerFunc is a function to handle events.
-type HandlerFunc[M any] func(Context[M]) error
+type HandlerFunc[Payload any] func(Context[Payload]) error
 
 // Handler wraps a Bus to provide a convenient way to subscribe to and handle events.
-type Handler[M any] struct {
+type Handler[Payload any] struct {
 	bus Subscriber
 }
 
 // NewHandler wraps the provided Bus in a *Handler.
-func NewHandler[M any](s Subscriber) *Handler[M] {
-	return &Handler[M]{
+func NewHandler[Payload any](s Subscriber) *Handler[Payload] {
+	return &Handler[Payload]{
 		bus: s,
 	}
 }
 
 // Handle subscribes to the provided reason and handles the events asynchronously with the provided handler.
-func (h *Handler[M]) Handle(ctx context.Context, reason string, handler HandlerFunc[M]) (<-chan error, error) {
+func (h *Handler[Payload]) Handle(ctx context.Context, reason string, handler HandlerFunc[Payload]) (<-chan error, error) {
 	if handler == nil {
 		return nil, ErrNilHandler
 	}
@@ -37,7 +37,7 @@ func (h *Handler[M]) Handle(ctx context.Context, reason string, handler HandlerF
 	return errs, nil
 }
 
-func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contextCh <-chan anyContext, errs chan<- error) {
+func (h *Handler[Payload]) handle(ctx context.Context, handlefn HandlerFunc[Payload], contextCh <-chan anyContext, errs chan<- error) {
 	defer close(errs)
 
 	for {
@@ -53,7 +53,7 @@ func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contex
 			break
 		}
 
-		casted, ok := CastContext[P](cctx)
+		casted, ok := CastContext[Payload](cctx)
 		if !ok {
 			errs <- fmt.Errorf("%w [from=%T, to=%T]", ErrCastContext, cctx, casted)
 			continue
@@ -68,6 +68,6 @@ func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contex
 }
 
 // Subscribe is a shortcut for creating a new handler and subscribe it to the provided bus with given reason.
-func Subscribe[M any](ctx context.Context, bus Bus, reason string, handler HandlerFunc[M]) (<-chan error, error) {
-	return NewHandler[M](bus).Handle(ctx, reason, handler)
+func Subscribe[Payload any](ctx context.Context, bus Bus, reason string, handler HandlerFunc[Payload]) (<-chan error, error) {
+	return NewHandler[Payload](bus).Handle(ctx, reason, handler)
 }

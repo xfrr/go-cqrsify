@@ -26,14 +26,14 @@ func (c BaseContext[P]) Event() Event[P] {
 }
 
 // WithContext returns a context that carries a event.
-func WithContext[M any](base context.Context, evt Event[M]) Context[M] {
-	return BaseContext[M]{
+func WithContext[Payload any](base context.Context, evt Event[Payload]) Context[Payload] {
+	return BaseContext[Payload]{
 		Context: base,
 		evt:     evt,
 	}
 }
 
-// CastContext returns a context that carries a event with a different message type.
+// CastContext returns a context that carries a event with a different payload type.
 func CastContext[To, From any](ctx Context[From]) (Context[To], bool) {
 	evt, ok := Cast[To, From](ctx.Event())
 	if !ok {

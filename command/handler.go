@@ -6,27 +6,27 @@ import (
 )
 
 // HandlerFunc is a function to handle commands.
-type HandlerFunc[M any] func(Context[M]) error
+type HandlerFunc[Payload any] func(Context[Payload]) error
 
 // Handler wraps a Bus to provide a convenient way to subscribe to and handle commands.
-type Handler[M any] struct {
+type Handler[Payload any] struct {
 	bus Subscriber
 }
 
 // NewHandler wraps the provided Bus in a *Handler.
-func NewHandler[M any](s Subscriber) *Handler[M] {
-	return &Handler[M]{
+func NewHandler[Payload any](s Subscriber) *Handler[Payload] {
+	return &Handler[Payload]{
 		bus: s,
 	}
 }
 
-// Handle subscribes to the provided topic and handles the commands asynchronously with the provided handler.
-func (h *Handler[M]) Handle(ctx context.Context, topic string, handler HandlerFunc[M]) (<-chan error, error) {
+// Handle subscribes to the provided subject and handles the commands asynchronously with the provided handler.
+func (h *Handler[Payload]) Handle(ctx context.Context, subject string, handler HandlerFunc[Payload]) (<-chan error, error) {
 	if handler == nil {
 		return nil, ErrNilHandler
 	}
 
-	contextCh, err := h.bus.Subscribe(ctx, topic)
+	contextCh, err := h.bus.Subscribe(ctx, subject)
 	if err != nil {
 		return nil, ErrSubscribeFailed{}.Wrap(err)
 	}
@@ -37,7 +37,7 @@ func (h *Handler[M]) Handle(ctx context.Context, topic string, handler HandlerFu
 	return errs, nil
 }
 
-func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contextCh <-chan anyContext, errs chan<- error) {
+func (h *Handler[Payload]) handle(ctx context.Context, handlefn HandlerFunc[Payload], contextCh <-chan anyContext, errs chan<- error) {
 	defer close(errs)
 
 	for {
@@ -53,7 +53,7 @@ func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contex
 			break
 		}
 
-		casted, ok := CastContext[P](cctx)
+		casted, ok := CastContext[Payload](cctx)
 		if !ok {
 			errs <- fmt.Errorf("%w [from=%T, to=%T]", ErrCastContext, cctx, casted)
 			continue
@@ -67,7 +67,7 @@ func (h *Handler[P]) handle(ctx context.Context, handlefn HandlerFunc[P], contex
 	}
 }
 
-// Handle is a shortcut for creating a new handler and subscribe it to the provided bus with given topic.
-func Handle[M any](ctx context.Context, bus Bus, topic string, handler HandlerFunc[M]) (<-chan error, error) {
-	return NewHandler[M](bus).Handle(ctx, topic, handler)
+// Handle is a shortcut for creating a new handler and subscribe it to the provided bus with given subject.
+func Handle[Payload any](ctx context.Context, bus Bus, subject string, handler HandlerFunc[Payload]) (<-chan error, error) {
+	return NewHandler[Payload](bus).Handle(ctx, subject, handler)
 }

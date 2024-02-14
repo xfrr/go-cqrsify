@@ -26,14 +26,14 @@ func (c cmdContext[P]) Command() Command[P] {
 }
 
 // WithContext returns a context that carries a command.
-func WithContext[M any](base context.Context, cmd Command[M]) Context[M] {
-	return cmdContext[M]{
+func WithContext[Payload any](base context.Context, cmd Command[Payload]) Context[Payload] {
+	return cmdContext[Payload]{
 		Context: base,
 		cmd:     cmd,
 	}
 }
 
-// CastContext returns a context that carries a command with a different message type.
+// CastContext returns a context that carries a command with a different payload type.
 func CastContext[To, From any](ctx Context[From]) (Context[To], bool) {
 	cmd, ok := Cast[To, From](ctx.Command())
 	if !ok {

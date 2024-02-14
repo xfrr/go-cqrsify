@@ -22,7 +22,7 @@ func TestContext(t *testing.T) {
 				name: "with aggregate",
 				args: args{
 					ctx: context.Background(),
-					cmd: command.New("id", "msg",
+					cmd: command.New("id", "payload",
 						command.WithAggregate("aggregateID", "aggregateName"),
 					).Any(),
 				},
@@ -31,7 +31,7 @@ func TestContext(t *testing.T) {
 				name: "without aggregate",
 				args: args{
 					ctx: context.Background(),
-					cmd: command.New("id", "msg").Any(),
+					cmd: command.New("id", "payload").Any(),
 				},
 			},
 		}
@@ -42,8 +42,8 @@ func TestContext(t *testing.T) {
 				if ctx.Command().ID() != tt.args.cmd.ID() {
 					t.Errorf("expected command id to be %v, got %v", tt.args.cmd.ID(), ctx.Command().ID())
 				}
-				if ctx.Command().Message() != tt.args.cmd.Message() {
-					t.Errorf("expected command message to be %v, got %v", tt.args.cmd.Message(), ctx.Command().Message())
+				if ctx.Command().Payload() != tt.args.cmd.Payload() {
+					t.Errorf("expected command payload to be %v, got %v", tt.args.cmd.Payload(), ctx.Command().Payload())
 				}
 				if ctx.Command().AggregateName() != tt.args.cmd.AggregateName() {
 					t.Errorf("expected command aggregate name to be %v, got %v", tt.args.cmd.AggregateName(), ctx.Command().AggregateName())
@@ -65,20 +65,20 @@ func TestContext(t *testing.T) {
 		})
 
 		t.Run("should return true when cast succeeds", func(t *testing.T) {
-			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "msg")))
+			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "payload")))
 			if !ok {
 				t.Errorf("expected cast to succeed")
 			}
 			if casted.Command().ID() != "id" {
 				t.Errorf("expected casted command id to be %v, got %v", "id", casted.Command().ID())
 			}
-			if casted.Command().Message() != "msg" {
-				t.Errorf("expected casted command message to be %v, got %v", "msg", casted.Command().Message())
+			if casted.Command().Payload() != "payload" {
+				t.Errorf("expected casted command payload to be %v, got %v", "payload", casted.Command().Payload())
 			}
 		})
 
 		t.Run("should return true when cast succeeds with aggregate", func(t *testing.T) {
-			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "msg",
+			casted, ok := command.CastContext[string](command.WithContext(context.Background(), command.New("id", "payload",
 				command.WithAggregate("aggregateID", "aggregateName"),
 			)))
 			if !ok {

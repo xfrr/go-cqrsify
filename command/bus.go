@@ -24,19 +24,19 @@ type Bus interface {
 	Subscriber
 }
 
-// A Dispatcher dispatches commands to subscribed handlers based on the topic.
+// A Dispatcher dispatches commands to subscribed handlers based on the subject.
 type Dispatcher interface {
 	// Dispatch dispatches the provided command to the subscribers.
 	// The behavior of this method depends on the implementation.
-	Dispatch(ctx context.Context, topic string, cmd Command[any]) error
+	Dispatch(ctx context.Context, subject string, cmd Command[any]) error
 }
 
-// A Subscriber subscribes to commands with a given topic.
+// A Subscriber subscribes to commands with a given subject.
 type Subscriber interface {
-	// Subscribe subscribes to the command with the provided topic.
+	// Subscribe subscribes to the command with the provided subject.
 	// The returned channels are closed when the context is canceled.
 	// The behavior of this method depends on the implementation.
-	Subscribe(ctx context.Context, topic string) (<-chan Context[any], error)
+	Subscribe(ctx context.Context, subject string) (<-chan Context[any], error)
 }
 
 var _ Bus = (*bus)(nil)
@@ -54,17 +54,17 @@ type bus struct {
 
 // Dispatch dispatches the provided command to the subscribers.
 // If the context is canceled, the method returns an error.
-// If no subscribers are registered for the provided topic, the method returns an error.
+// If no subscribers are registered for the provided subject, the method returns an error.
 // The method blocks until all commands are dispatched.
-func (b *bus) Dispatch(ctx context.Context, topic string, cmd Command[any]) error {
+func (b *bus) Dispatch(ctx context.Context, subject string, cmd Command[any]) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	if !b.hasSubscribers(topic) {
-		return fmt.Errorf("%w: %s", ErrNoSubscribers, topic)
+	if !b.hasSubscribers(subject) {
+		return fmt.Errorf("%w: %s", ErrNoSubscribers, subject)
 	}
 
-	for _, sub := range b.subscriptions[topic] {
+	for _, sub := range b.subscriptions[subject] {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -72,9 +72,9 @@ func (b *bus) Dispatch(ctx context.Context, topic string, cmd Command[any]) erro
 			cmdctx := WithContext(ctx, cmd)
 
 			if b.dispatchTimeout > 0 {
-				err := b.dispatchWithTimeout(cmdctx, sub, topic, cmd)
+				err := b.dispatchWithTimeout(cmdctx, sub, subject, cmd)
 				if err != nil {
-					b.timeoutFallback(ctx, topic, cmd)
+					b.timeoutFallback(ctx, subject, cmd)
 				}
 			} else {
 				sub <- cmdctx
@@ -85,7 +85,7 @@ func (b *bus) Dispatch(ctx context.Context, topic string, cmd Command[any]) erro
 	return nil
 }
 
-// Subscribe subscribes to the command with the provided topic.
+// Subscribe subscribes to the command with the provided subject.
 // The returned channels are closed when the context is canceled.
 // The method returns an error if the context is canceled.
 func (b *bus) Subscribe(ctx context.Context, commandName string) (<-chan anyContext, error) {
@@ -103,7 +103,7 @@ func (b *bus) Subscribe(ctx context.Context, commandName string) (<-chan anyCont
 	return ch, nil
 }
 
-func (b *bus) dispatchWithTimeout(cmdctx anyContext, sub chan Context[any], topic string, cmd Command[any]) error {
+func (b *bus) dispatchWithTimeout(cmdctx anyContext, sub chan Context[any], subject string, cmd Command[any]) error {
 	dispatchCtx, cancel := context.WithTimeout(cmdctx, b.dispatchTimeout)
 	defer cancel()
 
@@ -117,9 +117,9 @@ func (b *bus) dispatchWithTimeout(cmdctx anyContext, sub chan Context[any], topi
 }
 
 // timeoutFallback calls the fallback function if the dispatch times out.
-func (b *bus) timeoutFallback(ctx context.Context, topic string, cmd Command[any]) {
+func (b *bus) timeoutFallback(ctx context.Context, subject string, cmd Command[any]) {
 	if b.dispatchTimeoutFallback != nil {
-		b.dispatchTimeoutFallback(ctx, topic, cmd)
+		b.dispatchTimeoutFallback(ctx, subject, cmd)
 	}
 }
 
@@ -154,7 +154,7 @@ func (b *bus) removeSubscription(reason string, ch chan anyContext) {
 }
 
 // NewBus returns a new bus with the provided options.
-// The default buffer size is 10 messages per subscriber.
+// The default buffer size is 10 payloads per subscriber.
 func NewBus(opts ...BusOption) (*bus, error) {
 	b := &bus{
 		bufferSize: 10,

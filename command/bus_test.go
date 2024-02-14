@@ -11,7 +11,7 @@ import (
 
 func TestBus(t *testing.T) {
 	var (
-		mockTopic = "bus.test"
+		mockSubject = "bus.test"
 	)
 
 	t.Run("NewBus", func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestBus(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			bus, _ := command.NewBus()
-			err := bus.Dispatch(ctx, mockTopic, command.New("id", "msg").Any())
+			err := bus.Dispatch(ctx, mockSubject, command.New("id", "payload").Any())
 			if err == nil || !errors.Is(err, command.ErrNoSubscribers) {
 				t.Fatalf("expected error to be %v, got %v", command.ErrNoSubscribers, err)
 			}
@@ -52,14 +52,14 @@ func TestBus(t *testing.T) {
 		t.Run("should return an error when context is canceled", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			bus, _ := command.NewBus()
-			_, err := bus.Subscribe(ctx, mockTopic)
+			_, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
 
 			// force cancel context
 			cancel()
-			err = bus.Dispatch(ctx, mockTopic, command.New("id", "msg").Any())
+			err = bus.Dispatch(ctx, mockSubject, command.New("id", "payload").Any())
 			if err == nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("expected error to be %v, got %v", context.Canceled, err)
 			}
@@ -70,7 +70,7 @@ func TestBus(t *testing.T) {
 			defer cancel()
 
 			done := make(chan struct{})
-			fallback := func(ctx context.Context, topic string, cmd command.Command[any]) {
+			fallback := func(ctx context.Context, subject string, cmd command.Command[any]) {
 				done <- struct{}{}
 			}
 
@@ -78,7 +78,7 @@ func TestBus(t *testing.T) {
 				command.WithDispatchTimeout(1*time.Microsecond),
 				command.WithDispatchTimeoutFallback(fallback),
 			)
-			ch, err := bus.Subscribe(ctx, mockTopic)
+			ch, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
@@ -103,7 +103,7 @@ func TestBus(t *testing.T) {
 					case <-ctx.Done():
 						return
 					default:
-						bus.Dispatch(ctx, mockTopic, command.New("id", "msg").Any())
+						bus.Dispatch(ctx, mockSubject, command.New("id", "payload").Any())
 					}
 				}
 			}()
@@ -124,12 +124,12 @@ func TestBus(t *testing.T) {
 
 			bus, _ := command.NewBus()
 
-			ctxch, err := bus.Subscribe(ctx, mockTopic)
+			ctxch, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
 
-			err = bus.Dispatch(ctx, mockTopic, command.New("id", "msg").Any())
+			err = bus.Dispatch(ctx, mockSubject, command.New("id", "payload").Any())
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
@@ -139,8 +139,8 @@ func TestBus(t *testing.T) {
 				if cmd.Command().ID() != "id" {
 					t.Errorf("expected command id to be %v, got %v", "id", cmd.Command().ID())
 				}
-				if cmd.Command().Message() != "msg" {
-					t.Errorf("expected command message to be %v, got %v", "msg", cmd.Command().Message())
+				if cmd.Command().Payload() != "payload" {
+					t.Errorf("expected command payload to be %v, got %v", "payload", cmd.Command().Payload())
 				}
 			case <-time.After(1 * time.Second):
 				t.Fatal("expected command to be dispatched")
@@ -153,7 +153,7 @@ func TestBus(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			bus, _ := command.NewBus()
-			ch, err := bus.Subscribe(ctx, mockTopic)
+			ch, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}

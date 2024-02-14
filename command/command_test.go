@@ -11,7 +11,7 @@ func TestCommand(t *testing.T) {
 		type args struct {
 			id            string
 			name          string
-			msg           string
+			payload       string
 			aggregateName string
 			aggregateID   string
 		}
@@ -25,7 +25,7 @@ func TestCommand(t *testing.T) {
 				args: args{
 					id:            "id",
 					name:          "name",
-					msg:           "msg",
+					payload:       "payload",
 					aggregateName: "aggregateName",
 					aggregateID:   "aggregateID",
 				},
@@ -35,7 +35,7 @@ func TestCommand(t *testing.T) {
 				args: args{
 					id:            "id",
 					name:          "name",
-					msg:           "msg",
+					payload:       "payload",
 					aggregateName: "",
 					aggregateID:   "",
 				},
@@ -44,12 +44,12 @@ func TestCommand(t *testing.T) {
 
 		for _, tt := range cases {
 			t.Run(tt.name, func(t *testing.T) {
-				cmd := command.New(tt.args.id, tt.args.msg, command.WithAggregate(tt.args.aggregateID, tt.args.aggregateName))
+				cmd := command.New(tt.args.id, tt.args.payload, command.WithAggregate(tt.args.aggregateID, tt.args.aggregateName))
 				if cmd.ID() != command.ID(tt.args.id) {
 					t.Errorf("ID() = %v, want %v", cmd.ID(), tt.args.id)
 				}
-				if cmd.Message() != tt.args.msg {
-					t.Errorf("Message() = %v, want %v", cmd.Message(), tt.args.msg)
+				if cmd.Payload() != tt.args.payload {
+					t.Errorf("Payload() = %v, want %v", cmd.Payload(), tt.args.payload)
 				}
 				if cmd.AggregateName() != tt.args.aggregateName {
 					t.Errorf("AggregateName() = %v, want %v", cmd.AggregateName(), tt.args.aggregateName)
@@ -62,13 +62,13 @@ func TestCommand(t *testing.T) {
 	})
 
 	t.Run("Any", func(t *testing.T) {
-		cmd := command.New("id", "msg")
+		cmd := command.New("id", "payload")
 		any := cmd.Any()
 		if any.ID() != cmd.ID() {
 			t.Errorf("ID() = %v, want %v", any.ID(), cmd.ID())
 		}
-		if any.Message() != cmd.Message() {
-			t.Errorf("Message() = %v, want %v", any.Message(), cmd.Message())
+		if any.Payload() != cmd.Payload() {
+			t.Errorf("Payload() = %v, want %v", any.Payload(), cmd.Payload())
 		}
 		if any.AggregateName() != cmd.AggregateName() {
 			t.Errorf("AggregateName() = %v, want %v", any.AggregateName(), cmd.AggregateName())
@@ -80,14 +80,14 @@ func TestCommand(t *testing.T) {
 
 	t.Run("Cast", func(t *testing.T) {
 		t.Run("should return false when cast fails", func(t *testing.T) {
-			_, ok := command.Cast[int](command.New("id", "msg"))
+			_, ok := command.Cast[int](command.New("id", "payload"))
 			if ok {
 				t.Errorf("Cast() = %v, want %v", ok, false)
 			}
 		})
 
 		t.Run("should return true when cast succeeds", func(t *testing.T) {
-			casted, ok := command.Cast[string](command.New("id", "msg"))
+			casted, ok := command.Cast[string](command.New("id", "payload"))
 			if !ok {
 				t.Errorf("Cast() = %v, want %v", ok, true)
 			}
@@ -95,13 +95,13 @@ func TestCommand(t *testing.T) {
 			if casted.ID() != "id" {
 				t.Errorf("ID() = %v, want %v", casted.ID(), "id")
 			}
-			if casted.Message() != "msg" {
-				t.Errorf("Message() = %v, want %v", casted.Message(), "msg")
+			if casted.Payload() != "payload" {
+				t.Errorf("Payload() = %v, want %v", casted.Payload(), "payload")
 			}
 		})
 
 		t.Run("should return true when cast succeeds with aggregate", func(t *testing.T) {
-			casted, ok := command.Cast[string](command.New("id", "msg", command.WithAggregate("aggregateID", "aggregateName")))
+			casted, ok := command.Cast[string](command.New("id", "payload", command.WithAggregate("aggregateID", "aggregateName")))
 			if !ok {
 				t.Errorf("Cast() = %v, want %v", ok, true)
 			}
