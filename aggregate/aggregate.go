@@ -1,7 +1,6 @@
 package aggregate
 
-// Aggregate is the interface that wraps the basic functionality
-// of a domain-driven design aggregate.
+// Aggregate represents a domain-driven design and event-sourced aggregate.
 type Aggregate interface {
 	// AggregateID returns the aggregate's AggregateID.
 	AggregateID() ID
@@ -15,6 +14,6 @@ type Aggregate interface {
 	// AggregateVersion returns the aggregate's version.
 	AggregateVersion() Version
 
-	// ApplyChange applies the given change (event) to the aggregate, updating its state accordingly.
-	ApplyChange(Change)
+	// ChangeApplier applies changes (events) to the aggregate.
+	ChangeApplier
 }

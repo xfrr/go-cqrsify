@@ -23,6 +23,12 @@ var (
 	ErrInvalidChangeTime = errors.New("invalid change time")
 )
 
+// ChangeApplier applies changes (events) to an Aggregate.
+type ChangeApplier interface {
+	// ApplyChange applies the given change (event) to the aggregate, updating its state accordingly.
+	ApplyChange(Change)
+}
+
 // Change represents an event that changes the state of an Aggregate.
 // It is an alias for event.Event[any].
 type Change = event.Event[any]
@@ -49,10 +55,10 @@ func ValidateChange(a Aggregate, change Change) error {
 	return nil
 }
 
-// ApplyChange creates and applies the given event to the Aggregate, updating its state
-// accordingly and returns the event with the next aggregate version.
-// It also records the event if the Aggregate implements the EventRecorder interface.
-func ApplyChange[EventPayload any](a Aggregate, evtid, evtname string, evtpayload EventPayload) event.Event[EventPayload] {
+// ApplyChange creates a new change (event) and applies it to the given Aggregate.
+// It returns the change with the next aggregate version.
+// It also records the event if the Aggregate implements the ChangeCommitter interface.
+func ApplyChange[ChangePayload any](a Aggregate, changeID, changeName string, changePayload ChangePayload) event.Event[ChangePayload] {
 	version := NextVersion(a)
 
 	opts := []event.NewOption{
@@ -63,12 +69,12 @@ func ApplyChange[EventPayload any](a Aggregate, evtid, evtname string, evtpayloa
 		}),
 	}
 
-	evt := event.New(evtid, evtname, evtpayload, opts...)
+	evt := event.New(changeID, changeName, changePayload, opts...)
 	anevt := evt.Any()
 
 	a.ApplyChange(anevt)
 
-	if r, ok := a.(ChangeCommiter); ok {
+	if r, ok := a.(ChangeCommitter); ok {
 		r.RecordChange(anevt)
 	}
 

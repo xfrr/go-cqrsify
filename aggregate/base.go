@@ -1,11 +1,11 @@
 package aggregate
 
 var (
-	_ ChangeCommiter = (*Base)(nil)
+	_ ChangeCommitter = (*Base)(nil)
 )
 
 // Base provides the basic functionality of an aggregate.
-// It implements the Aggregate and ChangeCommiter interfaces.
+// It implements the Aggregate and ChangeCommitter interfaces.
 // It can be embedded in a custom aggregate type to provide the core
 // functionality of an aggregate.
 type Base struct {

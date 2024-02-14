@@ -1,8 +1,8 @@
 package aggregate
 
-// ChangeCommiter provides methods for tracking aggregate changes
+// ChangeCommitter provides methods for tracking aggregate changes
 // as a series of events and committing them to update the aggregate's state.
-type ChangeCommiter interface {
+type ChangeCommitter interface {
 	// RecordChange adds the given changes as events to the Aggregate history.
 	// It should not update the Aggregate's state.
 	RecordChange(...Change)
