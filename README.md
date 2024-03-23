@@ -1,16 +1,28 @@
 # CQRSIFY
-CQRSIFY is a Go library that provides a set of tools to help you implement the CQRS and DDD patterns in your application. It is designed to be simple and easy to use.
+Lightweight, easy-to-use Go library designed to facilitate the implementation of software engineering principles such as Domain-Driven Design (DDD), Clean Architecture, Event-Sourcing, and Event-Driven systems.
 
   [![Build and Test](https://github.com/xfrr/cqrsify/actions/workflows/go.yml/badge.svg)](https://github.com/xfrr/cqrsify/actions/workflows/go.yml)
   [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
   [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
-## Features
-- **Simple and lightweight**: It has no external dependencies and is designed to require the least amount of code possible.
-- **Easy to use**: It abstracts the complexity of implementing the CQRS and DDD patterns by exposing a simple and easy-to-use API.
-- **Event Sourcing**: It provides a simple way to implement event sourcing in your application.
+## Purpose
+The goal is to provide Go developers with tools that simplify the integration of these complex concepts into their applications, promoting cleaner, more maintainable, and scalable code.
 
-## Installation
+## Features
+
+- **Domain-Driven Design (DDD):** Tools and frameworks to implement DDD, including entities, value objects, repositories, and domain services.
+- **Clean Architecture:** Easy-to-follow templates and utilities for organizing code in line with Clean Architecture principles.
+- **Event-Sourcing:** Utilities for implementing event-sourcing in your applications, including event stores, event publishers, and subscribers.
+- **Event-Driven Architecture:** Components to facilitate the development of event-driven systems, enabling loosely coupled components to communicate efficiently.
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.22 or later
+
+### Installation
+You can install Cqrsify by running the following command in your terminal:
 
 ```bash
 go get github.com/xfrr/cqrsify

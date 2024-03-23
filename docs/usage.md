@@ -35,13 +35,9 @@ func NewCustomer(id string, name string) *Customer {
 		customer,
 		CustomAggregateCreatedEventName,
 		CustomAggregateCreatedEvent{
-			ID:   customer.ID().String(),
+			ID:   customer.AggregateID().String(),
 			Name: customer.Name,
 	})
-
-    // some other aggregate methods
-    // customer.ID() // returns the aggregate id
-    // customer.Name() // returns the aggregate name
 
     return customer
 }
@@ -194,34 +190,22 @@ if err != nil {
 }
 ```
 
-## Policy
-A Policy is used to enforce business rules. It is used to validate the state of the system and ensure that the system is in a consistent state.
-
-### Creating a policy
-*Coming Soon...*
-
-### Enforcing a policy
-*Coming Soon...*
-
-
-
-## Query
-A Query is a request to retrieve data from the system.
-
-### Creating a query
-*Coming Soon...*
 
 ## Repository
 A Repository is used to manage the lifecycle of aggregates. It is used to store and retrieve aggregates from a data store.
 
-### Creating a repository
-*Coming Soon...*
+### Creating an in-memory repository
+An in-memory repository is used to store aggregates in memory. It is useful for testing and prototyping.
 
-## Snapshot
-A Snapshot is a point-in-time representation of an aggregate. It is used to optimize the performance of the system by reducing the number of events that need to be replayed.
+```go
+// create a new in-memory repository
+repo := memory.NewRepository()
 
-### Creating a snapshot
-*Coming Soon...*
+// save the aggregate to the repository
+err := repo.Save(ctx, aggregate)
+...
 
-### Restoring a snapshot
-*Coming Soon...*
+// get the aggregate from the repository
+agg, err := repo.Get(ctx, "aggregate-id")
+...
+```
