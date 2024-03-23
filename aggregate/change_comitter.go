@@ -10,6 +10,6 @@ type ChangeCommitter interface {
 	// CommitChanges increments the aggregate version and clears the uncommitted changes.
 	CommitChanges()
 
-	// RollbackChanges clears the uncommitted changes.
-	RollbackChanges()
+	// ClearChanges clears the uncommitted changes.
+	ClearChanges()
 }

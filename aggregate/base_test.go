@@ -14,7 +14,7 @@ func TestBase(t *testing.T) {
 			t.Fatal("expected base to not be nil")
 		}
 
-		if base.AggregateID().String() != "test-id" {
+		if base.AggregateID() != "test-id" {
 			t.Errorf("expected ID to be %s, got %s", "test-id", base.AggregateID())
 		}
 
@@ -42,30 +42,30 @@ func TestBase(t *testing.T) {
 	})
 
 	t.Run("it should commit events", func(t *testing.T) {
-		base := aggregate.New("test-id", "test-name")
-		evt := event.New("test-id", "test.reason", &struct{}{})
+		agg := aggregate.New("test-id", "test-name")
+		evt := event.New("test-id", "test.reason", &struct{}{}, event.WithAggregate("test-id", "test-name", 1))
 
-		base.RecordChange(evt.Any())
-		if len(base.AggregateChanges()) != 1 {
-			t.Errorf("expected Events to have 1 event, got %d", len(base.AggregateChanges()))
+		agg.RecordChange(evt.Any())
+		if len(agg.AggregateChanges()) != 1 {
+			t.Errorf("expected Events to have 1 event, got %d", len(agg.AggregateChanges()))
 		}
 
-		base.CommitChanges()
-		if len(base.AggregateChanges()) != 0 {
-			t.Errorf("expected Events to be empty, got %d", len(base.AggregateChanges()))
+		agg.CommitChanges()
+		if len(agg.AggregateChanges()) != 0 {
+			t.Errorf("expected Events to be empty, got %d", len(agg.AggregateChanges()))
 		}
 
-		if base.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
-			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, base.AggregateVersion())
+		if agg.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
+			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, agg.AggregateVersion())
 		}
 
-		base.CommitChanges()
-		if len(base.AggregateChanges()) != 0 {
-			t.Errorf("expected Events to be empty, got %d", len(base.AggregateChanges()))
+		agg.CommitChanges()
+		if len(agg.AggregateChanges()) != 0 {
+			t.Errorf("expected Events to be empty, got %d", len(agg.AggregateChanges()))
 		}
 
-		if base.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
-			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, base.AggregateVersion())
+		if agg.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
+			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, agg.AggregateVersion())
 		}
 	})
 
@@ -73,21 +73,20 @@ func TestBase(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
 		evt := event.New("test-id", "test.reason", &struct{}{})
 
-		called := false
-		base.When("test.reason", func(evt aggregate.Change) error {
-			called = true
-			return nil
+		handlerCalls := 0
+		base.When("test.reason", func(evt aggregate.Change) {
+			handlerCalls++
 		})
 
 		base.ApplyChange(evt.Any())
-		if !called {
-			t.Error("expected handler to be called")
+		if handlerCalls != 1 {
+			t.Errorf("expected handler to be called 1 time, got %d", handlerCalls)
 		}
 	})
 
 	t.Run("it should return the aggregate's id", func(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
-		if base.AggregateID().String() != "test-id" {
+		if base.AggregateID() != "test-id" {
 			t.Errorf("expected ID to be %s, got %s", "test-id", base.AggregateID())
 		}
 	})

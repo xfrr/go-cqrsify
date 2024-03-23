@@ -1,7 +1,7 @@
 package aggregate
 
 // Aggregate represents a domain-driven design and event-sourced aggregate.
-type Aggregate interface {
+type Aggregate[ID comparable] interface {
 	// AggregateID returns the aggregate's AggregateID.
 	AggregateID() ID
 
@@ -16,4 +16,21 @@ type Aggregate interface {
 
 	// ChangeApplier applies changes (events) to the aggregate.
 	ChangeApplier
+}
+
+func Cast[OutID comparable, InID comparable](
+	a Aggregate[InID],
+) (*Base[OutID], bool) {
+	id, ok := any(a.AggregateID()).(OutID)
+	if !ok {
+		return nil, false
+	}
+
+	return &Base[OutID]{
+		id:      id,
+		name:    a.AggregateName(),
+		version: a.AggregateVersion(),
+		changes: a.AggregateChanges(),
+	}, true
+
 }

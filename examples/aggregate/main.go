@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -10,29 +10,22 @@ import (
 	"github.com/xfrr/cqrsify/event"
 )
 
+// sample event names
 const (
 	CustomAggregateCreatedEventName       = "aggregate.created"
 	CustomAggregateStatusChangedEventName = "aggregate.status_changed"
 )
 
-func makeID() string {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("%d", rnd.Intn(1000))
-}
-
 func main() {
 	// create a new aggregate with a random ID
-	agg := makeAggregate(makeID(), "aggregate-name")
+	agg := makeAggregate(randomID(), "aggregate-name")
 
-	fmt.Printf("Aggregate is %s at version %d\n", agg.Status, agg.AggregateVersion())
+	log.Printf("Aggregate created: %s\n", coloured(agg.String()))
 
-	// change the status
-	agg.ChangeStatus("ready")
+	// change the aggregate status and commit the change
+	changeStatus(agg, "ready")
 
-	// commit the changes
-	agg.CommitChanges()
-
-	fmt.Printf("Aggregate is now %s at version %d\n", agg.Status, agg.AggregateVersion())
+	log.Printf("Aggregate status changed: %s\n", coloured(agg.String()))
 }
 
 type CustomAggregateStatusChanged struct {
@@ -51,38 +44,43 @@ type CustomAggregateRoot struct {
 
 type CustomAggregate struct {
 	// embed the aggregate.Base to provide the basic functionality of an aggregate
-	*aggregate.Base
+	*aggregate.Base[string]
 
 	CustomAggregateRoot
 }
 
-// ChangeStatus changes the status of the aggregate
-// and records the change as an event
-func (a *CustomAggregate) ChangeStatus(status string) error {
+func (agg *CustomAggregate) String() string {
+	return fmt.Sprintf("{ID: %s, Status: %s, Version: %d}", agg.AggregateID(), agg.Status, agg.AggregateVersion())
+}
+
+func (agg *CustomAggregate) ChangeStatus(status string) error {
 	// business logic and validation goes here
 	// ...
 
+	// generate a new random event ID
+	eventID := randomID()
+
 	// use aggregate.Change to apply the event and record it
-	aggregate.ApplyChange(a, makeID(), CustomAggregateStatusChangedEventName, CustomAggregateStatusChanged{
-		Previous: a.Status,
-		New:      status,
-	})
+	aggregate.NextChange(
+		agg,
+		eventID,
+		CustomAggregateStatusChangedEventName,
+		CustomAggregateStatusChanged{
+			Previous: agg.Status,
+			New:      status,
+		},
+	)
 
 	return nil
 }
 
-func (a *CustomAggregate) handleStatusChangedEvent(evt event.Event[any]) error {
-	payload, ok := evt.Payload().(CustomAggregateStatusChanged)
+func (agg *CustomAggregate) handleStatusChangedEvent(e event.Event[any, any]) {
+	evt, ok := event.Cast[string, CustomAggregateStatusChanged](e)
 	if !ok {
-		return errors.New("invalid event payload")
+		log.Fatalf("failed to cast event %s to CustomAggregateStatusChanged\n", e.Reason())
 	}
 
-	a.changeStatus(payload.New)
-	return nil
-}
-
-func (a *CustomAggregate) changeStatus(status string) {
-	a.Status = status
+	agg.Status = evt.Payload().New
 }
 
 func makeAggregate(id string, name string) *CustomAggregate {
@@ -94,17 +92,39 @@ func makeAggregate(id string, name string) *CustomAggregate {
 		},
 	}
 
+	log.Printf("Aggregate initialized: %s\n", coloured(agg.String()))
+
+	// start listening for status change events
+	agg.When(CustomAggregateStatusChangedEventName, agg.handleStatusChangedEvent)
+
 	// apply the change to the aggregate
-	aggregate.ApplyChange(
+	aggregate.NextChange(
 		agg,
-		makeID(),
+		randomID(),
 		CustomAggregateCreatedEventName,
 		CustomAggregateCreatedEvent{
-			ID:     agg.AggregateID().String(),
+			ID:     agg.AggregateID(),
 			Status: agg.Status,
 		})
 
-	// handle events
-	agg.When(CustomAggregateStatusChangedEventName, agg.handleStatusChangedEvent)
+	// commit the change
+	agg.CommitChanges()
 	return agg
+}
+
+func changeStatus(agg *CustomAggregate, status string) {
+	// apply the change to the aggregate
+	agg.ChangeStatus(status)
+
+	// commit the change
+	agg.CommitChanges()
+}
+
+func randomID() string {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return fmt.Sprintf("%d", rnd.Intn(1000))
+}
+
+func coloured(s string) string {
+	return fmt.Sprintf("\033[1;36m%s\033[0m", s)
 }

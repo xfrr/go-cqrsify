@@ -1,25 +1,32 @@
 package aggregate
 
+import "errors"
+
+var (
+	// ErrInvalidBaseAggregate is returned when the given Aggregate is not a BaseAggregate.
+	ErrInvalidBaseAggregate = errors.New("invalid base aggregate")
+)
+
 // Hydrate applies the given changes (events) to the given Aggregate, ensuring
 // consistency and updating the Aggregate's state accordingly.
 // It records and commits the changes if the Aggregate implements the ChangeCommitter interface.
 // It returns an error if the events cannot be applied.
-func Hydrate[Changes ~[]Change](a Aggregate, changes Changes) error {
-	for _, change := range changes {
-		if err := ValidateChange(a, change); err != nil {
-			if c, ok := a.(ChangeCommitter); len(a.AggregateChanges()) > 0 && ok {
-				c.RollbackChanges()
-			}
-			return err
-		}
-
-		a.ApplyChange(change)
-		if r, ok := a.(ChangeCommitter); ok {
-			r.RecordChange(change)
-		}
+func Hydrate[ID comparable](a Aggregate[ID], changes []Change) error {
+	base, ok := Cast[string](a)
+	if !ok {
+		return ErrInvalidBaseAggregate
 	}
 
-	if c, ok := a.(ChangeCommitter); len(a.AggregateChanges()) > 0 && ok {
+	if err := ValidateChanges(base, changes); err != nil {
+		return err
+	}
+
+	for _, change := range changes {
+		a.ApplyChange(change)
+	}
+
+	if c, ok := a.(ChangeCommitter); ok {
+		c.RecordChange(changes...)
 		c.CommitChanges()
 	}
 

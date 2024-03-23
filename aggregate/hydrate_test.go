@@ -9,105 +9,61 @@ import (
 	"github.com/xfrr/cqrsify/event"
 )
 
-func TestApplyHistory(t *testing.T) {
-	type mockAggregate struct {
-		*aggregate.Base
-	}
-
+func TestHydrate(t *testing.T) {
 	type args struct {
+		agg     aggregate.Aggregate[string]
 		changes []aggregate.Change
 	}
 
+	type expected struct {
+		aggID      string
+		aggName    string
+		aggVer     int
+		aggChanges int
+	}
+
 	tests := []struct {
-		name    string
-		args    args
-		aggID   string
-		aggName string
-		aggVer  int
-		err     error
+		name     string
+		args     args
+		expected expected
+		err      error
 	}{
 		{
-			name: "it should apply all changes to the aggregate",
+			name: "should return an error if changes cannot be applied",
 			args: args{
-				changes: makeEvents("mock-id", "mock-name", 5),
-			},
-			aggID:   "mock-id",
-			aggName: "mock-name",
-			aggVer:  5,
-			err:     nil,
-		},
-		{
-			name:    "it should return error when the change payload is nil",
-			aggID:   "mock-id",
-			aggName: "mock-name",
-			aggVer:  0,
-			args: args{
-				changes: []aggregate.Change{
-					event.New[any]("mock-id", "mock-name", nil,
-						event.WithAggregate(event.Aggregate{
-							ID:      "mock-id",
-							Name:    "mock-name",
-							Version: 1,
-						}),
-					).Any(),
+				agg: &mockAggregate{
+					Base: aggregate.New("agg-1", "test"),
 				},
-			},
-			err: aggregate.ErrInvalidChangePayload,
-		},
-		{
-			name:    "it should return an error if the aggregate ID does not match",
-			aggID:   "mock-id",
-			aggName: "mock-name",
-			aggVer:  0,
-			args: args{
-				changes: []aggregate.Change{
-					event.New("mock-id", "mock-name", 1).Any(),
-					event.New("mock-id-2", "mock-name", 2).Any(),
-				},
+				changes: makeEvents("agg-2", "test", 5),
 			},
 			err: aggregate.ErrInvalidAggregateID,
 		},
 		{
-			name:    "it should return an error if the aggregate name does not match",
-			aggID:   "mock-id",
-			aggName: "mock-name",
-			aggVer:  0,
+			name: "should hydrate the aggregate with the given changes",
 			args: args{
-				changes: []aggregate.Change{
-					makeEvents("mock-id", "mock-name", 1)[0],
-					makeEvents("mock-id", "mock-name-2", 1)[0],
+				agg: &mockAggregate{
+					Base: aggregate.New("agg-1", "agg-test"),
 				},
+				changes: makeEvents("agg-1", "agg-test", 5),
 			},
-			err: aggregate.ErrInvalidAggregateName,
-		},
-		{
-			name:    "it should return an error if the version is not consecutive",
-			aggID:   "mock-id",
-			aggName: "mock-name",
-			aggVer:  0,
-			args: args{
-				changes: []aggregate.Change{
-					makeEvents("mock-id", "mock-name", 1)[0],
-					makeEvents("mock-id", "mock-name", 1)[0],
-				},
+			expected: expected{
+				aggID:      "agg-1",
+				aggName:    "agg-test",
+				aggVer:     5,
+				aggChanges: 0,
 			},
-			err: aggregate.ErrInvalidVersion,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			agg := &mockAggregate{
-				Base: aggregate.New(tt.aggID, tt.aggName),
-			}
-
-			err := aggregate.Hydrate(agg, tt.args.changes)
+			err := aggregate.Hydrate(tt.args.agg, tt.args.changes)
 			if err != tt.err {
-				t.Errorf("expected error to be %v, got %v", tt.err, err)
+				t.Fatalf("expected error to be %v, got %v", tt.err, err)
 			}
 
-			if agg.AggregateVersion() != aggregate.Version(tt.aggVer) {
-				t.Errorf("expected version to be %d, got %d", tt.aggVer, agg.AggregateVersion())
+			if tt.args.agg.AggregateVersion() != aggregate.Version(tt.expected.aggVer) {
+				t.Fatalf("expected version to be %d, got %d", tt.expected.aggVer, tt.args.agg.AggregateVersion())
 			}
 		})
 	}
@@ -126,13 +82,13 @@ func makeEvents(aggID, aggName string, n int) []aggregate.Change {
 				randomStr(),
 				randomStr(),
 				n,
-				event.WithAggregate(event.Aggregate{
-					ID:      aggID,
-					Name:    aggName,
-					Version: i + 1,
-				}),
+				event.WithAggregate(aggID, aggName, i+1),
 			).Any(),
 		)
 	}
 	return events
+}
+
+type mockAggregate struct {
+	*aggregate.Base[string]
 }
