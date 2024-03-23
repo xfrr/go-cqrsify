@@ -43,7 +43,8 @@ func TestBus(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			bus, _ := event.NewBus()
-			err := bus.Publish(ctx, mockSubject, event.New("id", "reason", "payload").Any())
+			evt := event.New("id", "reason", "payload").Any()
+			err := bus.Publish(ctx, mockSubject, evt)
 			if err == nil || !errors.Is(err, event.ErrNoSubscribers) {
 				t.Fatalf("expected error to be %v, got %v", event.ErrNoSubscribers, err)
 			}
@@ -70,7 +71,7 @@ func TestBus(t *testing.T) {
 			defer cancel()
 
 			done := make(chan struct{})
-			fallback := func(ctx context.Context, subject string, evt event.Event[any]) {
+			fallback := func(ctx context.Context, subject string, evt event.Event[any, any]) {
 				done <- struct{}{}
 			}
 

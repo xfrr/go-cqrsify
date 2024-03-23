@@ -14,13 +14,13 @@ type mockBus struct {
 	lock sync.RWMutex
 
 	publishCalls int
-	publishFn    func(ctx context.Context, reason string, evt event.Event[any]) error
+	publishFn    func(ctx context.Context, reason string, evt event.Event[any, any]) error
 
 	subscribeCalls int
-	subscribeFn    func(ctx context.Context, reason string) (<-chan event.Context[any], error)
+	subscribeFn    func(ctx context.Context, reason string) (<-chan event.Context[any, any], error)
 }
 
-func (m *mockBus) Publish(ctx context.Context, reason string, evt event.Event[any]) error {
+func (m *mockBus) Publish(ctx context.Context, reason string, evt event.Event[any, any]) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -32,7 +32,7 @@ func (m *mockBus) Publish(ctx context.Context, reason string, evt event.Event[an
 	return nil
 }
 
-func (m *mockBus) Subscribe(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+func (m *mockBus) Subscribe(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -52,7 +52,7 @@ func TestHandler(t *testing.T) {
 	t.Run("New", func(t *testing.T) {
 		type args struct {
 			name string
-			fn   event.HandlerFunc[any]
+			fn   event.HandlerFunc[any, any]
 		}
 
 		cases := []struct {
@@ -63,7 +63,7 @@ func TestHandler(t *testing.T) {
 				name: "should create a new handler",
 				args: args{
 					name: "name",
-					fn: func(ctx event.Context[any]) error {
+					fn: func(ctx event.Context[any, any]) error {
 						return nil
 					},
 				},
@@ -72,7 +72,7 @@ func TestHandler(t *testing.T) {
 
 		for _, tt := range cases {
 			t.Run(tt.name, func(t *testing.T) {
-				h := event.NewHandler[any](mockSubscriber)
+				h := event.NewHandler[any, any](mockSubscriber)
 				if h == nil {
 					t.Error("expected handler to not be nil")
 				}
@@ -88,12 +88,12 @@ func TestHandle(t *testing.T) {
 
 	t.Run("should return an error when handler is nil", func(t *testing.T) {
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
-				return make(<-chan event.Context[any]), nil
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
+				return make(<-chan event.Context[any, any]), nil
 			},
 		}
 
-		_, err := event.Subscribe[MockEventPayload](context.Background(), mockSubscriber, "reason", nil)
+		_, err := event.Subscribe[string, MockEventPayload](context.Background(), mockSubscriber, "reason", nil)
 		if err == nil || !errors.Is(err, event.ErrNilHandler) {
 			t.Fatalf("expected error to be %v, got %v", event.ErrNilHandler, err)
 		}
@@ -102,12 +102,12 @@ func TestHandle(t *testing.T) {
 	t.Run("should return an error when subscribe fails", func(t *testing.T) {
 		mockErr := errors.New("something went wrong")
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 				return nil, mockErr
 			},
 		}
 
-		_, err := event.Subscribe[MockEventPayload](context.Background(), mockSubscriber, "reason", func(ctx event.Context[MockEventPayload]) error {
+		_, err := event.Subscribe[string, MockEventPayload](context.Background(), mockSubscriber, "reason", func(ctx event.Context[string, MockEventPayload]) error {
 			return nil
 		})
 		if err, ok := err.(event.ErrSubscribeFailed); !ok {
@@ -130,12 +130,12 @@ func TestHandle(t *testing.T) {
 		cancel()
 
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
-				return make(<-chan event.Context[any]), nil
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
+				return make(<-chan event.Context[any, any]), nil
 			},
 		}
 
-		errs, err := event.Subscribe[MockEventPayload](ctx, mockSubscriber, "reason", func(ctx event.Context[MockEventPayload]) error {
+		errs, err := event.Subscribe[string, MockEventPayload](ctx, mockSubscriber, "reason", func(ctx event.Context[string, MockEventPayload]) error {
 			return nil
 		})
 		if err != nil {
@@ -159,16 +159,16 @@ func TestHandle(t *testing.T) {
 	t.Run("should return an error when casting context fails", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		ch := make(chan event.Context[any])
+		ch := make(chan event.Context[any, any])
 
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := event.Subscribe[MockEventPayload](ctx, mockSubscriber, "reason",
-			func(ctx event.Context[MockEventPayload]) error {
+		errs, err := event.Subscribe[string, MockEventPayload](ctx, mockSubscriber, "reason",
+			func(ctx event.Context[string, MockEventPayload]) error {
 				return nil
 			})
 		if err != nil {
@@ -177,7 +177,7 @@ func TestHandle(t *testing.T) {
 
 		// publish invalid event context
 		cctx := event.WithContext(ctx, event.New("id", "name", "invalid").Any())
-		ch <- cctx
+		ch <- cctx.Any()
 
 		defer cancel()
 		// wait for context to be handled
@@ -198,15 +198,15 @@ func TestHandle(t *testing.T) {
 	t.Run("should return an error when handling event fails", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		ch := make(chan event.Context[any])
+		ch := make(chan event.Context[any, any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := event.Subscribe[MockEventPayload](ctx, mockSubscriber, mockreason,
-			func(ctx event.Context[MockEventPayload]) error {
+		errs, err := event.Subscribe[string, MockEventPayload](ctx, mockSubscriber, mockreason,
+			func(ctx event.Context[string, MockEventPayload]) error {
 				return errors.New("handler failed")
 			})
 		if err != nil {
@@ -239,15 +239,15 @@ func TestHandle(t *testing.T) {
 	t.Run("should stop handling events when context channel is closed", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		ch := make(chan event.Context[any])
+		ch := make(chan event.Context[any, any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 				return ch, nil
 			},
 		}
 
-		errs, err := event.Subscribe[MockEventPayload](ctx, mockSubscriber, mockreason,
-			func(ctx event.Context[MockEventPayload]) error {
+		errs, err := event.Subscribe[string, MockEventPayload](ctx, mockSubscriber, mockreason,
+			func(ctx event.Context[string, MockEventPayload]) error {
 				return nil
 			})
 		if err != nil {
@@ -276,17 +276,17 @@ func TestHandle(t *testing.T) {
 	t.Run("should handle a event without errors", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		ch := make(chan event.Context[any])
+		ch := make(chan event.Context[any, any])
 		mockSubscriber := &mockBus{
-			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any], error) {
+			subscribeFn: func(ctx context.Context, reason string) (<-chan event.Context[any, any], error) {
 				return ch, nil
 			},
 		}
 
 		handled := make(chan struct{})
-		errs, err := event.Subscribe[MockEventPayload](
+		errs, err := event.Subscribe[string, MockEventPayload](
 			ctx, mockSubscriber, mockreason,
-			func(ctx event.Context[MockEventPayload]) error {
+			func(ctx event.Context[string, MockEventPayload]) error {
 				close(handled)
 				return nil
 			})

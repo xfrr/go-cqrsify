@@ -16,7 +16,7 @@ type MockResponse struct {
 	Result string
 }
 
-func MockHandler(ctx event.Context[MockEventPayload]) error {
+func MockHandler(ctx event.Context[string, MockEventPayload]) error {
 	return nil
 }
 
@@ -37,7 +37,7 @@ func BenchmarkBus_Publish(b *testing.B) {
 				panic(err)
 			}
 
-			handler := event.NewHandler[MockEventPayload](bus)
+			handler := event.NewHandler[string, MockEventPayload](bus)
 			_, err = handler.Handle(ctx, "Event", MockHandler)
 			if err != nil {
 				panic(err)
@@ -47,7 +47,7 @@ func BenchmarkBus_Publish(b *testing.B) {
 				Greeting: "Hello World!",
 			}
 
-			evt := event.New[MockEventPayload](
+			evt := event.New(
 				"event-id",
 				"event-reason",
 				payload,

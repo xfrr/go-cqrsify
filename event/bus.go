@@ -28,7 +28,7 @@ type Bus interface {
 type Publisher interface {
 	// Publish publishes the provided event to the subscribers.
 	// The behavior of this method depends on the implementation.
-	Publish(ctx context.Context, reason string, evt Event[any]) error
+	Publish(ctx context.Context, reason string, evt Event[any, any]) error
 }
 
 // A Subscriber subscribes to events with a given subject.
@@ -36,7 +36,7 @@ type Subscriber interface {
 	// Subscribe subscribes to the event with the provided subject.
 	// The returned channels are closed when the context is canceled.
 	// The behavior of this method depends on the implementation.
-	Subscribe(ctx context.Context, subject string) (<-chan Context[any], error)
+	Subscribe(ctx context.Context, subject string) (<-chan Context[any, any], error)
 }
 
 var _ Bus = (*bus)(nil)
@@ -45,18 +45,18 @@ var _ Bus = (*bus)(nil)
 type bus struct {
 	mu            sync.RWMutex
 	bufferSize    uint
-	subscriptions map[string][]chan anyContext
+	subscriptions map[string][]chan Context[any, any]
 
 	// publishTimeout is the timeout for the publish operation.
 	publishTimeout         time.Duration
-	publishTimeoutFallback func(context.Context, string, Event[any])
+	publishTimeoutFallback func(context.Context, string, Event[any, any])
 }
 
 // Publish publishes the provided event to the subscribers.
 // If the context is canceled, the method returns an error.
 // If no subscribers are registered for the provided event reason, the method returns an error.
 // The method blocks until all events are published.
-func (b *bus) Publish(ctx context.Context, reason string, evt Event[any]) error {
+func (b *bus) Publish(ctx context.Context, reason string, evt Event[any, any]) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -72,7 +72,7 @@ func (b *bus) Publish(ctx context.Context, reason string, evt Event[any]) error 
 			evtctx := WithContext(ctx, evt)
 
 			if b.publishTimeout > 0 {
-				err := b.publishWithTimeout(evtctx, sub, reason, evt)
+				err := b.publishWithTimeout(evtctx, sub)
 				if err != nil {
 					b.timeoutFallback(ctx, reason, evt)
 				}
@@ -88,7 +88,7 @@ func (b *bus) Publish(ctx context.Context, reason string, evt Event[any]) error 
 // Subscribe subscribes to the event with the provided subject.
 // The returned channels are closed when the context is canceled.
 // The method returns an error if the context is canceled.
-func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan anyContext, error) {
+func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan Context[any, any], error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -103,7 +103,7 @@ func (b *bus) Subscribe(ctx context.Context, eventName string) (<-chan anyContex
 	return ch, nil
 }
 
-func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], subject string, evt Event[any]) error {
+func (b *bus) publishWithTimeout(evtctx Context[any, any], sub chan Context[any, any]) error {
 	publishCtx, cancel := context.WithTimeout(evtctx, b.publishTimeout)
 	defer cancel()
 
@@ -117,28 +117,28 @@ func (b *bus) publishWithTimeout(evtctx anyContext, sub chan Context[any], subje
 }
 
 // timeoutFallback calls the fallback function if the publish times out.
-func (b *bus) timeoutFallback(ctx context.Context, subject string, evt Event[any]) {
+func (b *bus) timeoutFallback(ctx context.Context, subject string, evt Event[any, any]) {
 	if b.publishTimeoutFallback != nil {
 		b.publishTimeoutFallback(ctx, subject, evt)
 	}
 }
 
-func (b *bus) newSubscription() chan anyContext {
+func (b *bus) newSubscription() chan Context[any, any] {
 	if b.subscriptions == nil {
-		b.subscriptions = make(map[string][]chan anyContext)
+		b.subscriptions = make(map[string][]chan Context[any, any])
 	}
-	return make(chan anyContext, b.bufferSize)
+	return make(chan Context[any, any], b.bufferSize)
 }
 
 func (b *bus) hasSubscribers(reason string) bool {
 	return b.subscriptions != nil && len(b.subscriptions[reason]) > 0
 }
 
-func (b *bus) addSubscription(ctx context.Context, reason string, ch chan anyContext) {
+func (b *bus) addSubscription(_ context.Context, reason string, ch chan Context[any, any]) {
 	b.subscriptions[reason] = append(b.subscriptions[reason], ch)
 }
 
-func (b *bus) removeSubscription(reason string, ch chan anyContext) {
+func (b *bus) removeSubscription(reason string, ch chan Context[any, any]) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

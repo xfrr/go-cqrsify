@@ -23,7 +23,7 @@ func WithPublishTimeout(timeout time.Duration) BusOption {
 
 // WithPublishTimeoutFallback sets the function that is called
 // when publishing a event to a subscriber times out.
-func WithPublishTimeoutFallback(fb func(context.Context, string, Event[any])) BusOption {
+func WithPublishTimeoutFallback(fb func(context.Context, string, Event[any, any])) BusOption {
 	return func(b *bus) {
 		b.publishTimeoutFallback = fb
 	}

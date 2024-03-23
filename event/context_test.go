@@ -11,7 +11,7 @@ func TestContext(t *testing.T) {
 	t.Run("New", func(t *testing.T) {
 		type args struct {
 			ctx context.Context
-			evt event.Event[any]
+			evt event.Event[any, any]
 		}
 
 		cases := []struct {
@@ -49,14 +49,14 @@ func TestContext(t *testing.T) {
 	t.Run("CastContext", func(t *testing.T) {
 		t.Run("should return false when cast fails", func(t *testing.T) {
 			ctx := event.WithContext(context.Background(), event.New("id", "name", 1))
-			_, ok := event.CastContext[string](ctx)
+			_, ok := event.CastContext[int, any](ctx)
 			if ok {
 				t.Errorf("expected cast to fail")
 			}
 		})
 
 		t.Run("should return true when cast succeeds", func(t *testing.T) {
-			casted, ok := event.CastContext[string](event.WithContext(context.Background(), event.New("id", "name", "payload")))
+			casted, ok := event.CastContext[string, string, string, string](event.WithContext(context.Background(), event.New("id", "name", "payload")))
 			if !ok {
 				t.Errorf("expected cast to succeed")
 			}

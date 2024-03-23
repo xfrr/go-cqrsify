@@ -8,11 +8,7 @@ import (
 
 func TestNew(t *testing.T) {
 	e := event.New("test", "test", &struct{}{},
-		event.WithAggregate(event.Aggregate{
-			ID:      "aggregate-id",
-			Name:    "aggregate-name",
-			Version: 1,
-		}),
+		event.WithAggregate("aggregate-id", "aggregate-name", 1),
 	)
 	if e == nil {
 		t.Fatal("event.New() should return a valid event")

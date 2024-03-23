@@ -3,22 +3,17 @@ package event
 import "time"
 
 // ID represents an event unique identifier.
-type ID string
+type ID comparable
 
-// String returns the identifier as a string.
-func (id ID) String() string {
-	return string(id)
-}
-
-// Aggregate represents a reference to an aggregate.
-type Aggregate struct {
-	ID      string
+// AggregateRef represents a reference to an aggregate.
+type AggregateRef[ID comparable] struct {
+	ID      ID
 	Name    string
 	Version int
 }
 
 // Event represents an event with the given payload type.
-type Event[Payload any] interface {
+type Event[ID comparable, Payload any] interface {
 	// ID returns the event's ID.
 	ID() ID
 
@@ -32,18 +27,25 @@ type Event[Payload any] interface {
 	Time() time.Time
 
 	// Aggregate returns the event's aggregate reference.
-	Aggregate() Aggregate
+	Aggregate() *AggregateRef[any]
 }
 
 // Cast attempts to cast the given event to the given payload type.
-func Cast[To, From any](evt Event[From]) (Base[To], bool) {
-	payload, ok := any(evt.Payload()).(To)
+func Cast[OutID comparable, OutPayload any, InputID comparable, InputPayload any](
+	evt Event[InputID, InputPayload],
+) (*Base[OutID, OutPayload], bool) {
+	id, ok := any(evt.ID()).(OutID)
 	if !ok {
-		return Base[To]{}, false
+		return nil, false
 	}
 
-	return Base[To]{
-		id:           evt.ID(),
+	payload, ok := any(evt.Payload()).(OutPayload)
+	if !ok {
+		return nil, false
+	}
+
+	return &Base[OutID, OutPayload]{
+		id:           id,
 		payload:      payload,
 		reason:       evt.Reason(),
 		time:         evt.Time(),
