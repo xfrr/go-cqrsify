@@ -1,8 +1,8 @@
 package aggregate_test
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"testing"
 
 	"github.com/xfrr/cqrsify/aggregate"
@@ -69,11 +69,6 @@ func TestHydrate(t *testing.T) {
 	}
 }
 
-func randomStr() string {
-	rnd := rand.Intn(1000)
-	return fmt.Sprint(rnd)
-}
-
 func makeEvents(aggID, aggName string, n int) []aggregate.Change {
 	events := []aggregate.Change{}
 	for i := 0; i < n; i++ {
@@ -91,4 +86,10 @@ func makeEvents(aggID, aggName string, n int) []aggregate.Change {
 
 type mockAggregate struct {
 	*aggregate.Base[string]
+}
+
+func randomStr() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }

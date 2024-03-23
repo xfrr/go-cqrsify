@@ -1,10 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
-	"math/rand"
-	"time"
 
 	"github.com/xfrr/cqrsify/aggregate"
 	"github.com/xfrr/cqrsify/event"
@@ -18,7 +17,7 @@ const (
 
 func main() {
 	// create a new aggregate with a random ID
-	agg := makeAggregate(randomID(), "aggregate-name")
+	agg := makeAggregate(randomStr(), "aggregate-name")
 
 	log.Printf("Aggregate created: %s\n", coloured(agg.String()))
 
@@ -58,7 +57,7 @@ func (agg *CustomAggregate) ChangeStatus(status string) error {
 	// ...
 
 	// generate a new random event ID
-	eventID := randomID()
+	eventID := randomStr()
 
 	// use aggregate.Change to apply the event and record it
 	aggregate.NextChange(
@@ -100,7 +99,7 @@ func makeAggregate(id string, name string) *CustomAggregate {
 	// apply the change to the aggregate
 	aggregate.NextChange(
 		agg,
-		randomID(),
+		randomStr(),
 		CustomAggregateCreatedEventName,
 		CustomAggregateCreatedEvent{
 			ID:     agg.AggregateID(),
@@ -120,11 +119,12 @@ func changeStatus(agg *CustomAggregate, status string) {
 	agg.CommitChanges()
 }
 
-func randomID() string {
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("%d", rnd.Intn(1000))
-}
-
 func coloured(s string) string {
 	return fmt.Sprintf("\033[1;36m%s\033[0m", s)
+}
+
+func randomStr() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
