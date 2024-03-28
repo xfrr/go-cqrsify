@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 type mockBus struct {

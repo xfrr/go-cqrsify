@@ -1,6 +1,6 @@
 
-# **CQRSify**
-> Lightweight, easy-to-use Go library designed to facilitate the implementation of software engineering principles such as Domain-Driven Design (DDD), Clean Architecture, Event-Sourcing, and Event-Driven systems.
+# **go-cqrsify**
+> Lightweight, easy-to-use Go library designed to facilitate the implementation of software engineering principles such as Clean Architecture, Event-Sourcing, and Event-Driven.
 
-[GitHub](https://github.com/xfrr/cqrsify/)
+[GitHub](https://github.com/xfrr/go-cqrsify)
 [Get Started](#main)

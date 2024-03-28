@@ -3,7 +3,7 @@ package command_test
 import (
 	"testing"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/go-cqrsify/command"
 )
 
 func TestCommand(t *testing.T) {

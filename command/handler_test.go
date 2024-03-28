@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/go-cqrsify/command"
 )
 
 type mockBus struct {

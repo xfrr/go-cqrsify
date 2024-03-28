@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/go-cqrsify/command"
 )
 
 const (

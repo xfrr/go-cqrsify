@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 type MockEventPayload struct {

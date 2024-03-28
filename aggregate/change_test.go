@@ -3,8 +3,8 @@ package aggregate_test
 import (
 	"testing"
 
-	"github.com/xfrr/cqrsify/aggregate"
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 func TestNextChange(t *testing.T) {

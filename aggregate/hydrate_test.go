@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/xfrr/cqrsify/aggregate"
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 func TestHydrate(t *testing.T) {

@@ -3,7 +3,7 @@ package event_test
 import (
 	"testing"
 
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 func TestNew(t *testing.T) {

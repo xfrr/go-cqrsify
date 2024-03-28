@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/xfrr/cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/aggregate"
 )
 
 var _ aggregate.VersionedRepository[string] = (*InMemory)(nil)

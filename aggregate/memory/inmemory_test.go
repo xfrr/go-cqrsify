@@ -6,9 +6,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/xfrr/cqrsify/aggregate"
-	repository "github.com/xfrr/cqrsify/aggregate/memory"
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate"
+	repository "github.com/xfrr/go-cqrsify/aggregate/memory"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 func TestNewInMemory(t *testing.T) {

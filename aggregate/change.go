@@ -1,7 +1,7 @@
 package aggregate
 
 import (
-	"github.com/xfrr/cqrsify/event"
+	"github.com/xfrr/go-cqrsify/event"
 )
 
 // Change represents an event that changes the state of an Aggregate.

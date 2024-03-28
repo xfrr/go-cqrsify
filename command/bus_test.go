@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/go-cqrsify/command"
 )
 
 func TestBus(t *testing.T) {

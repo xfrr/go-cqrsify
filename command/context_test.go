@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/xfrr/cqrsify/command"
+	"github.com/xfrr/go-cqrsify/command"
 )
 
 func TestContext(t *testing.T) {

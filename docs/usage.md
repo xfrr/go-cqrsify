@@ -1,6 +1,6 @@
 
 # Usage
-This section explains how to use Cqrsify in your application. You can find examples of how to use the library in the [examples](https://github.com/xfrr/cqrsify/tree/main/examples).
+This section explains how to use go-cqrsify in your application. You can find examples of how to use the library in the [examples](https://github.com/xfrr/go-cqrsify/tree/main/examples).
 
 ## Aggregate
 An aggregate is a domain-driven design (DDD) concept that represents a cluster of domain objects that can be treated as a single unit. An aggregate will have a unique identifier and a set of events that represent changes to the aggregate.

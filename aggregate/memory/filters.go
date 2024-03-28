@@ -3,7 +3,7 @@ package memory
 import (
 	"slices"
 
-	"github.com/xfrr/cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/aggregate"
 )
 
 func filterChangesFromVersion(version aggregate.Version, changes []aggregate.Change) []aggregate.Change {
