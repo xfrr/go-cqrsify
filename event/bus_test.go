@@ -43,8 +43,8 @@ func TestBus(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			bus, _ := event.NewBus()
-			evt := event.New("id", "reason", "payload").Any()
-			err := bus.Publish(ctx, mockSubject, evt)
+			evt := event.New("id", mockSubject, "payload").Any()
+			err := bus.Publish(ctx, evt)
 			if err == nil || !errors.Is(err, event.ErrNoSubscribers) {
 				t.Fatalf("expected error to be %v, got %v", event.ErrNoSubscribers, err)
 			}
@@ -60,7 +60,7 @@ func TestBus(t *testing.T) {
 
 			// force cancel context
 			cancel()
-			err = bus.Publish(ctx, mockSubject, event.New("id", "reason", "payload").Any())
+			err = bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
 			if err == nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("expected error to be %v, got %v", context.Canceled, err)
 			}
@@ -104,7 +104,7 @@ func TestBus(t *testing.T) {
 					case <-ctx.Done():
 						return
 					default:
-						bus.Publish(ctx, mockSubject, event.New("id", "reason", "payload").Any())
+						bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
 					}
 				}
 			}()
@@ -130,7 +130,7 @@ func TestBus(t *testing.T) {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
 
-			err = bus.Publish(ctx, mockSubject, event.New("id", "reason", "payload").Any())
+			err = bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}

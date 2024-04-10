@@ -20,13 +20,13 @@ type mockBus struct {
 	subscribeFn    func(ctx context.Context, reason string) (<-chan event.Context[any, any], error)
 }
 
-func (m *mockBus) Publish(ctx context.Context, reason string, evt event.Event[any, any]) error {
+func (m *mockBus) Publish(ctx context.Context, evt event.Event[any, any]) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.publishCalls++
 	if m.publishFn != nil {
-		return m.publishFn(ctx, reason, evt)
+		return m.publishFn(ctx, evt.Reason(), evt)
 	}
 
 	return nil

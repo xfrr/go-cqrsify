@@ -28,7 +28,7 @@ type Bus interface {
 type Publisher interface {
 	// Publish publishes the provided event to the subscribers.
 	// The behavior of this method depends on the implementation.
-	Publish(ctx context.Context, reason string, evt Event[any, any]) error
+	Publish(ctx context.Context, evt Event[any, any]) error
 }
 
 // A Subscriber subscribes to events with a given subject.
@@ -56,15 +56,15 @@ type bus struct {
 // If the context is canceled, the method returns an error.
 // If no subscribers are registered for the provided event reason, the method returns an error.
 // The method blocks until all events are published.
-func (b *bus) Publish(ctx context.Context, reason string, evt Event[any, any]) error {
+func (b *bus) Publish(ctx context.Context, evt Event[any, any]) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	if !b.hasSubscribers(reason) {
-		return fmt.Errorf("%w: %s", ErrNoSubscribers, reason)
+	if !b.hasSubscribers(evt.Reason()) {
+		return fmt.Errorf("%w: %s", ErrNoSubscribers, evt.Reason())
 	}
 
-	for _, sub := range b.subscriptions[reason] {
+	for _, sub := range b.subscriptions[evt.Reason()] {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -74,7 +74,7 @@ func (b *bus) Publish(ctx context.Context, reason string, evt Event[any, any]) e
 			if b.publishTimeout > 0 {
 				err := b.publishWithTimeout(evtctx, sub)
 				if err != nil {
-					b.timeoutFallback(ctx, reason, evt)
+					b.timeoutFallback(ctx, evt.Reason(), evt)
 				}
 			} else {
 				sub <- evtctx

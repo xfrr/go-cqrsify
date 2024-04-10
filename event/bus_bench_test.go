@@ -56,7 +56,7 @@ func BenchmarkBus_Publish(b *testing.B) {
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				err := bus.Publish(ctx, "Event", evt)
+				err := bus.Publish(ctx, evt)
 				if err != nil {
 					panic(err)
 				}
