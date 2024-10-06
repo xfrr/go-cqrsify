@@ -42,11 +42,13 @@ jobs:
       - name: Run benchmark
         run: cd cqrs && go test -bench . | tee output.txt
       - name: Download previous benchmark data
+        if: success()
         uses: actions/cache@v4
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark
       - name: Store benchmark result
+        if: success()
         uses: benchmark-action/github-action-benchmark@v1
         with:
           # Name of the benchmark
@@ -57,20 +59,32 @@ jobs:
           output-file-path: cqrs/output.txt
           # Where the previous data file is stored
           # external-data-json-path: ./cache/benchmark-data.json
-          # Workflow will fail when an alert happens
+          # Fail the workflow if the benchmark result is worse than the previous one
           fail-on-alert: true
-          # The branch to store the benchmark data
-          gh-pages-branch: gh-pages
-          # Where the benchmark data is stored
-          benchmark-data-dir-path: docs/dev/bench
-          # Access token to deploy GitHub Pages branch
+          # GitHub token to push the updated cache file
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Push and deploy GitHub pages branch automatically
+          # Branch to push the updated cache file
+          gh-pages-branch: gh-pages
+          # Path to the directory where the cache file is stored
+          benchmark-data-dir-path: ./docs/dev/bench
+          # Push commit to the branch
           auto-push: true
       # Upload the updated cache file for the next job by actions/cache
-      - name: Upload benchmark data
+      - name: Upload benchmark data cache
         if: success()
         uses: actions/cache@v4
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark
+      # # Commit and push all changed files.
+      # - name: Commit and push benchmark results
+      #   if: github.event_name == 'push' && success()
+      #   env:
+      #     CI_COMMIT_AUTHOR: ${{ github.actor }}
+      #     CI_COMMIT_MESSAGE: 'Update benchmark results'
+      #   run: |
+      #     git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+      #     git config --global user.email "username@users.noreply.github.com"
+      #     git add docs/dev
+      #     git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+      #     git push origin HEAD:gh-pages
