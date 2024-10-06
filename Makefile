@@ -9,10 +9,14 @@ cover-html: cover
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out
 
+.PHONY: test
+test:
+	go test -v ./...
+
 .PHONY: cover-out
-cover-out: cover
+test-cover-out: cover
 	go tool cover -func=coverage.out
 
 .PHONY: cover
-cover: 
+test-cover: 
 	go test -coverprofile=coverage.out ./...
