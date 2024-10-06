@@ -26,7 +26,7 @@ jobs:
           coverage-reports: coverage.txt
           force-coverage-parser: go
       - name: Run benchmark
-        run: go test -bench 'BenchmarkCommandDispatch' | tee output.txt
+        run: cd cqrs && go test -bench . | tee output.txt
       - name: Download previous benchmark data
         uses: actions/cache@v4
         with:
@@ -38,7 +38,7 @@ jobs:
           # What benchmark tool the output.txt came from
           tool: 'go'
           # Where the output from the benchmark tool is stored
-          output-file-path: output.txt
+          output-file-path: cqrs/output.txt
           # Where the previous data file is stored
           external-data-json-path: ./cache/benchmark-data.json
           # Workflow will fail when an alert happens
