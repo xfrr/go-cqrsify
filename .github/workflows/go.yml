@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: ['main']
 
+permissions:
+  # deployments permission to deploy GitHub pages website
+  deployments: write
+  # contents permission to update benchmark contents in gh-pages branch
+  contents: write
+
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
@@ -25,6 +31,14 @@ jobs:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: coverage.txt
           force-coverage-parser: go
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22.x'
       - name: Run benchmark
         run: cd cqrs && go test -bench . | tee output.txt
       - name: Download previous benchmark data
@@ -35,14 +49,24 @@ jobs:
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
+          # Name of the benchmark
+          name: 'CQRS Benchmark'
           # What benchmark tool the output.txt came from
           tool: 'go'
           # Where the output from the benchmark tool is stored
           output-file-path: cqrs/output.txt
           # Where the previous data file is stored
-          external-data-json-path: ./cache/benchmark-data.json
+          # external-data-json-path: ./cache/benchmark-data.json
           # Workflow will fail when an alert happens
           fail-on-alert: true
+          # The branch to store the benchmark data
+          gh-pages-branch: gh-pages
+          # Where the benchmark data is stored
+          benchmark-data-dir-path: docs/dev/bench
+          # Access token to deploy GitHub Pages branch
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Push and deploy GitHub pages branch automatically
+          auto-push: true
       # Upload the updated cache file for the next job by actions/cache
       - name: Upload benchmark data
         if: success()
