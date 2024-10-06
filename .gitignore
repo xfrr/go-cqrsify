@@ -22,3 +22,9 @@ go.work
 
 # code scanning files
 *.sarif
+
+# OSX
+._*
+.DS_Store
+.AppleDouble
+.LSOverride

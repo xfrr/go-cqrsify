@@ -38,7 +38,7 @@ func BenchmarkBus_Publish(b *testing.B) {
 			}
 
 			handler := event.NewHandler[string, MockEventPayload](bus)
-			_, err = handler.Handle(ctx, "Event", MockHandler)
+			_, err = handler.Handle(ctx, "event-reason", MockHandler)
 			if err != nil {
 				panic(err)
 			}
