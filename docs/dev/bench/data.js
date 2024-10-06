@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1728187613033,
+  "lastUpdate": 1728212572329,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -180,6 +180,66 @@ window.BENCHMARK_DATA = {
             "value": 231.3,
             "unit": "ns/op",
             "extra": "4860484 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "c34b50ae8e8914c76639ecd0f8cd1c162b9a4e17",
+          "message": "Refactor GitHub Actions workflow to include additional paths for gh-pages deployment",
+          "timestamp": "2024-10-06T13:02:18+02:00",
+          "tree_id": "3b36724e3eb648d480ee14e34a1731937c517185",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/c34b50ae8e8914c76639ecd0f8cd1c162b9a4e17"
+        },
+        "date": 1728212571919,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchString",
+            "value": 256.2,
+            "unit": "ns/op",
+            "extra": "4014649 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchInt",
+            "value": 300.8,
+            "unit": "ns/op",
+            "extra": "4538868 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStruct",
+            "value": 320.8,
+            "unit": "ns/op",
+            "extra": "4186312 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStringer",
+            "value": 205.3,
+            "unit": "ns/op",
+            "extra": "5407129 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchGoStringer",
+            "value": 211.3,
+            "unit": "ns/op",
+            "extra": "5373889 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchCommand",
+            "value": 206.1,
+            "unit": "ns/op",
+            "extra": "5768727 times\n4 procs"
           }
         ]
       }
