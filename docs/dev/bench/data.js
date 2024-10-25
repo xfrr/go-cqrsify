@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1728212947917,
+  "lastUpdate": 1729894778092,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -360,6 +360,66 @@ window.BENCHMARK_DATA = {
             "value": 218.1,
             "unit": "ns/op",
             "extra": "5422257 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "ae3203f0bb9c7918dc8482fb59465d63d104b05d",
+          "message": "Add event WithTime func option",
+          "timestamp": "2024-10-26T00:19:05+02:00",
+          "tree_id": "2a21a29b301b215a37ced072045e05d1e4d01072",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/ae3203f0bb9c7918dc8482fb59465d63d104b05d"
+        },
+        "date": 1729894777738,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchString",
+            "value": 325.5,
+            "unit": "ns/op",
+            "extra": "4442887 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchInt",
+            "value": 304.6,
+            "unit": "ns/op",
+            "extra": "4431025 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStruct",
+            "value": 336.8,
+            "unit": "ns/op",
+            "extra": "4253014 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStringer",
+            "value": 219.4,
+            "unit": "ns/op",
+            "extra": "4998321 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchGoStringer",
+            "value": 206.5,
+            "unit": "ns/op",
+            "extra": "6078726 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchCommand",
+            "value": 239.3,
+            "unit": "ns/op",
+            "extra": "4418137 times\n4 procs"
           }
         ]
       }
