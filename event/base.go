@@ -73,6 +73,13 @@ func WithAggregate[ID comparable](id ID, name string, version int) NewOption {
 	}
 }
 
+// WithTime sets the event's time to the given value.
+func WithTime(t time.Time) NewOption {
+	return func(e *Base[any, any]) {
+		e.time = t
+	}
+}
+
 // New creates a new event with the given reason, and payload.
 // Returns an event with the given options applied.
 // The event's aggregate reference is set to an empty reference if the options are not provided.
