@@ -15,7 +15,7 @@ type ChangeApplier interface {
 }
 
 // NextChange adds and applies a new change (event) to the given Aggregate.
-func NextChange[ID comparable, ChangePayload any](a Aggregate[ID], id, name string, payload ChangePayload) {
+func NextChange[AID comparable, EID comparable, P any](a Aggregate[AID], id EID, name string, payload P) {
 	change := event.New(
 		id,
 		name,
