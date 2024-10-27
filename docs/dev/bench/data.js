@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1729904855806,
+  "lastUpdate": 1729989948709,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -480,6 +480,66 @@ window.BENCHMARK_DATA = {
             "value": 214.9,
             "unit": "ns/op",
             "extra": "5531733 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "092cac2ad0c236db7328556bc6fdac7fe9198827",
+          "message": "fix: refactor Hydrate function to use generic type parameters for the base aggregate",
+          "timestamp": "2024-10-27T02:45:06+02:00",
+          "tree_id": "62eae63de8e35bc0c66b23b49f462818b449cc27",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/092cac2ad0c236db7328556bc6fdac7fe9198827"
+        },
+        "date": 1729989948401,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchString",
+            "value": 347.7,
+            "unit": "ns/op",
+            "extra": "2986657 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchInt",
+            "value": 296.9,
+            "unit": "ns/op",
+            "extra": "4707060 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStruct",
+            "value": 274.1,
+            "unit": "ns/op",
+            "extra": "3803070 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStringer",
+            "value": 217.8,
+            "unit": "ns/op",
+            "extra": "6662610 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchGoStringer",
+            "value": 209.1,
+            "unit": "ns/op",
+            "extra": "4983106 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchCommand",
+            "value": 211.3,
+            "unit": "ns/op",
+            "extra": "6973680 times\n4 procs"
           }
         ]
       }
