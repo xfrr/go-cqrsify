@@ -12,7 +12,7 @@ var (
 // It records and commits the changes if the Aggregate implements the ChangeCommitter interface.
 // It returns an error if the events cannot be applied.
 func Hydrate[ID comparable](a Aggregate[ID], changes []Change) error {
-	base, ok := Cast[string](a)
+	base, ok := Cast[ID](a)
 	if !ok {
 		return ErrInvalidBaseAggregate
 	}
