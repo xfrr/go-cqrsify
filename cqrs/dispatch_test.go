@@ -86,7 +86,7 @@ func TestDispatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := cqrs.Dispatch(tt.ctx, tt.bus, tt.cmd, tt.opts...)
+			res, err := cqrs.Dispatch[any](tt.ctx, tt.bus, tt.cmd, tt.opts...)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error to be %v, got %v", tt.wantErr, err)
 			}

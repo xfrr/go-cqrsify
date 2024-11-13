@@ -29,7 +29,7 @@ func TestHandle(t *testing.T) {
 			},
 		}
 
-		err := cqrs.Handle[MockCommandPayload](context.Background(), mockBus, nil)
+		err := cqrs.Handle[MockCommandPayload, any](context.Background(), mockBus, nil)
 		if !errors.Is(err, cqrs.ErrNilHandler) {
 			t.Fatalf("expected error to be %v, got %v", cqrs.ErrNilHandler, err)
 		}

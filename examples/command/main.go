@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -11,7 +12,7 @@ import (
 
 const TimeoutSeconds = 1
 
-// ANSI escape codes for colors
+// ANSI escape codes for colors.
 const (
 	Reset  = "\033[0m"
 	Red    = "\033[31m"
@@ -26,28 +27,31 @@ type SpeechCommand struct {
 	IsError bool   `json:"-"`
 }
 
+type SpeechCommandResponse struct {
+}
+
 func (c SpeechCommand) CommandName() string {
 	return "speech-command"
 }
 
 // The handler function we will use to handle the SpeechCommand.
-func SpeechCommandHandler(ctx context.Context, cmd SpeechCommand) (interface{}, error) {
+func SpeechCommandHandler(ctx context.Context, cmd SpeechCommand) (cqrs.EmptyRequestResponse, error) {
 	fmt.Printf("\n📨 %sCommand Received!: %s %s\n", Green, cmd.Speech, Reset)
 
-	if cmd.IsError {
-		panic(`Simulating a panic error processing the command!`)
+	if !cmd.IsError {
+		return cqrs.EmptyRequestResponse{}, nil
 	}
 
-	return nil, nil
+	return cqrs.EmptyRequestResponse{}, errors.New("simulating an error processing the command")
 }
 
 func main() {
 	// Wait for interrupt signal to gracefully shutdown the app.
 	// Press Ctrl+C to trigger the interrupt signal.
-	ctx, stopSignal := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stopSignal()
+	ctx, cancelSignal := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancelSignal()
 
-	bus := cqrs.NewBus()
+	bus := cqrs.NewInMemoryBus()
 	bus.Use(cqrs.RecoverMiddleware(func(r interface{}) {
 		fmt.Printf("\n%s🚨 Recovered from panic: %v%s\n", Red, r, Reset)
 	}))
@@ -58,26 +62,26 @@ func main() {
 		panicErr(err)
 	}
 
-	if _, err = dispatchSpeechCommand(ctx, bus, SpeechCommand{
-		Speech: "This is a sample speech command!",
+	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
+		Speech:  "This is a sample speech command!",
+		IsError: false,
 	}); err != nil {
 		panicErr(err)
 	}
 
-	if _, err = dispatchSpeechCommand(ctx, bus, SpeechCommand{
+	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
 		Speech:  "This is a sample speech command simulating an error!",
 		IsError: true, // Just to simulate an error.
 	}); err != nil {
 		fmt.Printf("\n%s%s%s\n", Red, err.Error(), Reset)
 	}
 
-	fmt.Printf("\n%s🚀 %sAll commands dispatched!%s\n", Cyan, Green, Reset)
-	stopSignal()
+	cancelSignal()
 }
 
-func dispatchSpeechCommand(ctx context.Context, bus cqrs.Bus, cmd SpeechCommand) (interface{}, error) {
+func dispatchCommand(ctx context.Context, bus cqrs.Bus, cmd SpeechCommand) (any, error) {
 	fmt.Printf("\n🚀 %sDispatching Command: %s%s\n", Cyan, cmd.Speech, Reset)
-	return cqrs.Dispatch(ctx, bus, cmd)
+	return cqrs.Dispatch[*SpeechCommandResponse](ctx, bus, cmd)
 }
 
 func panicErr(err error) {

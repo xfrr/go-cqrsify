@@ -5,7 +5,7 @@ import (
 )
 
 // HandlerFunc is a function to handle requests.
-type HandlerFunc[Request any] func(ctx context.Context, req Request) (interface{}, error)
+type HandlerFunc[Response, Request any] func(ctx context.Context, req Request) (Response, error)
 
 // HandlerFuncAny is a handler function that handles a request.
 type HandlerFuncAny func(ctx context.Context, req interface{}) (interface{}, error)
@@ -25,10 +25,10 @@ type HandlerFuncAny func(ctx context.Context, req interface{}) (interface{}, err
 // - If the payload is a fmt.GoStringer, the identifier will be the Go string representation of the request.
 //
 // - If the payload is another type, the identifier will be the type name of the request (fmt.Sprintf("%T", request)).
-func Handle[Request any](
+func Handle[Response, Request any](
 	ctx context.Context,
 	bus Bus,
-	handler HandlerFunc[Request],
+	handler HandlerFunc[Response, Request],
 ) error {
 	if bus == nil {
 		return ErrNilBus
@@ -42,7 +42,7 @@ func Handle[Request any](
 	return bus.RegisterHandler(ctx, cmdname, wrapHandler(handler))
 }
 
-func wrapHandler[Request any](handler HandlerFunc[Request]) func(context.Context, interface{}) (interface{}, error) {
+func wrapHandler[Response, Request any](handler HandlerFunc[Response, Request]) func(context.Context, interface{}) (interface{}, error) {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		cmd, ok := request.(Request)
 		if !ok {

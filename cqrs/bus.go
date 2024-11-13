@@ -7,36 +7,37 @@ import (
 
 const HeaderKey = "cqrs_header"
 
-type bus struct {
+type InMemoryBus struct {
 	handlers    sync.Map
 	middlewares []Middleware
 }
 
-func NewBus() *bus {
-	return &bus{
-		handlers: sync.Map{},
+func NewInMemoryBus() *InMemoryBus {
+	return &InMemoryBus{
+		handlers:    sync.Map{},
+		middlewares: []Middleware{},
 	}
 }
 
-func (b *bus) Close() {
-	b.handlers.Range(func(key, value interface{}) bool {
+func (b *InMemoryBus) Close() {
+	b.handlers.Range(func(key, _ interface{}) bool {
 		b.handlers.Delete(key)
 		return true
 	})
 }
 
-func (b *bus) Exists(name string) bool {
+func (b *InMemoryBus) Exists(name string) bool {
 	_, ok := b.handlers.Load(name)
 	return ok
 }
 
 // Use adds a middleware to all handlers registered in the bus.
-func (b *bus) Use(middleware func(func(context.Context, interface{}) (interface{}, error)) func(context.Context, interface{}) (interface{}, error)) {
+func (b *InMemoryBus) Use(middleware Middleware) {
 	b.middlewares = append(b.middlewares, middleware)
 }
 
 // Dispatch dispatches a request to the bus.
-func (b *bus) Dispatch(
+func (b *InMemoryBus) Dispatch(
 	ctx context.Context,
 	name string,
 	request interface{},
@@ -55,7 +56,7 @@ func (b *bus) Dispatch(
 	return h(ctx, request)
 }
 
-func (b *bus) RegisterHandler(
+func (b *InMemoryBus) RegisterHandler(
 	ctx context.Context,
 	name string,
 	handler HandlerFuncAny,
@@ -75,6 +76,6 @@ func (b *bus) RegisterHandler(
 	return nil
 }
 
-func (b *bus) UnregisterHandler(ctx context.Context, name string) {
+func (b *InMemoryBus) UnregisterHandler(ctx context.Context, name string) {
 	b.handlers.Delete(name)
 }

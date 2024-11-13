@@ -75,6 +75,13 @@ func benchmarkCommandDispatch(b *testing.B, cmd interface{}) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		cqrs.Dispatch(ctx, bus, cmd)
+		res, err := cqrs.Dispatch[any](ctx, bus, cmd)
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+
+		if res != nil {
+			b.Fatalf("expected response to be nil, got %v", res)
+		}
 	}
 }

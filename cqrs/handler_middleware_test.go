@@ -15,7 +15,7 @@ func TestRecoverMiddleware(t *testing.T) {
 	}
 
 	middleware := cqrs.RecoverMiddleware(hook)
-	handler := middleware(func(ctx context.Context, cmd interface{}) (interface{}, error) {
+	handler := middleware(func(_ context.Context, _ interface{}) (interface{}, error) {
 		panic("test panic")
 	})
 
@@ -30,13 +30,13 @@ func TestRecoverMiddleware(t *testing.T) {
 }
 
 func TestChainMiddleware(t *testing.T) {
-	middleware1 := func(next func(context.Context, interface{}) (interface{}, error)) func(context.Context, interface{}) (interface{}, error) {
-		return func(ctx context.Context, cmd interface{}) (interface{}, error) {
+	middleware1 := func(next cqrs.HandlerFuncAny) cqrs.HandlerFuncAny {
+		return func(ctx context.Context, _ interface{}) (interface{}, error) {
 			return next(ctx, "middleware1")
 		}
 	}
 
-	middleware2 := func(next func(context.Context, interface{}) (interface{}, error)) func(context.Context, interface{}) (interface{}, error) {
+	middleware2 := func(next cqrs.HandlerFuncAny) cqrs.HandlerFuncAny {
 		return func(ctx context.Context, cmd interface{}) (interface{}, error) {
 			if cmd != "middleware1" {
 				return nil, errors.New("unexpected request")
@@ -45,7 +45,7 @@ func TestChainMiddleware(t *testing.T) {
 		}
 	}
 
-	handler := func(ctx context.Context, cmd interface{}) (interface{}, error) {
+	handler := func(_ context.Context, cmd interface{}) (interface{}, error) {
 		if cmd != "middleware2" {
 			return nil, errors.New("unexpected request")
 		}

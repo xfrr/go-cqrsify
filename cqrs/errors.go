@@ -12,4 +12,5 @@ var (
 	ErrNilBus                   = fmt.Errorf("the provided bus is nil")
 	ErrHandleFailed             = fmt.Errorf("failed to handle request")
 	ErrInvalidRequest           = fmt.Errorf("invalid request")
+	ErrorInvalidRequestResponse = fmt.Errorf("invalid request response")
 )

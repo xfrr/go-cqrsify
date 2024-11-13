@@ -1,6 +1,11 @@
 package cqrs
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
+
+type EmptyRequestResponse struct{}
 
 // DispatchOption is a function that modifies the context and the request before dispatching it.
 type DispatchOption func(ctx context.Context, req interface{}) context.Context
@@ -20,20 +25,36 @@ type DispatchOption func(ctx context.Context, req interface{}) context.Context
 // - If the payload is another type, the identifier will be the type name of the request (fmt.Sprintf("%T", request)).
 //
 // The request is dispatched to the bus and the response is returned.
-func Dispatch[Request any](
+func Dispatch[Response, Request any](
 	ctx context.Context,
 	bus Bus,
 	req Request,
 	opts ...DispatchOption,
-) (interface{}, error) {
+) (Response, error) {
+	var res Response
+
 	if bus == nil {
-		return nil, ErrNilBus
+		return res, ErrNilBus
 	}
 
 	id := getIdentifier(req)
 	if id == "" {
-		return nil, ErrInvalidRequest
+		return res, ErrInvalidRequest
 	}
 
-	return bus.Dispatch(ctx, id, req, opts...)
+	rawResponse, err := bus.Dispatch(ctx, id, req, opts...)
+	if err != nil {
+		return res, err
+	}
+
+	if rawResponse == nil {
+		return res, nil
+	}
+
+	response, ok := rawResponse.(Response)
+	if !ok {
+		return res, fmt.Errorf("invalid response type: %T, expected: %T", rawResponse, res)
+	}
+
+	return response, nil
 }

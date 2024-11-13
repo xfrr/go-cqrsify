@@ -9,7 +9,7 @@ import (
 )
 
 func TestNewBus(t *testing.T) {
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	if b == nil {
 		t.Fatal("expected non-nil bus")
 	}
@@ -18,7 +18,7 @@ func TestNewBus(t *testing.T) {
 func TestBus_RegisterHandler(t *testing.T) {
 	ctx := context.Background()
 
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, nil
 	}
@@ -36,7 +36,7 @@ func TestBus_RegisterHandler(t *testing.T) {
 
 func TestBus_UnregisterHandler(t *testing.T) {
 	ctx := context.Background()
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, nil
 	}
@@ -55,7 +55,7 @@ func TestBus_UnregisterHandler(t *testing.T) {
 func TestBus_Dispatch(t *testing.T) {
 	ctx := context.Background()
 
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		header, ok := cqrs.HeaderFromContext(ctx)
 		if !ok {
@@ -96,7 +96,7 @@ func TestBus_Dispatch(t *testing.T) {
 func TestBus_Close(t *testing.T) {
 	ctx := context.Background()
 
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, nil
 	}
@@ -115,13 +115,13 @@ func TestBus_Close(t *testing.T) {
 func TestBus_Use(t *testing.T) {
 	ctx := context.Background()
 
-	middleware := func(next func(context.Context, interface{}) (interface{}, error)) func(context.Context, interface{}) (interface{}, error) {
-		return func(ctx context.Context, req interface{}) (interface{}, error) {
-			return next(ctx, req)
+	middleware := func(next cqrs.HandlerFuncAny) cqrs.HandlerFuncAny {
+		return func(ctx context.Context, cmd interface{}) (interface{}, error) {
+			return next(ctx, cmd)
 		}
 	}
 
-	b := cqrs.NewBus()
+	b := cqrs.NewInMemoryBus()
 	b.Use(middleware)
 
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
