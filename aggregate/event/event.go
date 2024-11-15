@@ -20,11 +20,11 @@ type Event[ID comparable, Payload any] interface {
 	// Payload returns the event's payload.
 	Payload() Payload
 
-	// Reason returns the event's reason.
-	Reason() string
+	// Name returns the event's name.
+	Name() string
 
 	// Time returns the event's time.
-	Time() time.Time
+	OccurredAt() time.Time
 
 	// Aggregate returns the event's aggregate reference.
 	Aggregate() *AggregateRef[any]
@@ -47,8 +47,8 @@ func Cast[OutID comparable, OutPayload any, InputID comparable, InputPayload any
 	return &Base[OutID, OutPayload]{
 		id:           id,
 		payload:      payload,
-		reason:       evt.Reason(),
-		time:         evt.Time(),
+		name:         evt.Name(),
+		occurredAt:   evt.OccurredAt(),
 		aggregateRef: evt.Aggregate(),
 	}, true
 }

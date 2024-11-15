@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/xfrr/go-cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate/event"
 )
 
 type MockEventPayload struct {
@@ -16,15 +16,15 @@ type MockResponse struct {
 	Result string
 }
 
-func MockHandler(ctx event.Context[string, MockEventPayload]) error {
+func MockHandler(_ event.Context[string, MockEventPayload]) error {
 	return nil
 }
 
-var (
-	bufferSizes = []uint{1, 10, 100, 500, 1000}
-)
-
 func BenchmarkBus_Publish(b *testing.B) {
+	var (
+		bufferSizes = []uint{1, 10, 100, 500, 1000}
+	)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -32,13 +32,13 @@ func BenchmarkBus_Publish(b *testing.B) {
 		name := fmt.Sprintf("buffer-size-%d", bufferSize)
 		b.Run(name, func(b *testing.B) {
 
-			bus, err := event.NewBus(event.WithBufferSize(bufferSize))
+			bus, err := event.NewInMemoryBus(event.WithBufferSize(bufferSize))
 			if err != nil {
 				panic(err)
 			}
 
 			handler := event.NewHandler[string, MockEventPayload](bus)
-			_, err = handler.Handle(ctx, "event-reason", MockHandler)
+			_, err = handler.Handle(ctx, "event-name", MockHandler)
 			if err != nil {
 				panic(err)
 			}
@@ -47,16 +47,19 @@ func BenchmarkBus_Publish(b *testing.B) {
 				Greeting: "Hello World!",
 			}
 
-			evt := event.New(
+			evt, err := event.New(
 				"event-id",
-				"event-reason",
+				"event-name",
 				payload,
-			).Any()
+			)
+			if err != nil {
+				b.Fatal(err)
+			}
 
 			b.ResetTimer()
 
 			for i := 0; i < b.N; i++ {
-				err := bus.Publish(ctx, evt)
+				err = bus.Publish(ctx, evt.Any())
 				if err != nil {
 					panic(err)
 				}

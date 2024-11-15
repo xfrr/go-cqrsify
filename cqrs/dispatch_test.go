@@ -14,7 +14,7 @@ func TestDispatch(t *testing.T) {
 	tests := []struct {
 		name    string
 		ctx     context.Context
-		cmd     interface{}
+		payload interface{}
 		opts    []cqrs.DispatchOption
 		wantErr error
 		bus     cqrs.Bus
@@ -22,23 +22,23 @@ func TestDispatch(t *testing.T) {
 		{
 			name:    "should fail to dispatch nil bus",
 			ctx:     context.Background(),
-			cmd:     struct{}{},
+			payload: struct{}{},
 			wantErr: cqrs.ErrNilBus,
 		},
 		{
 			name:    "should fail to dispatch nil command",
 			ctx:     context.Background(),
-			cmd:     nil,
+			payload: nil,
 			wantErr: cqrs.ErrInvalidRequest,
 			bus:     &mockBus{},
 		},
 		{
 			name:    "should fail to dispatch command",
 			ctx:     context.Background(),
-			cmd:     struct{}{},
+			payload: struct{}{},
 			wantErr: mockError,
 			bus: &mockBus{
-				dispatch: func(ctx context.Context, cmdname string, cmd interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error) {
+				dispatch: func(ctx context.Context, name string, payload interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error) {
 					return nil, mockError
 				},
 			},
@@ -46,10 +46,10 @@ func TestDispatch(t *testing.T) {
 		{
 			name:    "should dispatch struct command successfully",
 			ctx:     context.Background(),
-			cmd:     struct{}{},
+			payload: struct{}{},
 			wantErr: nil,
 			bus: &mockBus{
-				dispatch: func(ctx context.Context, cmdname string, cmd interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error) {
+				dispatch: func(_ context.Context, _ string, _ interface{}, _ ...cqrs.DispatchOption) (response interface{}, err error) {
 					return nil, nil
 				},
 			},
@@ -57,28 +57,28 @@ func TestDispatch(t *testing.T) {
 		{
 			name:    "should dispatch string command successfully",
 			ctx:     context.Background(),
-			cmd:     "Hello, World!",
+			payload: "Hello, World!",
 			wantErr: nil,
 			bus:     &mockBus{},
 		},
 		{
 			name:    "should dispatch stringer command successfully",
 			ctx:     context.Background(),
-			cmd:     cmdStringer{},
+			payload: cmdStringer{},
 			wantErr: nil,
 			bus:     &mockBus{},
 		},
 		{
 			name:    "should dispatch gostringer command successfully",
 			ctx:     context.Background(),
-			cmd:     cmdGoStringer{},
+			payload: cmdGoStringer{},
 			wantErr: nil,
 			bus:     &mockBus{},
 		},
 		{
 			name:    "should dispatch command successfully",
 			ctx:     context.Background(),
-			cmd:     cmd{},
+			payload: cmd{},
 			wantErr: nil,
 			bus:     &mockBus{},
 		},
@@ -86,7 +86,7 @@ func TestDispatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res, err := cqrs.Dispatch[any](tt.ctx, tt.bus, tt.cmd, tt.opts...)
+			res, err := cqrs.Dispatch[any](tt.ctx, tt.bus, tt.payload, tt.opts...)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("expected error to be %v, got %v", tt.wantErr, err)
 			}

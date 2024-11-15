@@ -1,4 +1,4 @@
-package memory_test
+package inmemory_test
 
 import (
 	"context"
@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/xfrr/go-cqrsify/aggregate"
-	repository "github.com/xfrr/go-cqrsify/aggregate/memory"
-	"github.com/xfrr/go-cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate/event"
+
+	inmemory "github.com/xfrr/go-cqrsify/aggregate/inmemory"
 )
 
-func TestNewInMemory(t *testing.T) {
-	sut := repository.NewRepository()
+func TestNewRepository(t *testing.T) {
+	sut := inmemory.NewAggregateRepository()
 	if sut == nil {
 		t.Fatal("NewInMemory() should not return nil")
 	}
@@ -23,7 +24,7 @@ func TestNewInMemory(t *testing.T) {
 }
 
 func TestInMemory_Delete(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -31,8 +32,8 @@ func TestInMemory_Delete(t *testing.T) {
 		t.Fatal("expected aggregate to not be nil")
 	}
 
-	// add and apply a change to the aggregate
-	aggregate.NextChange(agg, "cid", "cname", "payload")
+	// add and apply a event to the aggregate
+	aggregate.RaiseEvent(agg, "cid", "cname", "payload")
 
 	// save the aggregate
 	if err := sut.Save(ctx, agg); err != nil {
@@ -46,7 +47,7 @@ func TestInMemory_Delete(t *testing.T) {
 }
 
 func TestInMemory_Exists(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -68,7 +69,7 @@ func TestInMemory_Exists(t *testing.T) {
 }
 
 func TestInMemory_ExistsVersion(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -90,7 +91,7 @@ func TestInMemory_ExistsVersion(t *testing.T) {
 }
 
 func TestInMemory_Load(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -98,8 +99,8 @@ func TestInMemory_Load(t *testing.T) {
 		t.Fatal("expected aggregate to not be nil")
 	}
 
-	// add and apply a change to the aggregate
-	aggregate.NextChange(agg, "cid", "cname", "payload")
+	// add and apply a event to the aggregate
+	aggregate.RaiseEvent(agg, "cid", "cname", "payload")
 
 	// save the aggregate
 	if err := sut.Save(ctx, agg); err != nil {
@@ -122,13 +123,13 @@ func TestInMemory_Load(t *testing.T) {
 		t.Errorf("expected aggregate version to be 1, got %d", foundAgg.AggregateVersion())
 	}
 
-	if len(foundAgg.AggregateChanges()) != 0 {
-		t.Errorf("expected aggregate changes to be empty, got %d", len(foundAgg.AggregateChanges()))
+	if len(foundAgg.AggregateEvents()) != 0 {
+		t.Errorf("expected aggregate events to be empty, got %d", len(foundAgg.AggregateEvents()))
 	}
 }
 
 func TestInMemory_LoadVersion(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -136,8 +137,8 @@ func TestInMemory_LoadVersion(t *testing.T) {
 		t.Fatal("expected aggregate to not be nil")
 	}
 
-	// add and apply a change to the aggregate
-	aggregate.NextChange(agg, "cid", "cname", "payload")
+	// add and apply a event to the aggregate
+	aggregate.RaiseEvent(agg, "cid", "cname", "payload")
 
 	// save the aggregate
 	if err := sut.Save(ctx, agg); err != nil {
@@ -149,8 +150,8 @@ func TestInMemory_LoadVersion(t *testing.T) {
 		t.Errorf("LoadVersion() error = %v, want nil", err)
 	}
 
-	// commit the changes to increase the version
-	agg.CommitChanges()
+	// commit the events to increase the version
+	agg.CommitEvents()
 	if agg.AggregateVersion() != 1 {
 		t.Errorf("expected aggregate version to be 1, got %d", agg.AggregateVersion())
 	}
@@ -167,7 +168,7 @@ func TestInMemory_Search(t *testing.T) {
 	)
 
 	t.Run("should return all aggregates when no criteria is provided", func(t *testing.T) {
-		aggs, err := sut.Search(ctx)
+		aggs, err := sut.Search(ctx, aggregate.SearchCriteria())
 		if err != nil {
 			t.Fatalf("Search() error = %v, want nil", err)
 		}
@@ -180,7 +181,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided ids", func(t *testing.T) {
 		ids := []string{"id-1", "id-2"}
-		aggs, err := sut.Search(ctx, aggregate.WithSearchAggregateIDs(ids...))
+		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateIDs(ids...))
 		if err != nil {
 			t.Fatalf("Search() error = %v, want nil", err)
 		}
@@ -200,7 +201,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided names", func(t *testing.T) {
 		names := []string{"test-1", "test-2"}
-		aggs, err := sut.Search(ctx, aggregate.WithSearchAggregateNames(names...))
+		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateNames(names...))
 		if err != nil {
 			t.Fatalf("Search() error = %v, want nil", err)
 		}
@@ -220,7 +221,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided versions", func(t *testing.T) {
 		version := 1
-		aggs, err := sut.Search(ctx, aggregate.WithSearchAggregateVersions(version))
+		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateVersions(version))
 		if err != nil {
 			t.Fatalf("Search() error = %v, want nil", err)
 		}
@@ -241,7 +242,7 @@ func TestInMemory_Search(t *testing.T) {
 }
 
 func TestInMemory_Save(t *testing.T) {
-	sut := repository.NewRepository()
+	sut := inmemory.NewAggregateRepository()
 	ctx := context.Background()
 
 	agg := aggregate.New("1", "test")
@@ -255,23 +256,27 @@ func TestInMemory_Save(t *testing.T) {
 	}
 }
 
-func newRepositoryWithAggregates(t *testing.T, aggregates ...aggregate.Aggregate[string]) *repository.InMemory {
-	repo := repository.NewRepository()
+func newRepositoryWithAggregates(t *testing.T, aggregates ...aggregate.Aggregate[string]) *inmemory.AggregateRepository {
+	repo := inmemory.NewAggregateRepository()
 	for i, agg := range aggregates {
-		evt := event.New(
+		evt, err := event.New(
 			agg.AggregateID(),
 			"test",
 			testEventPayload{id: fmt.Sprintf("event-id-%d", i)},
 			event.WithAggregate(agg.AggregateID(), agg.AggregateName(), 1),
 		)
-
-		commiter, ok := agg.(aggregate.ChangeCommitter)
-		if !ok {
-			t.Fatalf("aggregate does not implement ChangeCommitter")
+		if err != nil {
+			t.Fatalf("failed to create event: %v", err)
 		}
-		commiter.RecordChange(evt.Any())
 
-		err := repo.Save(context.Background(), agg)
+		eventRecorder, ok := agg.(aggregate.EventRecorder)
+		if !ok {
+			t.Fatalf("aggregate does not implement EventRecorder")
+		}
+
+		eventRecorder.RecordEvent(evt.Any())
+
+		err = repo.Save(context.Background(), agg)
 		if err != nil {
 			t.Fatalf("failed to save aggregate: %v", err)
 		}

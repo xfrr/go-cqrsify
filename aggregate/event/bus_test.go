@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xfrr/go-cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate/event"
 )
 
 func TestBus(t *testing.T) {
@@ -16,7 +16,7 @@ func TestBus(t *testing.T) {
 
 	t.Run("NewBus", func(t *testing.T) {
 		t.Run("should return a new bus", func(t *testing.T) {
-			bus, err := event.NewBus()
+			bus, err := event.NewInMemoryBus()
 			if err != nil {
 				t.Errorf("expected err to be nil, got %v", err)
 			}
@@ -26,7 +26,7 @@ func TestBus(t *testing.T) {
 		})
 
 		t.Run("should return a new bus with buffer size", func(t *testing.T) {
-			bus, err := event.NewBus(
+			bus, err := event.NewInMemoryBus(
 				event.WithBufferSize(100),
 			)
 			if err != nil {
@@ -42,17 +42,21 @@ func TestBus(t *testing.T) {
 		t.Run("should return an error when no subscribers are registered", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			bus, _ := event.NewBus()
-			evt := event.New("id", mockSubject, "payload").Any()
-			err := bus.Publish(ctx, evt)
-			if err == nil || !errors.Is(err, event.ErrNoSubscribers) {
-				t.Fatalf("expected error to be %v, got %v", event.ErrNoSubscribers, err)
+			bus, _ := event.NewInMemoryBus()
+			evt, err := event.New("id", mockSubject, "payload")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = bus.Publish(ctx, evt.Any())
+			if err == nil || !errors.Is(err, event.ErrBusHasNoSubscribers) {
+				t.Fatalf("expected error to be %v, got %v", event.ErrBusHasNoSubscribers, err)
 			}
 		})
 
 		t.Run("should return an error when context is canceled", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
-			bus, _ := event.NewBus()
+			bus, _ := event.NewInMemoryBus()
 			_, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
@@ -60,7 +64,12 @@ func TestBus(t *testing.T) {
 
 			// force cancel context
 			cancel()
-			err = bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
+			evt, err := event.New("id", mockSubject, "payload")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = bus.Publish(ctx, evt.Any())
 			if err == nil || !errors.Is(err, context.Canceled) {
 				t.Fatalf("expected error to be %v, got %v", context.Canceled, err)
 			}
@@ -75,7 +84,7 @@ func TestBus(t *testing.T) {
 				done <- struct{}{}
 			}
 
-			bus, _ := event.NewBus(
+			bus, _ := event.NewInMemoryBus(
 				event.WithPublishTimeout(1*time.Microsecond),
 				event.WithPublishTimeoutFallback(fallback),
 			)
@@ -104,7 +113,12 @@ func TestBus(t *testing.T) {
 					case <-ctx.Done():
 						return
 					default:
-						bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
+						evt, err := event.New("id", mockSubject, "payload")
+						if err != nil {
+							t.Fatalf("expected error to be nil, got %v", err)
+						}
+
+						bus.Publish(ctx, evt.Any())
 					}
 				}
 			}()
@@ -123,14 +137,19 @@ func TestBus(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			bus, _ := event.NewBus()
+			bus, _ := event.NewInMemoryBus()
 
 			ctxch, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
 
-			err = bus.Publish(ctx, event.New("id", mockSubject, "payload").Any())
+			evt, err := event.New("id", mockSubject, "payload")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			err = bus.Publish(ctx, evt.Any())
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)
 			}
@@ -153,7 +172,7 @@ func TestBus(t *testing.T) {
 		t.Run("should return a channel to receive events", func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			bus, _ := event.NewBus()
+			bus, _ := event.NewInMemoryBus()
 			ch, err := bus.Subscribe(ctx, mockSubject)
 			if err != nil {
 				t.Fatalf("expected error to be nil, got %v", err)

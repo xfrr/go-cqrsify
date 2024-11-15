@@ -27,9 +27,6 @@ type SpeechCommand struct {
 	IsError bool   `json:"-"`
 }
 
-type SpeechCommandResponse struct {
-}
-
 func (c SpeechCommand) CommandName() string {
 	return "speech-command"
 }
@@ -81,7 +78,7 @@ func main() {
 
 func dispatchCommand(ctx context.Context, bus cqrs.Bus, cmd SpeechCommand) (any, error) {
 	fmt.Printf("\n🚀 %sDispatching Command: %s%s\n", Cyan, cmd.Speech, Reset)
-	return cqrs.Dispatch[*SpeechCommandResponse](ctx, bus, cmd)
+	return cqrs.Dispatch[cqrs.EmptyRequestResponse](ctx, bus, cmd)
 }
 
 func panicErr(err error) {

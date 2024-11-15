@@ -1,6 +1,8 @@
 package event
 
-import "time"
+import (
+	"time"
+)
 
 var _ Event[any, any] = (*Base[any, any])(nil)
 
@@ -9,8 +11,8 @@ var _ Event[any, any] = (*Base[any, any])(nil)
 type Base[ID comparable, Payload any] struct {
 	id           ID
 	payload      Payload
-	reason       string
-	time         time.Time
+	name         string
+	occurredAt   time.Time
 	aggregateRef *AggregateRef[any]
 }
 
@@ -24,14 +26,14 @@ func (e Base[ID, Payload]) Payload() Payload {
 	return e.payload
 }
 
-// Reason returns the event's reason.
-func (e Base[ID, Payload]) Reason() string {
-	return e.reason
+// Name returns the event unique name.
+func (e Base[ID, Payload]) Name() string {
+	return e.name
 }
 
-// Time returns the event's time.
-func (e Base[ID, Payload]) Time() time.Time {
-	return e.time
+// OccurredAt returns the event's time.
+func (e Base[ID, Payload]) OccurredAt() time.Time {
+	return e.occurredAt
 }
 
 // AggregateRef returns the event's aggregate reference.
@@ -53,10 +55,22 @@ func (e Base[ID, Payload]) Any() *Base[any, any] {
 	return &Base[any, any]{
 		id:           e.id,
 		payload:      e.payload,
-		reason:       e.reason,
-		time:         e.time,
+		name:         e.name,
+		occurredAt:   e.occurredAt,
 		aggregateRef: aggregateRef,
 	}
+}
+
+type ValidationError struct {
+	desc string
+}
+
+func (e ValidationError) Error() string {
+	return e.desc
+}
+
+func NewValidationError(desc string) ValidationError {
+	return ValidationError{desc: desc}
 }
 
 // NewOption represents an option for creating a new event.
@@ -73,38 +87,50 @@ func WithAggregate[ID comparable](id ID, name string, version int) NewOption {
 	}
 }
 
-// WithTime sets the event's time to the given value.
-func WithTime(t time.Time) NewOption {
+// WithOccurredAt sets the event's time to the given value.
+func WithOccurredAt(t time.Time) NewOption {
 	return func(e *Base[any, any]) {
-		e.time = t
+		e.occurredAt = t
 	}
 }
 
-// New creates a new event with the given reason, and payload.
+// New creates a new event with the given name and payload.
 // Returns an event with the given options applied.
 // The event's aggregate reference is set to an empty reference if the options are not provided.
-func New[ID comparable, Payload any](id ID, reason string, payload Payload, opts ...NewOption) *Base[ID, Payload] {
-	e := &Base[any, any]{
-		id:      id,
-		payload: payload,
-		reason:  reason,
-		time:    time.Now(),
-	}
-
-	var castedPayload Payload
-	if e.payload != nil {
-		castedPayload = e.payload.(Payload)
+func New[ID comparable, Payload any](
+	id ID,
+	name string,
+	payload Payload,
+	opts ...NewOption,
+) (*Base[ID, Payload], error) {
+	baseEvent := &Base[any, any]{
+		id:           id,
+		payload:      payload,
+		name:         name,
+		occurredAt:   time.Now(),
+		aggregateRef: nil,
 	}
 
 	for _, opt := range opts {
-		opt(e)
+		opt(baseEvent)
 	}
 
-	return &Base[ID, Payload]{
-		id:           id,
-		payload:      castedPayload,
-		reason:       e.reason,
-		time:         e.time,
-		aggregateRef: e.aggregateRef,
+	if baseEvent.id == nil {
+		return nil, NewValidationError("event ID is nil")
 	}
+
+	if baseEvent.name == "" {
+		return nil, NewValidationError("event name is empty")
+	}
+
+	if baseEvent.payload == nil {
+		return nil, NewValidationError("event payload is nil")
+	}
+
+	casted, ok := Cast[ID, Payload](baseEvent)
+	if !ok {
+		return nil, NewValidationError("failed to cast event")
+	}
+
+	return casted, nil
 }

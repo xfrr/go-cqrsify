@@ -38,17 +38,17 @@ func Handle[Response, Request any](
 		return ErrNilHandler
 	}
 
-	cmdname := getIdentifier(*new(Request))
-	return bus.RegisterHandler(ctx, cmdname, wrapHandler(handler))
+	id := getIdentifier(*new(Request))
+	return bus.RegisterHandler(ctx, id, wrapHandler(handler))
 }
 
 func wrapHandler[Response, Request any](handler HandlerFunc[Response, Request]) func(context.Context, interface{}) (interface{}, error) {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		cmd, ok := request.(Request)
+		req, ok := request.(Request)
 		if !ok {
 			return nil, ErrInvalidRequest
 		}
 
-		return handler(ctx, cmd)
+		return handler(ctx, req)
 	}
 }

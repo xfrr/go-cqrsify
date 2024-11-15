@@ -1,87 +1,85 @@
 package aggregate
 
 var (
-	_ ChangeCommitter = (*Base[any])(nil)
+	_ EventCommitter = (*Base[any])(nil)
 )
 
-// Base provides the basic functionality of an aggregate.
-// It implements the Aggregate and ChangeCommitter interfaces.
-// It can be embedded in a custom aggregate type to provide the core
-// functionality of an aggregate.
+// Base implements the core functionality of an Aggregate.
+// It must be embedded in a struct to implements the Aggregate interface.
 type Base[ID comparable] struct {
 	id      ID
 	name    string
 	version Version
 
-	changes  []Change
-	handlers map[string][]func(Change)
+	events   []Event
+	handlers map[string][]func(Event)
 }
 
 // AggregateID returns the aggregate's ID.
-func (a *Base[ID]) AggregateID() ID {
-	return a.id
+func (agb *Base[ID]) AggregateID() ID {
+	return agb.id
 }
 
 // AggregateName returns the aggregate's name.
-func (a *Base[ID]) AggregateName() string {
-	return a.name
+func (agb *Base[ID]) AggregateName() string {
+	return agb.name
 }
 
-// AggregateChanges returns the aggregate changes (events).
-func (a *Base[ID]) AggregateChanges() []Change {
-	return a.changes
+// AggregateEvents returns the aggregate uncommitted events.
+func (agb *Base[ID]) AggregateEvents() []Event {
+	return agb.events
 }
 
 // AggregateVersion returns the current version of the aggregate.
-func (a *Base[ID]) AggregateVersion() Version {
-	return a.version
+func (agb *Base[ID]) AggregateVersion() Version {
+	return agb.version
 }
 
-// RecordChange adds the given changes as uncommitted events to the aggregate.
-// It implements the ChangeCommitter interface.
-func (a *Base[ID]) RecordChange(changes ...Change) {
-	a.changes = append(a.changes, changes...)
+// RecordEvent adds the given events as uncommitted events to the aggregate.
+// It implements the EventCommitter interface.
+func (agb *Base[ID]) RecordEvent(events Event) {
+	agb.events = append(agb.events, events)
 }
 
-// CommitChanges commits the aggregate's changes incrementing the version to the last change's version
-// and resetting the changes list.
-// It implements the ChangeCommitter interface.
-func (b *Base[ID]) CommitChanges() {
-	if len(b.changes) == 0 {
+// CommitEvents commits the aggregate's events incrementing the version to the last event's version
+// and resetting the events list.
+// It implements the EventCommitter interface.
+func (agb *Base[ID]) CommitEvents() {
+	if len(agb.events) == 0 {
 		return
 	}
 
-	b.version = Version(UncommittedVersion(b.Any()))
-	b.changes = b.changes[:0]
+	agb.version = Version(UncommittedVersion(agb.Any()))
+	agb.events = agb.events[:0]
 }
 
-// ClearChanges resets the aggregate's changes list.
-// It implements the ChangeCommitter interface.
-func (b *Base[ID]) ClearChanges() {
-	b.changes = b.changes[:0]
+// ClearEvents resets the aggregate's events list.
+// It implements the EventCommitter interface.
+func (agb *Base[ID]) ClearEvents() {
+	agb.events = agb.events[:0]
 }
 
-// When registers a handler for the given change (event) reason.
+// HandleEvent registers a handler for the given event name.
 // The handler is called when the event is applied to the aggregate.
-func (a *Base[ID]) When(reason string, handler func(change Change)) {
-	if a.handlers == nil {
-		a.handlers = make(map[string][]func(change Change))
+func (agb *Base[ID]) HandleEvent(name string, handler func(event Event)) {
+	if agb.handlers == nil {
+		agb.handlers = make(map[string][]func(event Event))
 	}
 
-	if _, ok := a.handlers[reason]; !ok {
-		a.handlers[reason] = []func(change Change){}
+	if _, ok := agb.handlers[name]; !ok {
+		agb.handlers[name] = []func(event Event){}
 	}
 
-	a.handlers[reason] = append(a.handlers[reason], handler)
+	agb.handlers[name] = append(agb.handlers[name], handler)
 }
 
-// ApplyChange calls the handlers for the given change (event) reason.
-func (a *Base[ID]) ApplyChange(ev Change) {
-	if a.handlers == nil {
-		a.handlers = make(map[string][]func(Change))
+// ApplyEvent calls the handlers for the given event (event) name.
+func (agb *Base[ID]) ApplyEvent(ev Event) {
+	if agb.handlers == nil {
+		agb.handlers = make(map[string][]func(Event))
 	}
 
-	if handlers, ok := a.handlers[ev.Reason()]; ok {
+	if handlers, ok := agb.handlers[ev.Name()]; ok {
 		for _, handler := range handlers {
 			handler(ev)
 		}
@@ -89,13 +87,13 @@ func (a *Base[ID]) ApplyChange(ev Change) {
 }
 
 // Any returns a copy of the aggregate with an arbitrary ID type.
-func (a *Base[ID]) Any() *Base[any] {
+func (agb *Base[ID]) Any() *Base[any] {
 	return &Base[any]{
-		id:       a.id,
-		name:     a.name,
-		version:  a.version,
-		changes:  a.changes,
-		handlers: a.handlers,
+		id:       agb.id,
+		name:     agb.name,
+		version:  agb.version,
+		events:   agb.events,
+		handlers: agb.handlers,
 	}
 }
 
@@ -103,8 +101,10 @@ func (a *Base[ID]) Any() *Base[any] {
 // The default version is 0.
 func New[ID comparable](id ID, name string) *Base[ID] {
 	return &Base[ID]{
-		id:      id,
-		name:    name,
-		version: 0,
+		id:       id,
+		name:     name,
+		version:  0,
+		events:   []Event{},
+		handlers: make(map[string][]func(Event)),
 	}
 }

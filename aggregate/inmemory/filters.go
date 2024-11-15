@@ -1,4 +1,4 @@
-package memory
+package inmemory
 
 import (
 	"slices"
@@ -6,9 +6,9 @@ import (
 	"github.com/xfrr/go-cqrsify/aggregate"
 )
 
-func filterChangesFromVersion(version aggregate.Version, changes []aggregate.Change) []aggregate.Change {
-	filtered := make([]aggregate.Change, 0)
-	for _, ch := range changes {
+func filterEventsFromVersion(version aggregate.Version, events []aggregate.Event) []aggregate.Event {
+	filtered := make([]aggregate.Event, 0)
+	for _, ch := range events {
 		aggregateRef := ch.Aggregate()
 		if aggregateRef == nil {
 			continue
@@ -22,13 +22,13 @@ func filterChangesFromVersion(version aggregate.Version, changes []aggregate.Cha
 	return filtered
 }
 
-func filterChangesByAggregateIDs(aggIDs []string, changes []aggregate.Change) []aggregate.Change {
+func filterEventsByAggregateIDs(aggIDs []string, events []aggregate.Event) []aggregate.Event {
 	if len(aggIDs) == 0 {
-		return changes
+		return events
 	}
 
-	filtered := make([]aggregate.Change, 0)
-	for _, ev := range changes {
+	filtered := make([]aggregate.Event, 0)
+	for _, ev := range events {
 		aggregateRef := ev.Aggregate()
 		if aggregateRef == nil {
 			continue
@@ -43,13 +43,13 @@ func filterChangesByAggregateIDs(aggIDs []string, changes []aggregate.Change) []
 	return filtered
 }
 
-func filterChangesByAggregateNames(aggNames []string, changes []aggregate.Change) []aggregate.Change {
+func filterEventsByAggregateNames(aggNames []string, events []aggregate.Event) []aggregate.Event {
 	if len(aggNames) == 0 {
-		return changes
+		return events
 	}
 
-	filtered := make([]aggregate.Change, 0)
-	for _, ev := range changes {
+	filtered := make([]aggregate.Event, 0)
+	for _, ev := range events {
 		aggregateRef := ev.Aggregate()
 		if aggregateRef == nil {
 			continue
@@ -63,13 +63,13 @@ func filterChangesByAggregateNames(aggNames []string, changes []aggregate.Change
 	return filtered
 }
 
-func filterChangesByAggregateVersions(aggVersions []int, changes []aggregate.Change) []aggregate.Change {
+func filterEventsByAggregateVersions(aggVersions []int, events []aggregate.Event) []aggregate.Event {
 	if len(aggVersions) == 0 {
-		return changes
+		return events
 	}
 
-	filtered := make([]aggregate.Change, 0)
-	for _, ev := range changes {
+	filtered := make([]aggregate.Event, 0)
+	for _, ev := range events {
 		aggregateRef := ev.Aggregate()
 		if aggregateRef == nil {
 			continue

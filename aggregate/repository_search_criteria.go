@@ -1,67 +1,51 @@
 package aggregate
 
-// SearchOption is the type that represents the options for criteriaing aggregates.
-type SearchOption func(SearchCriteria)
-
-// SearchCriteria is the interface that wraps the basic methods for criteriaing aggregates.
-type SearchCriteria interface {
-	// Apply applies the given options to the search criteria.
-	Apply(...SearchOption) error
-}
-
-type searchCriteria struct {
+type SearchCriteriaOptions struct {
 	aggregateIDs      []string
 	aggregateNames    []string
 	aggregateVersions []int
 }
 
-func (s *searchCriteria) AggregateIDs() []string {
-	return s.aggregateIDs
+func (sc *SearchCriteriaOptions) AggregateIDs() []string {
+	return sc.aggregateIDs
 }
 
-func (s *searchCriteria) AggregateNames() []string {
-	return s.aggregateNames
+func (sc *SearchCriteriaOptions) AggregateNames() []string {
+	return sc.aggregateNames
 }
 
-func (s *searchCriteria) AggregateVersions() []int {
-	return s.aggregateVersions
+func (sc *SearchCriteriaOptions) AggregateVersions() []int {
+	return sc.aggregateVersions
 }
 
-func (s *searchCriteria) Apply(options ...SearchOption) error {
-	for _, option := range options {
-		option(s)
-	}
-	return nil
-}
-
-// NewSearchCriteria returns a new search criteria.
-func NewSearchCriteria(options ...SearchOption) *searchCriteria {
-	criteria := &searchCriteria{
-		aggregateIDs:      make([]string, 0),
-		aggregateNames:    make([]string, 0),
-		aggregateVersions: make([]int, 0),
-	}
-	criteria.Apply(options...)
-	return criteria
+func (sc *SearchCriteriaOptions) IsEmpty() bool {
+	return len(sc.aggregateIDs) == 0 &&
+		len(sc.aggregateNames) == 0 &&
+		len(sc.aggregateVersions) == 0
 }
 
 // WithSearchAggregateIDs returns a search option that sets the aggregate ids to the search criteria.
-func WithSearchAggregateIDs(ids ...string) SearchOption {
-	return func(c SearchCriteria) {
-		c.(*searchCriteria).aggregateIDs = ids
-	}
+func (sc *SearchCriteriaOptions) WithSearchAggregateIDs(ids ...string) *SearchCriteriaOptions {
+	sc.aggregateIDs = ids
+	return sc
 }
 
 // WithSearchAggregateNames returns a search option that sets the aggregate names to the search criteria.
-func WithSearchAggregateNames(names ...string) SearchOption {
-	return func(c SearchCriteria) {
-		c.(*searchCriteria).aggregateNames = names
-	}
+func (sc *SearchCriteriaOptions) WithSearchAggregateNames(names ...string) *SearchCriteriaOptions {
+	sc.aggregateNames = names
+	return sc
 }
 
 // WithSearchAggregateVersions returns a search option that sets the aggregate versions to the search criteria.
-func WithSearchAggregateVersions(versions ...int) SearchOption {
-	return func(c SearchCriteria) {
-		c.(*searchCriteria).aggregateVersions = versions
+func (sc *SearchCriteriaOptions) WithSearchAggregateVersions(versions ...int) *SearchCriteriaOptions {
+	sc.aggregateVersions = versions
+	return sc
+}
+
+func SearchCriteria() *SearchCriteriaOptions {
+	return &SearchCriteriaOptions{
+		aggregateIDs:      make([]string, 0),
+		aggregateNames:    make([]string, 0),
+		aggregateVersions: make([]int, 0),
 	}
 }

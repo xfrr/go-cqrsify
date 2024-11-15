@@ -37,16 +37,16 @@ func TestChainMiddleware(t *testing.T) {
 	}
 
 	middleware2 := func(next cqrs.HandlerFuncAny) cqrs.HandlerFuncAny {
-		return func(ctx context.Context, cmd interface{}) (interface{}, error) {
-			if cmd != "middleware1" {
+		return func(ctx context.Context, payload interface{}) (interface{}, error) {
+			if payload != "middleware1" {
 				return nil, errors.New("unexpected request")
 			}
 			return next(ctx, "middleware2")
 		}
 	}
 
-	handler := func(_ context.Context, cmd interface{}) (interface{}, error) {
-		if cmd != "middleware2" {
+	handler := func(_ context.Context, payload interface{}) (interface{}, error) {
+		if payload != "middleware2" {
 			return nil, errors.New("unexpected request")
 		}
 		return "success", nil

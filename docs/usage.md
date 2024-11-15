@@ -3,12 +3,12 @@
 This section explains how to use go-cqrsify in your application. You can find examples of how to use the library in the [examples](https://github.com/xfrr/go-cqrsify/tree/main/examples).
 
 ## Aggregate
-An aggregate is a domain-driven design (DDD) concept that represents a cluster of domain objects that can be treated as a single unit. An aggregate will have a unique identifier and a set of events that represent changes to the aggregate.
+An aggregate is a domain-driven design (DDD) concept that represents a cluster of domain objects that can be treated as a single unit. An aggregate will have a unique identifier and a set of events that represent events to the aggregate.
 
-> **Note**: An Event is called a Change in the Aggregate context and is represented by the `Change` struct in the `aggregate` package.
+> **Note**: An Event is called a Event in the Aggregate context and is represented by the `Event` struct in the `aggregate` package.
 
 ### Creating an aggregate
-To create an aggregate, you need to create a struct that embeds the `*aggregate.Base` struct and implements the `aggregate.Aggregate` interface. The `Base` struct provides the basic functionality for an aggregate, such as the `ApplyChange` method, which is used to apply a change to the aggregate.
+To create an aggregate, you need to create a struct that embeds the `*aggregate.Base` struct and implements the `aggregate.Aggregate` interface. The `Base` struct provides the basic functionality for an aggregate, such as the `ApplyEvent` method, which is used to apply a event to the aggregate.
 
 ```go
 type Customer struct {
@@ -27,11 +27,11 @@ func NewCustomer(id string, name string) *Customer {
         name: name,
     }
 
-    // apply the change to the aggregate
+    // apply the event to the aggregate
     // note: this is a helper function that creates an event and applies it to the 
     // aggregate. You can also create the event manually and apply it to the aggregate 
-    // by calling customer.ApplyChange(event)
-	aggregate.ApplyChange(
+    // by calling customer.ApplyEvent(event)
+	aggregate.RaiseEvent(
 		customer,
 		CustomAggregateCreatedEventName,
 		CustomAggregateCreatedEvent{
@@ -43,91 +43,61 @@ func NewCustomer(id string, name string) *Customer {
 }
 ```
 
-### Handling changes
-To handle changes in an aggregate, you need to add an event handler to the aggregate. An event handler is a function that takes a change as an argument. The `When` method is used to add a new event handler to the aggregate.
+### Handling events
+To handle events in an aggregate, you need to add an event handler to the aggregate. An event handler is a function that takes a event as an argument and applies it to the aggregate.
 
 ```go
-// this will add a new event handler for given event reason to the aggregate
-customer.When(reason string, handler func(change Change) error)
-```
-
-### Applying changes
-To apply a change to the aggregate, you need to create an event and apply it to the aggregate. The `ApplyChange` method is used to apply a change to the aggregate.
-
-```go
-// this will apply the change (event) to the aggregate
-customer.ApplyChange(change Change)
+// this will add a new event handler for given event name to the aggregate
+customer.HandleEvent(name string, handler func(event Event) error)
 ```
 
 ---
 
 ## Command
-A Command is a request to perform an action. It is used to represent the intention of the user to change the state of the system. A command is represented by the `Command` struct in the `command` package.
-
-### Creating a command
-To create a command, you need to create a struct that represents the payload of the command and use the `command.New` function to create a new command.
-
-```go
-type CustomerAggregateSampleCommand struct {
-    CustomField string `json:"custom_field"`
-}
-
-func NewCustomerAggregateSampleCommand(commandID, customField string) command.Command[CustomerAggregateSampleCommandPayload] {
-    // create a new command
-   	cmd := command.New[CustomerAggregateSampleCommand](
-        commandID,
-        CustomerAggregateSampleCommand{
-            CustomField: customField,
-        },
-		command.WithAggregate(MockAggregateID, MockAggregateName),
-	)
-
-    return cmd
-}
-```
+A Command is a request to perform an action in the domain. It is used to change the state of the system.
 
 ### Handling a command
-To handle a command, you need to create a new `command.Bus` and creates a new `command.Handler` to handle the command.
+Commands are handled by creating a new `command.Bus` and using the `command.Handle` method to subscribe to the command.
 
 ```go
 // create a new command bus
-cmdbus := command.NewBus()
+cmdbus := cqrs.NewInMemoryBus()
 
-// this will subscribe to the command and handle it asynchronously.
-// it returns a chan of errors that occurred when handling the command
-errs, err := command.Handle(ctx, bus, "command-name", func(ctx command.Context[CustomerAggregateSampleCommand]) error {
+// create a new command handler
+// note: replace ExampleCommand and ExampleResponse with your own types
+commandHandler := func(ctx context.Context, cmd ExampleCommand) (ExampleResponse, error) {
     // handle the command
     // ...
-    return nil
-})
-if err != nil {
-	return err
+    return nil, nil
 }
 
-// listen for errors
-go func() {
-    for err := range errs {
-        // handle the error
-    }
-}()
+// handle the command
+err := cqrs.Handle[Response, Request any](
+    ctx, 
+    bus, 
+    "command-name", 
+    commandHandler,
+)
+// handle error...
 ```
 
 ### Dispatching a command
-To dispatch a command, you need to create a new `command.Bus` and use the `command.Dispatch` method to dispatch the command.
-
+To dispatch a command, 
 ```go
 // create a new command bus
-cmdbus := command.NewBus()
+bus := cqrs.NewInMemoryBus()
 
 // dispatch the command
-err := bus.Dispatch(ctx, "command-name", command.Any())
+// note: replace ExampleCommand and ExampleResponse with your own types
+// you can use cqrs.EmptyRequestResponse for commands that don't have response.
+resp, err := bus.Dispatch[ExampleResponse](ctx, "command-name", ExampleCommand{})
 if err != nil {
 	return err
 }
 ```
 
 ## Event
-The Event represents a change in the domain. It is used to notify other parts of the system that something has happened. An event is represented by the `Event` struct in the `event` package.
+The Event represents a event in the domain. It is used to notify other parts of the system that something has happened. An event is represented by the `Event` struct in the `event` package.
 
 ### Creating an event
 To create an event, you need to create a struct that represents the payload of the event and use the `event.New` function to create a new event.
@@ -141,7 +111,7 @@ func NewCustomAggregateSampleEvent(customerField string) event.Event[CustomerAgg
     // create a new event
     ev := event.New(
         "event-id",
-        CustomAggregateSampleEventReason, 
+        CustomAggregateSampleEventName, 
         CustomerAggregateSampleEventPayload{
             CustomField: customerField,
         },
@@ -151,7 +121,6 @@ func NewCustomAggregateSampleEvent(customerField string) event.Event[CustomerAgg
             Name: "aggregate-name",
             Version: 1,
         }),
-        event.WithVersion(1),
     )
 
     return ev
@@ -163,10 +132,10 @@ To subscribe to an event, you need to create a new `event.Bus` and use the `even
 
 ```go
 // create a new event bus
-evbus := event.NewBus()
+evbus := event.NewInMemoryBus()
 
 // subscribe to the event
-err := event.Handle(ctx, evbus, "event-reason", func(ctx event.Context[CustomerAggregateSampleEvent]) error {
+err := event.Handle(ctx, evbus, "event-name", func(ctx event.Context[CustomerAggregateSampleEvent]) error {
     // handle the event
     // ...
     return nil
@@ -181,10 +150,10 @@ To publish an event, you need to create a new `event.Bus` and use the `bus.Publi
 
 ```go
 // create a new event bus
-evbus := event.NewBus()
+evbus := event.NewInMemoryBus()
 
 // publish the event
-err := evbus.Publish(ctx, "event-reason", event.Any())
+err := evbus.Publish(ctx, "event-name", event.Any())
 if err != nil {
     return err
 }
@@ -199,7 +168,7 @@ An in-memory repository is used to store aggregates in memory. It is useful for 
 
 ```go
 // create a new in-memory repository
-repo := memory.NewRepository()
+repo := inmemory.NewRepository()
 
 // save the aggregate to the repository
 err := repo.Save(ctx, aggregate)

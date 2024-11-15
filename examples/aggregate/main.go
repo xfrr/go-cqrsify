@@ -6,13 +6,13 @@ import (
 	"log"
 
 	"github.com/xfrr/go-cqrsify/aggregate"
-	"github.com/xfrr/go-cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate/event"
 )
 
 // sample event names
 const (
-	CustomAggregateCreatedEventName       = "aggregate.created"
-	CustomAggregateStatusChangedEventName = "aggregate.status_changed"
+	CustomAggregateCreatedEventName      = "aggregate.created"
+	CustomAggregateStatusEventdEventName = "aggregate.status_eventd"
 )
 
 func main() {
@@ -21,13 +21,13 @@ func main() {
 
 	log.Printf("Aggregate created: %s\n", coloured(agg.String()))
 
-	// change the aggregate status and commit the change
-	changeStatus(agg, "ready")
+	// event the aggregate status and commit the event
+	eventStatus(agg, "ready")
 
-	log.Printf("Aggregate status changed: %s\n", coloured(agg.String()))
+	log.Printf("Aggregate status eventd: %s\n", coloured(agg.String()))
 }
 
-type CustomAggregateStatusChanged struct {
+type CustomAggregateStatusEventd struct {
 	Previous string
 	New      string
 }
@@ -52,31 +52,34 @@ func (agg *CustomAggregate) String() string {
 	return fmt.Sprintf("{ID: %s, Status: %s, Version: %d}", agg.AggregateID(), agg.Status, agg.AggregateVersion())
 }
 
-func (agg *CustomAggregate) ChangeStatus(status string) error {
+func (agg *CustomAggregate) EventStatus(status string) error {
 	// business logic and validation goes here
 	// ...
 
 	// generate a new random event ID
 	eventID := randomStr()
 
-	// use aggregate.Change to apply the event and record it
-	aggregate.NextChange(
+	// use aggregate.RaiseEvent to apply the event to the aggregate
+	err := aggregate.RaiseEvent(
 		agg,
 		eventID,
-		CustomAggregateStatusChangedEventName,
-		CustomAggregateStatusChanged{
+		CustomAggregateStatusEventdEventName,
+		CustomAggregateStatusEventd{
 			Previous: agg.Status,
 			New:      status,
 		},
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	return nil
 }
 
-func (agg *CustomAggregate) handleStatusChangedEvent(e event.Event[any, any]) {
-	evt, ok := event.Cast[string, CustomAggregateStatusChanged](e)
+func (agg *CustomAggregate) handleStatusEventdEvent(e event.Event[any, any]) {
+	evt, ok := event.Cast[string, CustomAggregateStatusEventd](e)
 	if !ok {
-		log.Fatalf("failed to cast event %s to CustomAggregateStatusChanged\n", e.Reason())
+		log.Fatalf("failed to cast event %s to CustomAggregateStatusEventd\n", e.Name())
 	}
 
 	agg.Status = evt.Payload().New
@@ -93,11 +96,11 @@ func makeAggregate(id string, name string) *CustomAggregate {
 
 	log.Printf("Aggregate initialized: %s\n", coloured(agg.String()))
 
-	// start listening for status change events
-	agg.When(CustomAggregateStatusChangedEventName, agg.handleStatusChangedEvent)
+	// start listening for status event events
+	agg.HandleEvent(CustomAggregateStatusEventdEventName, agg.handleStatusEventdEvent)
 
-	// apply the change to the aggregate
-	aggregate.NextChange(
+	// apply the event to the aggregate
+	aggregate.RaiseEvent(
 		agg,
 		randomStr(),
 		CustomAggregateCreatedEventName,
@@ -106,17 +109,17 @@ func makeAggregate(id string, name string) *CustomAggregate {
 			Status: agg.Status,
 		})
 
-	// commit the change
-	agg.CommitChanges()
+	// commit the event
+	agg.CommitEvents()
 	return agg
 }
 
-func changeStatus(agg *CustomAggregate, status string) {
-	// apply the change to the aggregate
-	agg.ChangeStatus(status)
+func eventStatus(agg *CustomAggregate, status string) {
+	// apply the event to the aggregate
+	agg.EventStatus(status)
 
-	// commit the change
-	agg.CommitChanges()
+	// commit the event
+	agg.CommitEvents()
 }
 
 func coloured(s string) string {

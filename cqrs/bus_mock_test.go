@@ -9,43 +9,43 @@ import (
 
 type dispatchCall struct {
 	ctx     context.Context
-	cmdname string
-	cmd     interface{}
+	name    string
+	payload interface{}
 	opts    []cqrs.DispatchOption
 }
 
 type registerCall struct {
 	ctx     context.Context
-	cmdname string
+	name    string
 	handler cqrs.HandlerFuncAny
 }
 
 type mockBus struct {
 	lock          sync.Mutex
 	dispatchCalls []dispatchCall
-	dispatch      func(ctx context.Context, cmdname string, cmd interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error)
+	dispatch      func(ctx context.Context, name string, payload interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error)
 	registerCalls []registerCall
-	register      func(ctx context.Context, cmdname string, handler cqrs.HandlerFuncAny) error
+	register      func(ctx context.Context, name string, handler cqrs.HandlerFuncAny) error
 }
 
-func (m *mockBus) Dispatch(ctx context.Context, cmdname string, cmd interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error) {
+func (m *mockBus) Dispatch(ctx context.Context, name string, payload interface{}, opts ...cqrs.DispatchOption) (response interface{}, err error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	m.dispatchCalls = append(m.dispatchCalls, dispatchCall{ctx, cmdname, cmd, opts})
+	m.dispatchCalls = append(m.dispatchCalls, dispatchCall{ctx, name, payload, opts})
 	if m.dispatch != nil {
-		return m.dispatch(ctx, cmdname, cmd, opts...)
+		return m.dispatch(ctx, name, payload, opts...)
 	}
 	return nil, nil
 }
 
-func (m *mockBus) RegisterHandler(ctx context.Context, cmdname string, handler cqrs.HandlerFuncAny) error {
+func (m *mockBus) RegisterHandler(ctx context.Context, name string, handler cqrs.HandlerFuncAny) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	m.registerCalls = append(m.registerCalls, registerCall{ctx, cmdname, handler})
+	m.registerCalls = append(m.registerCalls, registerCall{ctx, name, handler})
 	if m.register != nil {
-		return m.register(ctx, cmdname, handler)
+		return m.register(ctx, name, handler)
 	}
 	return nil
 }

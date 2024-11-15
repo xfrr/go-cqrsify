@@ -8,14 +8,14 @@ type Aggregate[ID comparable] interface {
 	// AggregateName returns the aggregate's name.
 	AggregateName() string
 
-	// AggregateChanges returns the aggregate's events.
-	AggregateChanges() []Change
+	// AggregateEvents returns the aggregate's events.
+	AggregateEvents() []Event
 
 	// AggregateVersion returns the aggregate's version.
 	AggregateVersion() Version
 
-	// ChangeApplier applies changes (events) to the aggregate.
-	ChangeApplier
+	// EventApplier applies events to the aggregate.
+	EventApplier
 }
 
 func Cast[OutID comparable, InID comparable](
@@ -27,10 +27,10 @@ func Cast[OutID comparable, InID comparable](
 	}
 
 	return &Base[OutID]{
-		id:      id,
-		name:    a.AggregateName(),
-		version: a.AggregateVersion(),
-		changes: a.AggregateChanges(),
+		id:       id,
+		name:     a.AggregateName(),
+		version:  a.AggregateVersion(),
+		events:   a.AggregateEvents(),
+		handlers: make(map[string][]func(Event)),
 	}, true
-
 }

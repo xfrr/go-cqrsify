@@ -38,13 +38,13 @@ func (c GetProductNameQuery) QueryName() string {
 func GetProductNameQueryHandler(_ context.Context, gpnq GetProductNameQuery) (*GetProductNameQueryResponse, error) {
 	fmt.Printf("\n📨 Handler: %sGetting product name by ID: %s %s\n", Green, gpnq.ProductID, Reset)
 
-	if gpnq.ProductID == "123" {
-		return &GetProductNameQueryResponse{
-			ProductName: "sample-product-name",
-		}, nil
+	if gpnq.ProductID != "123" {
+		return nil, errors.New("simulating error getting product name")
 	}
 
-	return nil, errors.New("error getting product name")
+	return &GetProductNameQueryResponse{
+		ProductName: "sample-product-name",
+	}, nil
 }
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 }
 
 func dispatchQuery(ctx context.Context, bus cqrs.Bus, qry GetProductNameQuery) (*GetProductNameQueryResponse, error) {
-	fmt.Printf("\n🚀 Main: %sDispatching Query: %s%s\n", Cyan, qry.ProductID, Reset)
+	fmt.Printf("\n🚀 Main: %sDispatch Query: GetProductNameQuery(%s)%s\n", Cyan, qry.ProductID, Reset)
 	return cqrs.Dispatch[*GetProductNameQueryResponse](ctx, bus, qry)
 }
 

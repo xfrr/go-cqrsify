@@ -3,13 +3,16 @@ package event_test
 import (
 	"testing"
 
-	"github.com/xfrr/go-cqrsify/event"
+	"github.com/xfrr/go-cqrsify/aggregate/event"
 )
 
 func TestNew(t *testing.T) {
-	e := event.New("test", "test", &struct{}{},
+	e, err := event.New("test", "test", &struct{}{},
 		event.WithAggregate("aggregate-id", "aggregate-name", 1),
 	)
+	if err != nil {
+		t.Fatalf("event.New() should not return an error: %v", err)
+	}
 	if e == nil {
 		t.Fatal("event.New() should return a valid event")
 	}
@@ -18,15 +21,15 @@ func TestNew(t *testing.T) {
 		t.Error("event.New() should return an event with a valid ID")
 	}
 
-	if e.Reason() != "test" {
-		t.Error("event.New() should return an event with a valid reason")
+	if e.Name() != "test" {
+		t.Error("event.New() should return an event with a valid name")
 	}
 
 	if e.Payload() == nil {
 		t.Error("event.New() should return an event with a valid payload")
 	}
 
-	if e.Time().IsZero() {
+	if e.OccurredAt().IsZero() {
 		t.Error("event.New() should return an event with a valid timestamp")
 	}
 

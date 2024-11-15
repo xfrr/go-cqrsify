@@ -18,13 +18,13 @@ func NewHandler[ID comparable, Payload any](s Subscriber) *Handler[ID, Payload] 
 	return &Handler[ID, Payload]{bus: s}
 }
 
-// Handle subscribes to the provided reason and handles the events asynchronously with the provided handler.
-func (h *Handler[ID, Payload]) Handle(ctx context.Context, reason string, handler HandlerFunc[ID, Payload]) (<-chan error, error) {
+// Handle subscribes to the provided name and handles the events asynchronously with the provided handler.
+func (h *Handler[ID, Payload]) Handle(ctx context.Context, name string, handler HandlerFunc[ID, Payload]) (<-chan error, error) {
 	if handler == nil {
 		return nil, ErrNilHandler
 	}
 
-	contextCh, err := h.bus.Subscribe(ctx, reason)
+	contextCh, err := h.bus.Subscribe(ctx, name)
 	if err != nil {
 		return nil, ErrSubscribeFailed{}.Wrap(err)
 	}
@@ -65,7 +65,7 @@ func (h *Handler[ID, Payload]) handle(ctx context.Context, handlefn HandlerFunc[
 	}
 }
 
-// Subscribe is a shortcut for creating a new handler and subscribe it to the provided bus with given reason.
-func Subscribe[ID comparable, Payload any](ctx context.Context, bus Bus, reason string, handler HandlerFunc[ID, Payload]) (<-chan error, error) {
-	return NewHandler[ID, Payload](bus).Handle(ctx, reason, handler)
+// Subscribe is a shortcut for creating a new handler and subscribe it to the provided bus with given name.
+func Subscribe[ID comparable, Payload any](ctx context.Context, bus Bus, name string, handler HandlerFunc[ID, Payload]) (<-chan error, error) {
+	return NewHandler[ID, Payload](bus).Handle(ctx, name, handler)
 }

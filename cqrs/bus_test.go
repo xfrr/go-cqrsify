@@ -116,8 +116,8 @@ func TestBus_Use(t *testing.T) {
 	ctx := context.Background()
 
 	middleware := func(next cqrs.HandlerFuncAny) cqrs.HandlerFuncAny {
-		return func(ctx context.Context, cmd interface{}) (interface{}, error) {
-			return next(ctx, cmd)
+		return func(ctx context.Context, payload interface{}) (interface{}, error) {
+			return next(ctx, payload)
 		}
 	}
 

@@ -11,8 +11,8 @@ type Bus interface {
 type Dispatcher interface {
 	Dispatch(
 		ctx context.Context,
-		cmdname string,
-		cmd interface{},
+		name string,
+		payload interface{},
 		opts ...DispatchOption,
 	) (response interface{}, err error)
 }
@@ -20,7 +20,7 @@ type Dispatcher interface {
 type Registerer interface {
 	RegisterHandler(
 		ctx context.Context,
-		cmdname string,
+		name string,
 		handler HandlerFuncAny,
 	) error
 }
