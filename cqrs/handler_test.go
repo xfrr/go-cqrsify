@@ -49,8 +49,8 @@ func TestHandle(t *testing.T) {
 			func(_ context.Context, _ MockCommandPayload) (interface{}, error) {
 				return nil, nil
 			})
-		if !errors.Is(err, cqrs.ErrInvalidRequest) {
-			t.Fatalf("expected error to be %v, got %v", cqrs.ErrInvalidRequest, err)
+		if !errors.Is(err, cqrs.ErrBadRequest) {
+			t.Fatalf("expected error to be %v, got %v", cqrs.ErrBadRequest, err)
 		}
 
 		if len(mockBus.registerCalls) != 1 {

@@ -2,7 +2,13 @@ package cqrs
 
 import (
 	"context"
+	"errors"
 	"fmt"
+)
+
+var (
+	// ErrNilDispatcher is returned when dispatching a request with a nil dispatcher.
+	ErrNilDispatcher = errors.New("the provided dispatcher is nil")
 )
 
 type EmptyRequestResponse struct{}
@@ -27,24 +33,24 @@ type DispatchOption func(ctx context.Context, req interface{}) context.Context
 // The request is dispatched to the bus and the response is returned.
 func Dispatch[Response, Request any](
 	ctx context.Context,
-	bus Bus,
+	dispatcher Dispatcher,
 	req Request,
 	opts ...DispatchOption,
 ) (Response, error) {
 	var res Response
 
-	if bus == nil {
-		return res, ErrNilBus
+	if dispatcher == nil {
+		return res, ErrNilDispatcher
 	}
 
 	id := getIdentifier(req)
 	if id == "" {
-		return res, ErrInvalidRequest
+		return res, ErrBadRequest
 	}
 
-	rawResponse, err := bus.Dispatch(ctx, id, req, opts...)
+	rawResponse, err := dispatcher.Dispatch(ctx, id, req, opts...)
 	if err != nil {
-		return res, err
+		return res, fmt.Errorf("dispatching request: %w", err)
 	}
 
 	if rawResponse == nil {

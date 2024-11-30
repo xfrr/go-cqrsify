@@ -23,13 +23,13 @@ func TestDispatch(t *testing.T) {
 			name:    "should fail to dispatch nil bus",
 			ctx:     context.Background(),
 			payload: struct{}{},
-			wantErr: cqrs.ErrNilBus,
+			wantErr: cqrs.ErrNilDispatcher,
 		},
 		{
 			name:    "should fail to dispatch nil command",
 			ctx:     context.Background(),
 			payload: nil,
-			wantErr: cqrs.ErrInvalidRequest,
+			wantErr: cqrs.ErrBadRequest,
 			bus:     &mockBus{},
 		},
 		{

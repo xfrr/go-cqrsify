@@ -9,5 +9,5 @@ var (
 	ErrHandlerAlreadyRegistered = errors.New("handler already registered")
 	ErrNilHandler               = errors.New("the provided handler is nil")
 	ErrNilBus                   = errors.New("the provided bus is nil")
-	ErrInvalidRequest           = errors.New("invalid request")
+	ErrBadRequest               = errors.New("bad request")
 )

@@ -46,7 +46,7 @@ func wrapHandler[Response, Request any](handler HandlerFunc[Response, Request]) 
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req, ok := request.(Request)
 		if !ok {
-			return nil, ErrInvalidRequest
+			return nil, ErrBadRequest
 		}
 
 		return handler(ctx, req)
