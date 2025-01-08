@@ -107,7 +107,7 @@ func TestHandle(t *testing.T) {
 			},
 		}
 
-		_, err := event.Subscribe[string, MockEventPayload](context.Background(), mockSubscriber, "name", func(ctx event.Context[string, MockEventPayload]) error {
+		_, err := event.Subscribe(context.Background(), mockSubscriber, "name", func(ctx event.Context[string, MockEventPayload]) error {
 			return nil
 		})
 		if err, ok := err.(event.ErrSubscribeFailed); !ok {
@@ -135,7 +135,7 @@ func TestHandle(t *testing.T) {
 			},
 		}
 
-		errs, err := event.Subscribe[string, MockEventPayload](ctx, mockSubscriber, "name", func(ctx event.Context[string, MockEventPayload]) error {
+		errs, err := event.Subscribe(ctx, mockSubscriber, "name", func(ctx event.Context[string, MockEventPayload]) error {
 			return nil
 		})
 		if err != nil {

@@ -10,12 +10,15 @@ import (
 
 const (
 	defaultPublishTimeout = 5 * time.Second
-	defaultBufferSize     = 10
+	defaultBufferSize     = 1
 )
 
 var (
 	// ErrBusHasNoSubscribers is returned when a event is published but no subscribers are registered.
 	ErrBusHasNoSubscribers = errors.New("no subscribers")
+
+	// ErrPublishTimeout is returned when the publish operation times out.
+	ErrPublishTimeout = errors.New("publish timeout")
 )
 
 // Bus represents a event bus that can publish events and subscribe to them.
@@ -44,11 +47,9 @@ var _ Bus = (*InMemoryBus)(nil)
 
 // InMemoryBus is a simple in-memory implementation of the Bus interface.
 type InMemoryBus struct {
-	mu                     sync.RWMutex
-	bufferSize             uint
-	subscriptions          map[string][]chan Context[any, any]
-	publishTimeout         time.Duration
-	publishTimeoutFallback func(context.Context, string, Event[any, any])
+	mu            sync.RWMutex
+	bufferSize    uint
+	subscriptions map[string][]chan Context[any, any]
 }
 
 // Publish publishes the provided event to the subscribers.
@@ -56,29 +57,17 @@ type InMemoryBus struct {
 // If no subscribers are registered for the provided event name, the method returns an error.
 // The method blocks until all events are published.
 func (b *InMemoryBus) Publish(ctx context.Context, evt Event[any, any]) error {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	if !b.hasSubscribers(evt.Name()) {
 		return fmt.Errorf("%w: %s", ErrBusHasNoSubscribers, evt.Name())
 	}
 
 	for _, sub := range b.subscriptions[evt.Name()] {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			evtctx := WithContext(ctx, evt)
-
-			if b.publishTimeout > 0 {
-				err := b.publishWithTimeout(evtctx, sub)
-				if err != nil {
-					b.timeoutFallback(ctx, evt.Name(), evt)
-				}
-			} else {
-				sub <- evtctx
-			}
-		}
+		go func(sub chan Context[any, any]) {
+			sub <- WithContext(context.Background(), evt)
+		}(sub)
 	}
 
 	return nil
@@ -100,26 +89,6 @@ func (b *InMemoryBus) Subscribe(ctx context.Context, eventName string) (<-chan C
 	}()
 
 	return ch, nil
-}
-
-func (b *InMemoryBus) publishWithTimeout(evtctx Context[any, any], sub chan Context[any, any]) error {
-	publishCtx, cancel := context.WithTimeout(evtctx, b.publishTimeout)
-	defer cancel()
-
-	select {
-	case sub <- evtctx:
-	case <-publishCtx.Done():
-		return publishCtx.Err()
-	}
-
-	return nil
-}
-
-// timeoutFallback calls the fallback function if the publish times out.
-func (b *InMemoryBus) timeoutFallback(ctx context.Context, subject string, evt Event[any, any]) {
-	if b.publishTimeoutFallback != nil {
-		b.publishTimeoutFallback(ctx, subject, evt)
-	}
 }
 
 func (b *InMemoryBus) newSubscription() chan Context[any, any] {
@@ -156,11 +125,9 @@ func (b *InMemoryBus) removeSubscription(name string, ch chan Context[any, any])
 // The default buffer size is 10 events per subscriber.
 func NewInMemoryBus(opts ...BusOption) (*InMemoryBus, error) {
 	b := &InMemoryBus{
-		mu:                     sync.RWMutex{},
-		bufferSize:             defaultBufferSize,
-		publishTimeout:         defaultPublishTimeout,
-		subscriptions:          make(map[string][]chan Context[any, any]),
-		publishTimeoutFallback: nil,
+		mu:            sync.RWMutex{},
+		bufferSize:    defaultBufferSize,
+		subscriptions: make(map[string][]chan Context[any, any]),
 	}
 	for _, opt := range opts {
 		opt(b)

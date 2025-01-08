@@ -195,6 +195,17 @@ linters-settings:
     # Otherwise, only methods that take `*testing.T`, `*testing.B`, and `testing.TB` as arguments are checked.
     # Default: false
     all: true
+    # GCI (Go Check Imports) is a linter that checks the order of imports.
+    # gci:
+    #   # Skip generated files.
+    #   skip-generated: true
+    #   # Section configuration to compare against.
+    #   # Section names are case-insensitive and may contain parameters in ().
+    #   # Default: ["standard", "default"]
+    #   sections:
+    #   - standard # Captures all standard packages if they do not match another section.
+    #   - default # Contains all imports that could not be matched to another section type.
+    #   - prefix(github.com/xfrr/cqrsify) # Captures all imports from the github.com/xfrr/cqrsify package.
 
 issues:
   # Maximum count of issues with the same text.
@@ -294,7 +305,7 @@ linters:
   - whitespace # detects leading and trailing whitespace
   - decorder # checks declaration order and count of types, constants, variables and functions
   - exhaustruct # [highly recommend to enable] checks if all structure fields are initialized
-  - gci # controls golang package import order and makes it always deterministic
+  # - gci # controls golang package import order and makes it always deterministic
   - interfacebloat # checks the number of methods inside an interface
   - ireturn # accept interfaces, return concrete types
   - prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
