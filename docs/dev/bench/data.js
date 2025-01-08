@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1732931470104,
+  "lastUpdate": 1736380007188,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -720,6 +720,66 @@ window.BENCHMARK_DATA = {
             "value": 192.6,
             "unit": "ns/op",
             "extra": "6501966 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "7fc3dfdbf23d02feb2176938d498418a829f1283",
+          "message": "refactor: update InMemoryBus implementation to simplify publish logic and remove unused timeout features",
+          "timestamp": "2025-01-09T00:46:13+01:00",
+          "tree_id": "de43af8e6d1035317bca7d269b9c58e171650be4",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/7fc3dfdbf23d02feb2176938d498418a829f1283"
+        },
+        "date": 1736380006722,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchString",
+            "value": 291,
+            "unit": "ns/op",
+            "extra": "3541600 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchInt",
+            "value": 260,
+            "unit": "ns/op",
+            "extra": "4108177 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStruct",
+            "value": 275.4,
+            "unit": "ns/op",
+            "extra": "3702710 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStringer",
+            "value": 211,
+            "unit": "ns/op",
+            "extra": "5255559 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchGoStringer",
+            "value": 229.3,
+            "unit": "ns/op",
+            "extra": "5190248 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchCommand",
+            "value": 231.3,
+            "unit": "ns/op",
+            "extra": "4370418 times\n4 procs"
           }
         ]
       }
