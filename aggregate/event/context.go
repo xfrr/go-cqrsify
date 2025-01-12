@@ -23,13 +23,15 @@ func (c BaseContext[ID, P]) Event() Event[ID, P] {
 }
 
 // Any returns the underlying event as any.
-func (c BaseContext[ID, P]) Any() Context[ID, any] {
-	evt, ok := Cast[ID, any](c.evt)
-	if !ok {
-		return nil
+func (c BaseContext[ID, P]) Any() Context[any, any] {
+	evt := Base[any, any]{
+		id:           any(c.evt.ID()),
+		payload:      any(c.evt.Payload()),
+		name:         c.evt.Name(),
+		occurredAt:   c.evt.OccurredAt(),
+		aggregateRef: c.evt.Aggregate(),
 	}
-
-	return WithContext[ID, any](c, evt)
+	return WithContext(c, evt)
 }
 
 // WithContext returns a context that carries a event.
@@ -44,7 +46,6 @@ func WithContext[ID comparable, Payload any](base context.Context, evt Event[ID,
 func CastContext[OutID comparable, OutPayload any, InputID comparable, InputPayload any](
 	ctx Context[InputID, InputPayload],
 ) (*BaseContext[OutID, OutPayload], bool) {
-
 	// cast the underlying event
 	evt, ok := Cast[OutID, OutPayload](ctx.Event())
 	if !ok {
