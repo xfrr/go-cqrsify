@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736645430190,
+  "lastUpdate": 1736646177951,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -840,6 +840,66 @@ window.BENCHMARK_DATA = {
             "value": 219.8,
             "unit": "ns/op",
             "extra": "4811006 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "c1b48c9cd9d162e968564ad45d3da30572ce67d0",
+          "message": "fix: correct type casting in Any method of BaseContext",
+          "timestamp": "2025-01-12T02:41:44+01:00",
+          "tree_id": "64ca1755f44ac82ccfd79e7735c459b0d421409d",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/c1b48c9cd9d162e968564ad45d3da30572ce67d0"
+        },
+        "date": 1736646177676,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchString",
+            "value": 289.4,
+            "unit": "ns/op",
+            "extra": "3884582 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchInt",
+            "value": 266.2,
+            "unit": "ns/op",
+            "extra": "3862402 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStruct",
+            "value": 262.3,
+            "unit": "ns/op",
+            "extra": "3944276 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchStringer",
+            "value": 211.8,
+            "unit": "ns/op",
+            "extra": "5542093 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchGoStringer",
+            "value": 200.5,
+            "unit": "ns/op",
+            "extra": "5758519 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCommandDispatch/CommandDispatchCommand",
+            "value": 196.5,
+            "unit": "ns/op",
+            "extra": "5160570 times\n4 procs"
           }
         ]
       }
