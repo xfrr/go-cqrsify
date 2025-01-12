@@ -25,8 +25,8 @@ func (c BaseContext[ID, P]) Event() Event[ID, P] {
 // Any returns the underlying event as any.
 func (c BaseContext[ID, P]) Any() Context[any, any] {
 	evt := Base[any, any]{
-		id:           any(c.evt.ID()),
-		payload:      any(c.evt.Payload()),
+		id:           c.evt.ID(),
+		payload:      c.evt.Payload(),
 		name:         c.evt.Name(),
 		occurredAt:   c.evt.OccurredAt(),
 		aggregateRef: c.evt.Aggregate(),
