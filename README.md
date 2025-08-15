@@ -1,4 +1,5 @@
 # GO-CQRSIFY
+
 Lightweight, easy-to-use Go library designed to facilitate the implementation of software engineering principles such as Domain-Driven Design (DDD), Clean Architecture, Event-Sourcing, and Event-Driven systems.
 
   [![Build and Test](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml/badge.svg)](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml)
@@ -6,6 +7,7 @@ Lightweight, easy-to-use Go library designed to facilitate the implementation of
   [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
 ## Purpose
+
 The goal is to provide Go developers with tools that simplify the integration of these complex concepts into their applications, promoting cleaner, more maintainable, and scalable code.
 
 ## Features
@@ -22,6 +24,7 @@ The goal is to provide Go developers with tools that simplify the integration of
 - Go 1.22 or later
 
 ### Installation
+
 You can install Cqrsify by running the following command in your terminal:
 
 ```bash
@@ -29,13 +32,9 @@ go get github.com/xfrr/go-cqrsify
 ```
 
 ## Usage
+
 Check the [examples](https://github.com/xfrr/go-cqrsify/tree/main/examples) folder for usage examples.
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-
-
-
-
-
