@@ -1,0 +1,60 @@
+package message_test
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/xfrr/go-cqrsify/message"
+)
+
+func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
+	bus := message.NewInMemoryBus()
+	handler := &handlerWrapper{
+		fn: func(ctx context.Context, msg message.Message) error {
+			return nil
+		},
+	}
+
+	err := bus.RegisterHandler("TestMessage", handler)
+	require.NoError(b, err)
+
+	msg := TestMessage{message.NewBase("test-message")}
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = bus.Dispatch(ctx, msg)
+	}
+}
+
+func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
+	bus := message.NewInMemoryBus()
+	handler := &handlerWrapper{
+		fn: func(ctx context.Context, msg message.Message) error {
+			return nil
+		},
+	}
+
+	// Add a simple middleware
+	middleware := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+		return &handlerWrapper{
+			fn: func(ctx context.Context, msg message.Message) error {
+				return h.Handle(ctx, msg)
+			},
+		}
+	}
+
+	err := bus.RegisterHandler("TestMessage", handler)
+	require.NoError(b, err)
+
+	bus.Use(middleware)
+
+	msg := TestMessage{message.NewBase("test-message")}
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = bus.Dispatch(ctx, msg)
+	}
+}

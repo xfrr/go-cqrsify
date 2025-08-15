@@ -43,21 +43,12 @@ func (e Base[ID, Payload]) Aggregate() *AggregateRef[any] {
 
 // Any returns the event's payload as an interface.
 func (e Base[ID, Payload]) Any() *Base[any, any] {
-	var aggregateRef *AggregateRef[any]
-	if e.aggregateRef != nil {
-		aggregateRef = &AggregateRef[any]{
-			ID:      e.aggregateRef.ID,
-			Name:    e.aggregateRef.Name,
-			Version: e.aggregateRef.Version,
-		}
-	}
-
 	return &Base[any, any]{
 		id:           e.id,
 		payload:      e.payload,
 		name:         e.name,
 		occurredAt:   e.occurredAt,
-		aggregateRef: aggregateRef,
+		aggregateRef: e.aggregateRef,
 	}
 }
 
