@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
-    branches: ['main']
+    branches: ["main"]
 
 permissions:
   # deployments permission to deploy GitHub pages website
@@ -20,7 +20,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21.x'
+          go-version: "1.21.x"
       - name: Build
         run: go build -v ./...
       - name: Run tests with coverage
@@ -38,9 +38,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22.x'
+          go-version: "1.22.x"
       - name: Run benchmark
-        run: cd cqrs && go test -bench . | tee output.txt
+        run: go test -bench=. ./... | tee output.txt
       - name: Download previous benchmark data
         if: success()
         uses: actions/cache@v4
@@ -51,9 +51,9 @@ jobs:
         if: success()
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: 'CQRS Benchmark'
-          tool: 'go'
-          output-file-path: cqrs/output.txt
+          name: "Benchmark Tests"
+          tool: "go"
+          output-file-path: output.txt
           fail-on-alert: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gh-pages-branch: gh-pages
