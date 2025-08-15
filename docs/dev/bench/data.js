@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1736646177951,
+  "lastUpdate": 1755216577454,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -900,6 +900,74 @@ window.BENCHMARK_DATA = {
             "value": 196.5,
             "unit": "ns/op",
             "extra": "5160570 times\n4 procs"
+          }
+        ]
+      }
+    ],
+    "Benchmark Tests": [
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "b655e42251842288a070f561ff740e4b55ffe52d",
+          "message": "fix: modify benchmark tests directory",
+          "timestamp": "2025-08-15T02:08:52+02:00",
+          "tree_id": "b94678dafd5eaa3517c61b0e4a9d265269914ef5",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/b655e42251842288a070f561ff740e4b55ffe52d"
+        },
+        "date": 1755216576767,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-1",
+            "value": 587,
+            "unit": "ns/op",
+            "extra": "2006708 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-10",
+            "value": 910.5,
+            "unit": "ns/op",
+            "extra": "2093791 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-100",
+            "value": 517.9,
+            "unit": "ns/op",
+            "extra": "2312646 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-500",
+            "value": 508.3,
+            "unit": "ns/op",
+            "extra": "2509099 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-1000",
+            "value": 500.3,
+            "unit": "ns/op",
+            "extra": "2434384 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 80.95,
+            "unit": "ns/op",
+            "extra": "14921359 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 94.95,
+            "unit": "ns/op",
+            "extra": "13442749 times\n4 procs"
           }
         ]
       }
