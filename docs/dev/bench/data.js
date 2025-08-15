@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755216577454,
+  "lastUpdate": 1755216633964,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -968,6 +968,72 @@ window.BENCHMARK_DATA = {
             "value": 94.95,
             "unit": "ns/op",
             "extra": "13442749 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "ab3a79ccd580a8448c20037db8a185937c4c1c9a",
+          "message": "chore: update Go version to 1.24.x in CI workflow",
+          "timestamp": "2025-08-15T02:09:47+02:00",
+          "tree_id": "f1ff3d131b6c449cf0e1634d3c1f9854f2ba1862",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/ab3a79ccd580a8448c20037db8a185937c4c1c9a"
+        },
+        "date": 1755216633462,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-1",
+            "value": 622.3,
+            "unit": "ns/op",
+            "extra": "1993161 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-10",
+            "value": 609.5,
+            "unit": "ns/op",
+            "extra": "2019673 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-100",
+            "value": 531.8,
+            "unit": "ns/op",
+            "extra": "2264372 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-500",
+            "value": 495.8,
+            "unit": "ns/op",
+            "extra": "2421854 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkBus_Publish/buffer-size-1000",
+            "value": 495.8,
+            "unit": "ns/op",
+            "extra": "2424296 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 82.83,
+            "unit": "ns/op",
+            "extra": "14509312 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 86.48,
+            "unit": "ns/op",
+            "extra": "13652804 times\n4 procs"
           }
         ]
       }
