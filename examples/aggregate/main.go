@@ -12,7 +12,7 @@ import (
 // sample event names
 const (
 	CustomAggregateCreatedEventName      = "aggregate.created"
-	CustomAggregateStatusEventdEventName = "aggregate.status_eventd"
+	CustomAggregateStatusEventdEventName = "aggregate.status_event"
 )
 
 func main() {
