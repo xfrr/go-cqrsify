@@ -26,24 +26,17 @@ func WithTimestamp(timestamp time.Time) BaseMessageOption {
 	}
 }
 
-// WithMetadata sets the metadata for the message.
-func WithMetadata(metadata map[string]string) BaseMessageOption {
-	return func(b *Base) {
-		b.metadata = metadata
-	}
-}
-
-// WithName sets the name for the message.
-func WithName(name string) BaseMessageOption {
-	return func(b *Base) {
-		b.name = name
-	}
-}
-
 // WithID sets the ID for the message.
 func WithID(id string) BaseMessageOption {
 	return func(b *Base) {
 		b.id = id
+	}
+}
+
+// WithMetadata sets the metadata for the message.
+func WithMetadata(metadata map[string]string) BaseMessageOption {
+	return func(b *Base) {
+		b.metadata = metadata
 	}
 }
 
