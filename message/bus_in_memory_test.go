@@ -28,9 +28,16 @@ type MockHandler struct {
 	mock.Mock
 }
 
-func (m *MockHandler) Handle(ctx context.Context, msg message.Message) error {
+func (m *MockHandler) Handle(ctx context.Context, msg message.Message) (any, error) {
 	args := m.Called(ctx, msg)
-	return args.Error(0)
+	switch res := args.Get(0).(type) {
+	case string:
+		return res, nil
+	case error:
+		return nil, res
+	}
+
+	return nil, nil
 }
 
 // Test suite structure
@@ -83,14 +90,16 @@ func (suite *InMemoryBusTestSuite) TestDispatch_Success() {
 	msg := TestMessage{message.NewBase("test-message")}
 	ctx := context.Background()
 
-	handler.On("Handle", ctx, msg).Return(nil)
+	handler.
+		On("Handle", ctx, msg).
+		Return("ok")
 
 	err := suite.bus.RegisterHandler("TestMessage", handler)
 	require.NoError(suite.T(), err)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
-	assert.NoError(suite.T(), err)
+	res, err := suite.bus.Dispatch(ctx, msg)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "ok", res)
 	handler.AssertExpectations(suite.T())
 }
 
@@ -106,9 +115,9 @@ func (suite *InMemoryBusTestSuite) TestDispatch_HandlerError() {
 	err := suite.bus.RegisterHandler("TestMessage", handler)
 	require.NoError(suite.T(), err)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), expectedError, err)
 	handler.AssertExpectations(suite.T())
 }
@@ -118,9 +127,9 @@ func (suite *InMemoryBusTestSuite) TestDispatch_NoHandlerError() {
 	msg := TestMessage{message.NewBase("test-message")}
 	ctx := context.Background()
 
-	err := suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	assert.Contains(suite.T(), err.Error(), "no handler registered for message type TestMessage")
 }
 
@@ -136,9 +145,9 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithCancelledContext() {
 	err := suite.bus.RegisterHandler("TestMessage", handler)
 	require.NoError(suite.T(), err)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), context.Canceled, err)
 	handler.AssertExpectations(suite.T())
 }
@@ -155,9 +164,9 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithTimeout() {
 	err := suite.bus.RegisterHandler("TestMessage", handler)
 	require.NoError(suite.T(), err)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.NoError(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	handler.AssertExpectations(suite.T())
 }
 
@@ -168,9 +177,9 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareApplication() {
 	ctx := context.Background()
 
 	middlewareCalled := false
-	middleware := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+	middleware := func(h message.Handler[message.Message, any]) message.Handler[message.Message, any] {
 		return &handlerWrapper{
-			fn: func(ctx context.Context, msg message.Message) error {
+			fn: func(ctx context.Context, msg message.Message) (any, error) {
 				middlewareCalled = true
 				return h.Handle(ctx, msg)
 			},
@@ -184,9 +193,9 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareApplication() {
 
 	suite.bus.Use(middleware)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.NoError(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	assert.True(suite.T(), middlewareCalled)
 	handler.AssertExpectations(suite.T())
 }
@@ -199,24 +208,24 @@ func (suite *InMemoryBusTestSuite) TestUse_MultipleMiddlewares() {
 
 	var executionOrder []string
 
-	middleware1 := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+	middleware1 := func(h message.Handler[message.Message, any]) message.Handler[message.Message, any] {
 		return &handlerWrapper{
-			fn: func(ctx context.Context, msg message.Message) error {
+			fn: func(ctx context.Context, msg message.Message) (any, error) {
 				executionOrder = append(executionOrder, "middleware1_before")
-				err := h.Handle(ctx, msg)
+				res, err := h.Handle(ctx, msg)
 				executionOrder = append(executionOrder, "middleware1_after")
-				return err
+				return res, err
 			},
 		}
 	}
 
-	middleware2 := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+	middleware2 := func(h message.Handler[message.Message, any]) message.Handler[message.Message, any] {
 		return &handlerWrapper{
-			fn: func(ctx context.Context, msg message.Message) error {
+			fn: func(ctx context.Context, msg message.Message) (any, error) {
 				executionOrder = append(executionOrder, "middleware2_before")
-				err := h.Handle(ctx, msg)
+				res, err := h.Handle(ctx, msg)
 				executionOrder = append(executionOrder, "middleware2_after")
-				return err
+				return res, err
 			},
 		}
 	}
@@ -232,9 +241,10 @@ func (suite *InMemoryBusTestSuite) TestUse_MultipleMiddlewares() {
 	suite.bus.Use(middleware1)
 	suite.bus.Use(middleware2)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.NoError(suite.T(), err)
+	assert.Nil(suite.T(), res)
+
 	// Middlewares should be applied in reverse order (last added, first executed)
 	expectedOrder := []string{
 		"middleware2_before",
@@ -254,10 +264,10 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareWithError() {
 	ctx := context.Background()
 	expectedError := errors.New("middleware error")
 
-	middleware := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+	middleware := func(h message.Handler[message.Message, any]) message.Handler[message.Message, any] {
 		return &handlerWrapper{
-			fn: func(ctx context.Context, msg message.Message) error {
-				return expectedError
+			fn: func(ctx context.Context, msg message.Message) (any, error) {
+				return nil, expectedError
 			},
 		}
 	}
@@ -267,9 +277,9 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareWithError() {
 
 	suite.bus.Use(middleware)
 
-	err = suite.bus.Dispatch(ctx, msg)
-
+	res, err := suite.bus.Dispatch(ctx, msg)
 	assert.Error(suite.T(), err)
+	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), expectedError, err)
 	// Handler should not be called when middleware returns error
 	handler.AssertNotCalled(suite.T(), "Handle")
@@ -281,7 +291,9 @@ func (suite *InMemoryBusTestSuite) TestConcurrentAccess() {
 	msg := TestMessage{message.NewBase("test-message")}
 	ctx := context.Background()
 
-	handler.On("Handle", mock.Anything, mock.Anything).Return(nil)
+	handler.
+		On("Handle", mock.Anything, mock.Anything).
+		Return("ok")
 
 	err := suite.bus.RegisterHandler("TestMessage", handler)
 	require.NoError(suite.T(), err)
@@ -292,7 +304,9 @@ func (suite *InMemoryBusTestSuite) TestConcurrentAccess() {
 
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
-			errChan <- suite.bus.Dispatch(ctx, msg)
+			res, err := suite.bus.Dispatch(ctx, msg)
+			assert.Equal(suite.T(), "ok", res)
+			errChan <- err
 		}()
 	}
 
@@ -320,21 +334,22 @@ func (suite *InMemoryBusTestSuite) TestMultipleMessageTypes() {
 	require.NoError(suite.T(), err1)
 	require.NoError(suite.T(), err2)
 
-	err1 = suite.bus.Dispatch(ctx, msg1)
-	err2 = suite.bus.Dispatch(ctx, msg2)
-
+	res1, err1 := suite.bus.Dispatch(ctx, msg1)
+	res2, err2 := suite.bus.Dispatch(ctx, msg2)
 	assert.NoError(suite.T(), err1)
 	assert.NoError(suite.T(), err2)
+	assert.Nil(suite.T(), res1)
+	assert.Nil(suite.T(), res2)
 	handler1.AssertExpectations(suite.T())
 	handler2.AssertExpectations(suite.T())
 }
 
 // Test handlerWrapper implementation (helper for tests)
 type handlerWrapper struct {
-	fn func(ctx context.Context, msg message.Message) error
+	fn func(ctx context.Context, msg message.Message) (any, error)
 }
 
-func (h *handlerWrapper) Handle(ctx context.Context, msg message.Message) error {
+func (h *handlerWrapper) Handle(ctx context.Context, msg message.Message) (any, error) {
 	return h.fn(ctx, msg)
 }
 
@@ -394,13 +409,15 @@ func TestInMemoryBus_EdgeCases(t *testing.T) {
 			}
 
 			if tt.message != nil {
-				err := bus.Dispatch(context.Background(), tt.message)
+				res, err := bus.Dispatch(context.Background(), tt.message)
 				if tt.shouldHaveError {
+					assert.Nil(t, res)
 					assert.Error(t, err)
 					if tt.expectedError != "" {
 						assert.Contains(t, err.Error(), tt.expectedError)
 					}
 				} else {
+					assert.Nil(t, res)
 					assert.NoError(t, err)
 				}
 			}

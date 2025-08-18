@@ -7,5 +7,5 @@ import (
 var _ Bus = (*InMemoryBus)(nil)
 
 type Bus interface {
-	Dispatch(ctx context.Context, cmd Message) error
+	Dispatch(ctx context.Context, msg Message) (resp any, err error)
 }

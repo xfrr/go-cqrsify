@@ -11,8 +11,8 @@ import (
 func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
 	bus := message.NewInMemoryBus()
 	handler := &handlerWrapper{
-		fn: func(ctx context.Context, msg message.Message) error {
-			return nil
+		fn: func(ctx context.Context, msg message.Message) (any, error) {
+			return nil, nil
 		},
 	}
 
@@ -24,22 +24,22 @@ func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = bus.Dispatch(ctx, msg)
+		_, _ = bus.Dispatch(ctx, msg)
 	}
 }
 
 func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
 	bus := message.NewInMemoryBus()
 	handler := &handlerWrapper{
-		fn: func(ctx context.Context, msg message.Message) error {
-			return nil
+		fn: func(ctx context.Context, msg message.Message) (any, error) {
+			return nil, nil
 		},
 	}
 
 	// Add a simple middleware
-	middleware := func(h message.Handler[message.Message]) message.Handler[message.Message] {
+	middleware := func(h message.Handler[message.Message, any]) message.Handler[message.Message, any] {
 		return &handlerWrapper{
-			fn: func(ctx context.Context, msg message.Message) error {
+			fn: func(ctx context.Context, msg message.Message) (any, error) {
 				return h.Handle(ctx, msg)
 			},
 		}
@@ -55,6 +55,6 @@ func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = bus.Dispatch(ctx, msg)
+		_, _ = bus.Dispatch(ctx, msg)
 	}
 }

@@ -24,8 +24,9 @@ const (
 // A sample command payload for this example.
 type SpeechCommand struct {
 	command.Base
-	Speech  string `json:"speech"`
-	IsError bool   `json:"-"`
+	Speech   string `json:"speech"`
+	IsError  bool   `json:"-"`
+	Response any    `json:"response,omitempty"`
 }
 
 func main() {
@@ -35,35 +36,50 @@ func main() {
 	defer cancelSignal()
 
 	bus := command.NewInMemoryBus()
-	err := command.Handle(bus, func(ctx context.Context, cmd SpeechCommand) error {
+	err := command.Handle(bus, func(ctx context.Context, cmd SpeechCommand) (any, error) {
 		fmt.Printf("\n📨 %s[Command Handled]: %s %s\n", Green, cmd.Speech, Reset)
-		if !cmd.IsError {
-			return nil
+		if cmd.IsError {
+			return nil, errors.New("❌ Simulating an error processing the command")
 		}
-		return errors.New("❌ Simulating an error processing the command")
+		if cmd.Response != nil {
+			return cmd.Response, nil
+		}
+		return nil, nil
 	})
 	if err != nil {
 		panicErr(err)
 	}
 
-	if err = dispatchCommand(ctx, bus, SpeechCommand{
-		Speech:  "This is a sample speech command!",
+	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
+		Speech:  "Welcome to the Command Bus example!",
 		IsError: false,
 	}); err != nil {
 		panicErr(err)
 	}
 
-	if err = dispatchCommand(ctx, bus, SpeechCommand{
-		Speech:  "This is a sample speech command simulating an error!",
+	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
+		Speech:  "Let's simulate an error!",
 		IsError: true, // Just to simulate an error.
 	}); err != nil {
 		fmt.Printf("\n%s%s%s\n", Red, err.Error(), Reset)
 	}
 
+	// Sample command with response
+	if res, err := dispatchCommand(ctx, bus, SpeechCommand{
+		Speech:   "How are you?",
+		Response: "I'm just a computer program, but thanks for asking!",
+		IsError:  false,
+	}); err != nil {
+		panicErr(err)
+	} else {
+		fmt.Printf("\n%s📩 [Command Response]: %v%s\n", Green, res, Reset)
+	}
+
 	cancelSignal()
 }
 
-func dispatchCommand(ctx context.Context, bus command.Bus, cmd SpeechCommand) error {
+func dispatchCommand(ctx context.Context, bus command.Bus, cmd SpeechCommand) (any, error) {
+	fmt.Printf("\n-----------\n")
 	fmt.Printf("\n🚀 %s[Dispatching Command]: %s%s\n", Cyan, cmd.Speech, Reset)
 	return bus.Dispatch(ctx, cmd)
 }

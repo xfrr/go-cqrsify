@@ -5,33 +5,33 @@ import (
 )
 
 // Handler is an interface for handling messages.
-type Handler[M Message] interface {
-	Handle(ctx context.Context, msg M) error
+type Handler[M Message, R any] interface {
+	Handle(ctx context.Context, msg M) (R, error)
 }
 
 // HandlerFn is a function that handles a specific message.
-type HandlerFn[M Message] func(ctx context.Context, msg M) error
+type HandlerFn[M Message, R any] func(ctx context.Context, msg M) (R, error)
 
-func (f HandlerFn[M]) Handle(ctx context.Context, msg M) error {
+func (f HandlerFn[M, R]) Handle(ctx context.Context, msg M) (R, error) {
 	return f(ctx, msg)
 }
 
 type handlerRegistrar interface {
-	RegisterHandler(msgType string, handler Handler[Message]) error
+	RegisterHandler(msgType string, handler Handler[Message, any]) error
 }
 
 // Handle is a shorthand for handling messages.
-func Handle[M Message](b handlerRegistrar, handlerFn HandlerFn[M]) error {
+func Handle[M Message, R any](b handlerRegistrar, handlerFn HandlerFn[M, R]) error {
 	msgName := NameOf[M]()
-	return b.RegisterHandler(msgName, HandlerFn[Message](func(ctx context.Context, msg Message) error {
-		cmsg, ok := msg.(M)
+	return b.RegisterHandler(msgName, HandlerFn[Message, any](func(ctx context.Context, msg Message) (any, error) {
+		castMessage, ok := msg.(M)
 		if !ok {
-			return InvalidMessageTypeError{
+			return nil, InvalidMessageTypeError{
 				Actual:   msgName,
 				Expected: NameOf[M](),
 			}
 		}
-		return handlerFn.Handle(ctx, cmsg)
+		return handlerFn.Handle(ctx, castMessage)
 	}))
 }
 
