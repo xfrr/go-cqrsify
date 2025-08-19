@@ -2,12 +2,6 @@ package aggregate
 
 import (
 	"context"
-	"errors"
-)
-
-var (
-	// ErrNotFound is returned when the aggregate is not found in the repository.
-	ErrNotFound = errors.New("aggregate not found")
 )
 
 // Repository is the interface that wraps the basic methods for managing the
@@ -31,8 +25,39 @@ type VersionedRepository[ID comparable] interface {
 	Repository[ID]
 
 	// LoadVersion loads the aggregate with the given id and version from the repository.
-	LoadVersion(context.Context, Aggregate[ID], Version) error
+	LoadVersion(context.Context, VersionedAggregate[ID], Version) error
 
 	// ExistsVersion checks if the aggregate with the given id and version exists in the repository.
-	ExistsVersion(context.Context, Aggregate[ID], Version) (bool, error)
+	ExistsVersion(context.Context, VersionedAggregate[ID], Version) (bool, error)
+}
+
+// EventSourcedRepository is the interface that wraps the basic methods for managing the
+// lifecycle of an event-sourced aggregate.
+type EventSourcedRepository[ID comparable] interface {
+	// Delete deletes the aggregate from the repository.
+	Delete(context.Context, EventSourcedAggregate[ID]) error
+	// Exists checks if the aggregate with the given id exists in the repository.
+	Exists(context.Context, EventSourcedAggregate[ID]) (bool, error)
+	// Load loads the aggregate with the given id from the repository.
+	Load(context.Context, EventSourcedAggregate[ID]) error
+	// Search loads all the aggregates from the repository that match the given options.
+	Search(context.Context, *SearchCriteriaOptions) ([]EventSourcedAggregate[ID], error)
+	// Save saves the aggregate to the repository.
+	Save(context.Context, EventSourcedAggregate[ID]) error
+	// LoadVersion loads the aggregate with the given id and version from the repository.
+	LoadVersion(context.Context, EventSourcedAggregate[ID], Version) error
+	// ExistsVersion checks if the aggregate with the given id and version exists in the repository.
+	ExistsVersion(context.Context, EventSourcedAggregate[ID], Version) (bool, error)
+}
+
+type NotFoundError struct {
+	ID string
+}
+
+func (e NotFoundError) Error() string {
+	return "aggregate not found"
+}
+
+func NewNotFoundError(id string) NotFoundError {
+	return NotFoundError{ID: id}
 }

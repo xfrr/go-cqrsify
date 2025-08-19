@@ -7,30 +7,49 @@ type Aggregate[ID comparable] interface {
 
 	// AggregateName returns the aggregate's name.
 	AggregateName() string
+}
+
+type VersionedAggregate[ID comparable] interface {
+	Aggregate[ID]
+
+	// AggregateVersion returns the aggregate's version.
+	AggregateVersion() Version
+}
+
+type EventSourcedAggregate[ID comparable] interface {
+	VersionedAggregate[ID]
 
 	// AggregateEvents returns the aggregate's events.
 	AggregateEvents() []Event
 
-	// AggregateVersion returns the aggregate's version.
-	AggregateVersion() Version
+	// ApplyEvent applies the given event to the aggregate.
+	ApplyEvent(Event) error
 
-	// EventApplier applies events to the aggregate.
-	EventApplier
+	// HandleEvent registers an event handler for the given event name on the aggregate.
+	HandleEvent(eventName string, handler func(event Event) error)
 }
 
-func Cast[OutID comparable, InID comparable](
-	a Aggregate[InID],
-) (*Base[OutID], bool) {
+func Cast[OutID comparable, InID comparable](a Aggregate[InID]) (*Base[OutID], bool) {
 	id, ok := any(a.AggregateID()).(OutID)
 	if !ok {
 		return nil, false
 	}
 
+	var version Version
+	if va, ok := a.(VersionedAggregate[InID]); ok {
+		version = va.AggregateVersion()
+	}
+
+	var events []Event
+	if ea, ok := a.(EventSourcedAggregate[InID]); ok {
+		events = ea.AggregateEvents()
+	}
+
 	return &Base[OutID]{
 		id:       id,
 		name:     a.AggregateName(),
-		version:  a.AggregateVersion(),
-		events:   a.AggregateEvents(),
-		handlers: make(map[string][]func(Event)),
+		version:  version,
+		events:   events,
+		handlers: map[string][]func(Event) error{},
 	}, true
 }

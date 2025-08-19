@@ -9,12 +9,8 @@ import (
 func filterEventsFromVersion(version aggregate.Version, events []aggregate.Event) []aggregate.Event {
 	filtered := make([]aggregate.Event, 0)
 	for _, ch := range events {
-		aggregateRef := ch.Aggregate()
-		if aggregateRef == nil {
-			continue
-		}
-
-		if int(aggregateRef.Version) <= int(version) {
+		aggregateRef := ch.AggregateRef()
+		if aggregateRef.Version() <= version {
 			filtered = append(filtered, ch)
 		}
 	}
@@ -29,12 +25,9 @@ func filterEventsByAggregateIDs(aggIDs []string, events []aggregate.Event) []agg
 
 	filtered := make([]aggregate.Event, 0)
 	for _, ev := range events {
-		aggregateRef := ev.Aggregate()
-		if aggregateRef == nil {
-			continue
-		}
+		aggregateRef := ev.AggregateRef()
 
-		aggID, _ := aggregateRef.ID.(string)
+		aggID, _ := aggregateRef.ID().(string)
 		if slices.Contains(aggIDs, aggID) {
 			filtered = append(filtered, ev)
 		}
@@ -50,12 +43,8 @@ func filterEventsByAggregateNames(aggNames []string, events []aggregate.Event) [
 
 	filtered := make([]aggregate.Event, 0)
 	for _, ev := range events {
-		aggregateRef := ev.Aggregate()
-		if aggregateRef == nil {
-			continue
-		}
-
-		if slices.Contains(aggNames, aggregateRef.Name) {
+		aggregateRef := ev.AggregateRef()
+		if slices.Contains(aggNames, aggregateRef.Type()) {
 			filtered = append(filtered, ev)
 		}
 	}
@@ -70,12 +59,8 @@ func filterEventsByAggregateVersions(aggVersions []int, events []aggregate.Event
 
 	filtered := make([]aggregate.Event, 0)
 	for _, ev := range events {
-		aggregateRef := ev.Aggregate()
-		if aggregateRef == nil {
-			continue
-		}
-
-		if slices.Contains(aggVersions, int(aggregateRef.Version)) {
+		aggregateRef := ev.AggregateRef()
+		if slices.Contains(aggVersions, int(aggregateRef.Version())) {
 			filtered = append(filtered, ev)
 		}
 	}

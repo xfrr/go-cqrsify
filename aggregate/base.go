@@ -1,5 +1,7 @@
 package aggregate
 
+import "github.com/xfrr/go-cqrsify/pkg/multierror"
+
 var (
 	_ EventCommitter = (*Base[any])(nil)
 )
@@ -12,7 +14,7 @@ type Base[ID comparable] struct {
 	version Version
 
 	events   []Event
-	handlers map[string][]func(Event)
+	handlers map[string][]func(Event) error
 }
 
 // AggregateID returns the aggregate's ID.
@@ -37,8 +39,8 @@ func (agb *Base[ID]) AggregateVersion() Version {
 
 // RecordEvent adds the given events as uncommitted events to the aggregate.
 // It implements the EventCommitter interface.
-func (agb *Base[ID]) RecordEvent(events Event) {
-	agb.events = append(agb.events, events)
+func (agb *Base[ID]) RecordEvent(event Event) {
+	agb.events = append(agb.events, event)
 }
 
 // CommitEvents commits the aggregate's events incrementing the version to the last event's version
@@ -49,7 +51,7 @@ func (agb *Base[ID]) CommitEvents() {
 		return
 	}
 
-	agb.version = Version(UncommittedVersion(agb.Any()))
+	agb.version = Version(UncommittedVersion(agb))
 	agb.events = agb.events[:0]
 }
 
@@ -61,29 +63,34 @@ func (agb *Base[ID]) ClearEvents() {
 
 // HandleEvent registers a handler for the given event name.
 // The handler is called when the event is applied to the aggregate.
-func (agb *Base[ID]) HandleEvent(name string, handler func(event Event)) {
+func (agb *Base[ID]) HandleEvent(name string, handler func(event Event) error) {
 	if agb.handlers == nil {
-		agb.handlers = make(map[string][]func(event Event))
+		agb.handlers = make(map[string][]func(event Event) error)
 	}
 
 	if _, ok := agb.handlers[name]; !ok {
-		agb.handlers[name] = []func(event Event){}
+		agb.handlers[name] = []func(event Event) error{}
 	}
 
 	agb.handlers[name] = append(agb.handlers[name], handler)
 }
 
 // ApplyEvent calls the handlers for the given event (event) name.
-func (agb *Base[ID]) ApplyEvent(ev Event) {
+func (agb *Base[ID]) ApplyEvent(ev Event) error {
 	if agb.handlers == nil {
-		agb.handlers = make(map[string][]func(Event))
+		agb.handlers = make(map[string][]func(Event) error)
 	}
 
+	multiErr := multierror.New()
 	if handlers, ok := agb.handlers[ev.Name()]; ok {
 		for _, handler := range handlers {
-			handler(ev)
+			if err := handler(ev); err != nil {
+				multiErr.Append(err)
+			}
 		}
 	}
+
+	return multiErr.ErrorOrNil()
 }
 
 // Any returns a copy of the aggregate with an arbitrary ID type.
@@ -105,6 +112,6 @@ func New[ID comparable](id ID, name string) *Base[ID] {
 		name:     name,
 		version:  0,
 		events:   []Event{},
-		handlers: make(map[string][]func(Event)),
+		handlers: make(map[string][]func(Event) error),
 	}
 }

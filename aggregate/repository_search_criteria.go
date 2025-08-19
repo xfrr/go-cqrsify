@@ -1,5 +1,7 @@
 package aggregate
 
+import "slices"
+
 type SearchCriteriaOptions struct {
 	aggregateIDs      []string
 	aggregateNames    []string
@@ -40,6 +42,33 @@ func (sc *SearchCriteriaOptions) WithSearchAggregateNames(names ...string) *Sear
 func (sc *SearchCriteriaOptions) WithSearchAggregateVersions(versions ...int) *SearchCriteriaOptions {
 	sc.aggregateVersions = versions
 	return sc
+}
+
+// Matches checks if the given aggregate matches the search criteria.
+func (sc *SearchCriteriaOptions) Matches(agg Aggregate[string]) bool {
+	if sc.IsEmpty() {
+		return true
+	}
+
+	if len(sc.aggregateIDs) > 0 && !contains(sc.aggregateIDs, agg.AggregateID()) {
+		return false
+	}
+
+	if len(sc.aggregateNames) > 0 && !contains(sc.aggregateNames, agg.AggregateName()) {
+		return false
+	}
+
+	if versionedAggregate, ok := agg.(VersionedAggregate[string]); ok {
+		if len(sc.aggregateVersions) > 0 && !contains(sc.aggregateVersions, int(versionedAggregate.AggregateVersion())) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func contains[T comparable](slice []T, item T) bool {
+	return slices.Contains(slice, item)
 }
 
 func SearchCriteria() *SearchCriteriaOptions {

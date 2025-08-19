@@ -3,114 +3,74 @@ package aggregate_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/xfrr/go-cqrsify/aggregate"
-	"github.com/xfrr/go-cqrsify/aggregate/event"
 )
 
 func TestBase(t *testing.T) {
 	t.Run("it should create a new base aggregate", func(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
-		if base == nil {
-			t.Fatal("expected base to not be nil")
-		}
+		require.NotNil(t, base)
 
-		if base.AggregateID() != "test-id" {
-			t.Errorf("expected ID to be %s, got %s", "test-id", base.AggregateID())
-		}
-
-		if base.AggregateName() != "test-name" {
-			t.Errorf("expected Name to be %s, got %s", "test-name", base.AggregateName())
-		}
-
-		if len(base.AggregateEvents()) != 0 {
-			t.Errorf("expected Events to be empty, got %d", len(base.AggregateEvents()))
-		}
-
-		if base.AggregateVersion() != 0 {
-			t.Errorf("expected Version to be 0, got %d", base.AggregateVersion())
-		}
+		assert.Equal(t, "test-id", base.AggregateID())
+		assert.Equal(t, "test-name", base.AggregateName())
+		assert.Empty(t, base.AggregateEvents())
+		assert.Equal(t, aggregate.Version(0), base.AggregateVersion())
+		assert.NotNil(t, base.Any())
 	})
 
 	t.Run("it should record a event", func(t *testing.T) {
-		base := aggregate.New("test-id", "test-name")
-		evt, err := event.New("test-id", "test.name", &struct{}{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		baseAggregate := aggregate.New("test-id", "test-name")
+		evt := aggregate.NewEvent("test.name", aggregate.CreateEventAggregateRef(baseAggregate))
 
-		base.RecordEvent(evt.Any())
-		if len(base.AggregateEvents()) != 1 {
-			t.Errorf("expected Events to have 1 event, got %d", len(base.AggregateEvents()))
-		}
+		baseAggregate.RecordEvent(evt)
+		assert.Len(t, baseAggregate.AggregateEvents(), 1)
 	})
 
 	t.Run("it should commit events", func(t *testing.T) {
-		agg := aggregate.New("test-id", "test-name")
-		evt, err := event.New("test-id", "test.name", &struct{}{}, event.WithAggregate("test-id", "test-name", 1))
-		if err != nil {
-			t.Fatal(err)
-		}
+		baseAggregate := aggregate.New("test-id", "test-name")
+		evt := aggregate.NewEvent("test.name", aggregate.CreateEventAggregateRef(baseAggregate))
 
-		agg.RecordEvent(evt.Any())
-		if len(agg.AggregateEvents()) != 1 {
-			t.Errorf("expected Events to have 1 event, got %d", len(agg.AggregateEvents()))
-		}
+		baseAggregate.RecordEvent(evt)
+		require.Len(t, baseAggregate.AggregateEvents(), 1)
 
-		agg.CommitEvents()
-		if len(agg.AggregateEvents()) != 0 {
-			t.Errorf("expected Events to be empty, got %d", len(agg.AggregateEvents()))
-		}
-
-		if agg.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
-			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, agg.AggregateVersion())
-		}
-
-		agg.CommitEvents()
-		if len(agg.AggregateEvents()) != 0 {
-			t.Errorf("expected Events to be empty, got %d", len(agg.AggregateEvents()))
-		}
-
-		if agg.AggregateVersion() != aggregate.Version(evt.Aggregate().Version) {
-			t.Errorf("expected Version to be %d, got %d", evt.Aggregate().Version, agg.AggregateVersion())
-		}
+		baseAggregate.CommitEvents()
+		require.Len(t, baseAggregate.AggregateEvents(), 0)
+		require.Equal(t, aggregate.Version(1), baseAggregate.AggregateVersion())
 	})
 
 	t.Run("it should apply events", func(t *testing.T) {
-		base := aggregate.New("test-id", "test-name")
-		evt, err := event.New("test-id", "test.name", &struct{}{})
-		if err != nil {
-			t.Fatal(err)
-		}
+		baseAggregate := aggregate.New("test-id", "test-name")
+		evt := aggregate.NewEvent("test.name", aggregate.CreateEventAggregateRef(baseAggregate))
 
 		handlerCalls := 0
-		base.HandleEvent("test.name", func(_ aggregate.Event) {
+		baseAggregate.HandleEvent("test.name", func(_ aggregate.Event) error {
 			handlerCalls++
+			return nil
 		})
 
-		base.ApplyEvent(evt.Any())
-		if handlerCalls != 1 {
-			t.Errorf("expected handler to be called 1 time, got %d", handlerCalls)
-		}
+		baseAggregate.ApplyEvent(evt)
+		assert.Equal(t, 1, handlerCalls)
 	})
 
 	t.Run("it should return the aggregate's id", func(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
-		if base.AggregateID() != "test-id" {
-			t.Errorf("expected ID to be %s, got %s", "test-id", base.AggregateID())
-		}
+		assert.Equal(t, "test-id", base.AggregateID())
 	})
 
 	t.Run("it should return the aggregate's name", func(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
-		if base.AggregateName() != "test-name" {
-			t.Errorf("expected Name to be %s, got %s", "test-name", base.AggregateName())
-		}
+		assert.Equal(t, "test-name", base.AggregateName())
+	})
+
+	t.Run("it should return the aggregate's name", func(t *testing.T) {
+		base := aggregate.New("test-id", "test-name")
+		assert.Equal(t, "test-name", base.AggregateName())
 	})
 
 	t.Run("it should return the aggregate's version", func(t *testing.T) {
 		base := aggregate.New("test-id", "test-name")
-		if base.AggregateVersion() != 0 {
-			t.Errorf("expected Version to be 0, got %d", base.AggregateVersion())
-		}
+		assert.Equal(t, aggregate.Version(0), base.AggregateVersion())
 	})
 }
