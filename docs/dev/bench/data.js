@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755216633964,
+  "lastUpdate": 1755606955753,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -1034,6 +1034,42 @@ window.BENCHMARK_DATA = {
             "value": 86.48,
             "unit": "ns/op",
             "extra": "13652804 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "3cd1dfaf4d91d7307c1199e0bf5c30564351e778",
+          "message": "refactor: aggregate and event sourcing implementation",
+          "timestamp": "2025-08-19T14:29:51+02:00",
+          "tree_id": "73ffb0e1e45efe9481834d14f2c4c8539723917d",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/3cd1dfaf4d91d7307c1199e0bf5c30564351e778"
+        },
+        "date": 1755606955327,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 83.48,
+            "unit": "ns/op",
+            "extra": "14497784 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 87.65,
+            "unit": "ns/op",
+            "extra": "13747004 times\n4 procs"
           }
         ]
       }
