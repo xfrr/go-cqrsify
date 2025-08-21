@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755611705134,
+  "lastUpdate": 1755814432123,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -1106,6 +1106,60 @@ window.BENCHMARK_DATA = {
             "value": 85.75,
             "unit": "ns/op",
             "extra": "13781767 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "05c127996444f5d90511f06421d2f75400b486ac",
+          "message": "feat: implement common value objects and validation logic",
+          "timestamp": "2025-08-22T00:13:14+02:00",
+          "tree_id": "cf8f905caf59209f6cde2986ced1a3307b29f9e1",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/05c127996444f5d90511f06421d2f75400b486ac"
+        },
+        "date": 1755814431179,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 441.9,
+            "unit": "ns/op",
+            "extra": "2742781 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.75,
+            "unit": "ns/op",
+            "extra": "317081913 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 39.85,
+            "unit": "ns/op",
+            "extra": "29297953 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 84.03,
+            "unit": "ns/op",
+            "extra": "13966568 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 87.11,
+            "unit": "ns/op",
+            "extra": "13568209 times\n4 procs"
           }
         ]
       }
