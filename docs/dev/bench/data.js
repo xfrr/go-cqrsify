@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1755814432123,
+  "lastUpdate": 1755814628774,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -1160,6 +1160,60 @@ window.BENCHMARK_DATA = {
             "value": 87.11,
             "unit": "ns/op",
             "extra": "13568209 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "1bfa70bc9220022782e5fcd001822df32e405ff1",
+          "message": "refactor: move aggregate package to domain folder",
+          "timestamp": "2025-08-22T00:16:32+02:00",
+          "tree_id": "009985af8af4287b0090f14e8881de24209d9b5c",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/1bfa70bc9220022782e5fcd001822df32e405ff1"
+        },
+        "date": 1755814627830,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 436.2,
+            "unit": "ns/op",
+            "extra": "2731146 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.734,
+            "unit": "ns/op",
+            "extra": "321224382 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 38.95,
+            "unit": "ns/op",
+            "extra": "30019281 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 82.45,
+            "unit": "ns/op",
+            "extra": "14476221 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 86.52,
+            "unit": "ns/op",
+            "extra": "13719334 times\n4 procs"
           }
         ]
       }
