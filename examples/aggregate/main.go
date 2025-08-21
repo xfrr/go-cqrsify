@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 )
 
 // sample event names

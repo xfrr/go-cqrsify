@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 )
 
 func Test_SearchCriteria_AggregateIDs(t *testing.T) {

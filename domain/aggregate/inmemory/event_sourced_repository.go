@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 )
 
 var _ aggregate.EventSourcedRepository[string] = (*EventSourcedAggregateRepository)(nil)

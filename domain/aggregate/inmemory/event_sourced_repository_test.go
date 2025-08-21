@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 
-	inmemory "github.com/xfrr/go-cqrsify/aggregate/inmemory"
+	inmemory "github.com/xfrr/go-cqrsify/domain/aggregate/inmemory"
 )
 
 func TestNewRepository(t *testing.T) {

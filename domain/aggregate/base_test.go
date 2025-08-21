@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 )
 
 func TestBase(t *testing.T) {

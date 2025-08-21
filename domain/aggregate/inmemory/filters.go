@@ -3,7 +3,7 @@ package inmemory
 import (
 	"slices"
 
-	"github.com/xfrr/go-cqrsify/aggregate"
+	"github.com/xfrr/go-cqrsify/domain/aggregate"
 )
 
 func filterEventsFromVersion(version aggregate.Version, events []aggregate.Event) []aggregate.Event {
