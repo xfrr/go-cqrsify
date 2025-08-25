@@ -10,12 +10,15 @@ var _ ValueObject = (Identifier[any]{})
 
 // Identifier is the value object that represents a unique identifier.
 type Identifier[T comparable] struct {
-	value T
+	value      T
+	validateFn func(id Identifier[any]) error
 }
 
 // NewIdentifier creates a new Identifier value object.
-func NewIdentifier[T comparable](value T) Identifier[T] {
-	return Identifier[T]{value: value}
+func NewIdentifier[T comparable](value T, opts ...IdentifierOption) Identifier[T] {
+	options := &IdentifierOptions{}
+	options.Apply(opts...)
+	return Identifier[T]{value: value, validateFn: options.customValidationFn}
 }
 
 // String returns the string representation of the Identifier.
@@ -49,9 +52,12 @@ func (id Identifier[T]) Value() T {
 
 // Validate checks if the Identifier value is valid.
 func (id Identifier[T]) Validate() error {
+	if id.validateFn != nil {
+		return id.validateFn(id.any())
+	}
+
 	val := reflect.ValueOf(id.value)
 	kind := val.Kind()
-
 	switch kind {
 	case reflect.String:
 		if val.String() == "" {
@@ -74,4 +80,8 @@ func (id Identifier[T]) Validate() error {
 	}
 
 	return nil
+}
+
+func (id Identifier[T]) any() Identifier[any] {
+	return Identifier[any]{value: id.value, validateFn: id.validateFn}
 }
