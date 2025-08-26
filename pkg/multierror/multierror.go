@@ -123,3 +123,8 @@ func (me *MultiError) ErrorOrNil() error {
 	}
 	return me
 }
+
+// HasErrors returns true if the MultiError contains any errors.
+func (me *MultiError) HasErrors() bool {
+	return me != nil && len(me.errors) > 0
+}
