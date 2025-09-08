@@ -19,7 +19,7 @@ func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
 	err := bus.RegisterHandler("TestMessage", handler)
 	require.NoError(b, err)
 
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -50,7 +50,7 @@ func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
 
 	bus.Use(middleware)
 
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	b.ResetTimer()

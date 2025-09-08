@@ -7,12 +7,16 @@ import (
 type messageMock struct {
 }
 
-func (m *messageMock) CausationID() string {
-	return "test-causation-id"
+func (m *messageMock) ID() string {
+	return "test-message-id"
 }
 
-func (m *messageMock) CorrelationID() string {
-	return "test-correlation-id"
+func (m *messageMock) Schema() string {
+	return "test-schema"
+}
+
+func (m *messageMock) Source() string {
+	return "test-source"
 }
 
 func (m *messageMock) Metadata() map[string]string {
@@ -23,8 +27,4 @@ func (m *messageMock) Metadata() map[string]string {
 
 func (m *messageMock) Timestamp() time.Time {
 	return time.Now()
-}
-
-func (m *messageMock) MessageID() string {
-	return "test-message-id"
 }

@@ -87,7 +87,7 @@ func (suite *InMemoryBusTestSuite) TestRegisterHandler_DuplicateError() {
 // Test successful message dispatch
 func (suite *InMemoryBusTestSuite) TestDispatch_Success() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	handler.
@@ -106,7 +106,7 @@ func (suite *InMemoryBusTestSuite) TestDispatch_Success() {
 // Test dispatch with handler error
 func (suite *InMemoryBusTestSuite) TestDispatch_HandlerError() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 	expectedError := errors.New("handler error")
 
@@ -124,7 +124,7 @@ func (suite *InMemoryBusTestSuite) TestDispatch_HandlerError() {
 
 // Test dispatch with no registered handler
 func (suite *InMemoryBusTestSuite) TestDispatch_NoHandlerError() {
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	res, err := suite.bus.Dispatch(ctx, msg)
@@ -136,7 +136,7 @@ func (suite *InMemoryBusTestSuite) TestDispatch_NoHandlerError() {
 // Test dispatch with context cancellation
 func (suite *InMemoryBusTestSuite) TestDispatch_WithCancelledContext() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel the context immediately
 
@@ -155,7 +155,7 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithCancelledContext() {
 // Test dispatch with timeout context
 func (suite *InMemoryBusTestSuite) TestDispatch_WithTimeout() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
@@ -173,7 +173,7 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithTimeout() {
 // Test middleware application
 func (suite *InMemoryBusTestSuite) TestUse_MiddlewareApplication() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	middlewareCalled := false
@@ -203,7 +203,7 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareApplication() {
 // Test multiple middlewares in correct order
 func (suite *InMemoryBusTestSuite) TestUse_MultipleMiddlewares() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	var executionOrder []string
@@ -260,7 +260,7 @@ func (suite *InMemoryBusTestSuite) TestUse_MultipleMiddlewares() {
 // Test middleware with error
 func (suite *InMemoryBusTestSuite) TestUse_MiddlewareWithError() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 	expectedError := errors.New("middleware error")
 
@@ -288,7 +288,7 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareWithError() {
 // Test concurrent access safety
 func (suite *InMemoryBusTestSuite) TestConcurrentAccess() {
 	handler := &MockHandler{}
-	msg := TestMessage{message.NewBase("test-message")}
+	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	handler.
@@ -322,8 +322,8 @@ func (suite *InMemoryBusTestSuite) TestMultipleMessageTypes() {
 	handler1 := &MockHandler{}
 	handler2 := &MockHandler{}
 
-	msg1 := TestMessage{message.NewBase("test-message")}
-	msg2 := AnotherTestMessage{message.NewBase("another-test-message")}
+	msg1 := TestMessage{message.NewBase()}
+	msg2 := AnotherTestMessage{message.NewBase()}
 	ctx := context.Background()
 
 	handler1.On("Handle", ctx, msg1).Return(nil)

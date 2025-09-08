@@ -1,9 +1,11 @@
-package command
+package event
 
-import "github.com/xfrr/go-cqrsify/message"
+import (
+	"github.com/xfrr/go-cqrsify/message"
+)
 
-// Command represents a command message.
-type Command interface {
+// Event represents a event message.
+type Event interface {
 	message.Message
 }
 
