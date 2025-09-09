@@ -16,7 +16,7 @@ func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
 		},
 	}
 
-	err := bus.RegisterHandler("TestMessage", handler)
+	err := bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(b, err)
 
 	msg := TestMessage{message.NewBase()}
@@ -24,7 +24,7 @@ func BenchmarkInMemoryBus_Dispatch(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = bus.Dispatch(ctx, msg)
+		_, _ = bus.Dispatch(ctx, "com.org.test_message", msg)
 	}
 }
 
@@ -45,7 +45,7 @@ func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
 		}
 	}
 
-	err := bus.RegisterHandler("TestMessage", handler)
+	err := bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(b, err)
 
 	bus.Use(middleware)
@@ -55,6 +55,6 @@ func BenchmarkInMemoryBus_DispatchWithMiddleware(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = bus.Dispatch(ctx, msg)
+		_, _ = bus.Dispatch(ctx, "com.org.test_message", msg)
 	}
 }

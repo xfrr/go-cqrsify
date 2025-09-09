@@ -9,7 +9,7 @@ import (
 var _ Bus = (*InMemoryBus)(nil)
 
 type Bus interface {
-	Publish(ctx context.Context, evt Event) error
+	Publish(ctx context.Context, topic string, evt Event) error
 }
 
 type InMemoryBus struct {
@@ -22,13 +22,13 @@ func NewInMemoryBus() *InMemoryBus {
 	}
 }
 
-func (b *InMemoryBus) Publish(ctx context.Context, evt Event) error {
-	_, err := b.bus.Dispatch(ctx, evt)
+func (b *InMemoryBus) Publish(ctx context.Context, topic string, evt Event) error {
+	_, err := b.bus.Dispatch(ctx, topic, evt)
 	return err
 }
 
-func Handle[C Event](bus *InMemoryBus, handlerFn func(ctx context.Context, evt C) error) error {
-	return message.Handle(bus.bus, message.HandlerFn[C, any](func(ctx context.Context, evt C) (any, error) {
+func Handle[C Event](bus *InMemoryBus, topic string, handlerFn func(ctx context.Context, evt C) error) error {
+	return message.Handle(bus.bus, topic, message.HandlerFn[C, any](func(ctx context.Context, evt C) (any, error) {
 		return nil, handlerFn(ctx, evt)
 	}))
 }

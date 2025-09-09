@@ -36,7 +36,7 @@ func main() {
 	defer cancelSignal()
 
 	bus := command.NewInMemoryBus()
-	err := command.Handle(bus, func(ctx context.Context, cmd SpeechCommand) (any, error) {
+	err := command.Handle(bus, "com.org.test_command", func(ctx context.Context, cmd SpeechCommand) (any, error) {
 		fmt.Printf("\n📨 %s[Command Handled]: %s %s\n", Green, cmd.Speech, Reset)
 		if cmd.IsError {
 			return nil, errors.New("❌ Simulating an error processing the command")
@@ -81,7 +81,7 @@ func main() {
 func dispatchCommand(ctx context.Context, bus command.Bus, cmd SpeechCommand) (any, error) {
 	fmt.Printf("\n-----------\n")
 	fmt.Printf("\n🚀 %s[Dispatching Command]: %s%s\n", Cyan, cmd.Speech, Reset)
-	return bus.Dispatch(ctx, cmd)
+	return bus.Dispatch(ctx, "com.org.test_command", cmd)
 }
 
 func panicErr(err error) {

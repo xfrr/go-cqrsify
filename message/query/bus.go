@@ -12,6 +12,6 @@ func NewInMemoryBus() *message.InMemoryBus {
 	return message.NewInMemoryBus()
 }
 
-func Handle[Q Query, R any](bus *message.InMemoryBus, handlerFn func(ctx context.Context, qry Q) (R, error)) error {
-	return message.Handle(bus, handlerFn)
+func Handle[Q Query, R any](bus *message.InMemoryBus, topic string, handlerFn func(ctx context.Context, qry Q) (R, error)) error {
+	return message.Handle(bus, topic, handlerFn)
 }

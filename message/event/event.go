@@ -13,8 +13,8 @@ type Base struct {
 	message.Base
 }
 
-func New(modifiers ...message.BaseModifier) *Base {
-	return &Base{
+func New(modifiers ...message.BaseModifier) Base {
+	return Base{
 		Base: message.NewBase(modifiers...),
 	}
 }

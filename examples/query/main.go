@@ -36,7 +36,7 @@ func main() {
 	defer cancelSignal()
 
 	bus := query.NewInMemoryBus()
-	err := query.Handle(bus, func(ctx context.Context, qry SpeechQuery) (any, error) {
+	err := query.Handle(bus, "com.org.test_query", func(ctx context.Context, qry SpeechQuery) (any, error) {
 		fmt.Printf("\n📨 %s[Query Handled]: %s %s\n", Green, qry.Speech, Reset)
 		if qry.IsError {
 			return nil, errors.New("❌ Simulating an error processing the query")
@@ -81,7 +81,7 @@ func main() {
 func dispatchQuery(ctx context.Context, bus query.Bus, qry SpeechQuery) (any, error) {
 	fmt.Printf("\n-----------\n")
 	fmt.Printf("\n🚀 %s[Dispatching Query]: %s%s\n", Cyan, qry.Speech, Reset)
-	return bus.Dispatch(ctx, qry)
+	return bus.Dispatch(ctx, "com.org.test_query", qry)
 }
 
 func panicErr(err error) {

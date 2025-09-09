@@ -55,19 +55,14 @@ func (suite *InMemoryBusTestSuite) TestNewInMemoryBus() {
 	bus := message.NewInMemoryBus()
 
 	assert.NotNil(suite.T(), bus)
-	// Note: We can't directly test internal fields (handlers, middlewares)
-	// since they're private, but we can test behavior
 }
 
 // Test successful handler registration
 func (suite *InMemoryBusTestSuite) TestRegisterHandler_Success() {
 	handler := &MockHandler{}
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
-
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	assert.NoError(suite.T(), err)
-	// Test that handler was registered by attempting to dispatch
-	// We can't directly access private fields in _test package
 }
 
 // Test duplicate handler registration error
@@ -75,13 +70,13 @@ func (suite *InMemoryBusTestSuite) TestRegisterHandler_DuplicateError() {
 	handler1 := &MockHandler{}
 	handler2 := &MockHandler{}
 
-	err1 := suite.bus.RegisterHandler("TestMessage", handler1)
+	err1 := suite.bus.RegisterHandler("com.org.test_message", handler1)
 	require.NoError(suite.T(), err1)
 
-	err2 := suite.bus.RegisterHandler("TestMessage", handler2)
+	err2 := suite.bus.RegisterHandler("com.org.test_message", handler2)
 
 	assert.Error(suite.T(), err2)
-	assert.Contains(suite.T(), err2.Error(), "handler already registered for message type TestMessage")
+	assert.Contains(suite.T(), err2.Error(), "handler already registered for message type com.org.test_message")
 }
 
 // Test successful message dispatch
@@ -94,10 +89,10 @@ func (suite *InMemoryBusTestSuite) TestDispatch_Success() {
 		On("Handle", ctx, msg).
 		Return("ok")
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "ok", res)
 	handler.AssertExpectations(suite.T())
@@ -112,10 +107,10 @@ func (suite *InMemoryBusTestSuite) TestDispatch_HandlerError() {
 
 	handler.On("Handle", ctx, msg).Return(expectedError)
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), expectedError, err)
@@ -127,10 +122,10 @@ func (suite *InMemoryBusTestSuite) TestDispatch_NoHandlerError() {
 	msg := TestMessage{message.NewBase()}
 	ctx := context.Background()
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
-	assert.Contains(suite.T(), err.Error(), "no handler registered for message type TestMessage")
+	assert.Contains(suite.T(), err.Error(), "no handler registered for message type com.org.test_message")
 }
 
 // Test dispatch with context cancellation
@@ -142,10 +137,10 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithCancelledContext() {
 
 	handler.On("Handle", ctx, msg).Return(context.Canceled)
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), context.Canceled, err)
@@ -161,10 +156,10 @@ func (suite *InMemoryBusTestSuite) TestDispatch_WithTimeout() {
 
 	handler.On("Handle", ctx, msg).Return(nil)
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), res)
 	handler.AssertExpectations(suite.T())
@@ -188,12 +183,12 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareApplication() {
 
 	handler.On("Handle", ctx, msg).Return(nil)
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
 	suite.bus.Use(middleware)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), res)
 	assert.True(suite.T(), middlewareCalled)
@@ -234,14 +229,14 @@ func (suite *InMemoryBusTestSuite) TestUse_MultipleMiddlewares() {
 		executionOrder = append(executionOrder, "handler")
 	}).Return(nil)
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
 	// Add middlewares first, then use Use() to apply them
 	suite.bus.Use(middleware1)
 	suite.bus.Use(middleware2)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.NoError(suite.T(), err)
 	assert.Nil(suite.T(), res)
 
@@ -272,12 +267,12 @@ func (suite *InMemoryBusTestSuite) TestUse_MiddlewareWithError() {
 		}
 	}
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
 	suite.bus.Use(middleware)
 
-	res, err := suite.bus.Dispatch(ctx, msg)
+	res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), res)
 	assert.Equal(suite.T(), expectedError, err)
@@ -295,7 +290,7 @@ func (suite *InMemoryBusTestSuite) TestConcurrentAccess() {
 		On("Handle", mock.Anything, mock.Anything).
 		Return("ok")
 
-	err := suite.bus.RegisterHandler("TestMessage", handler)
+	err := suite.bus.RegisterHandler("com.org.test_message", handler)
 	require.NoError(suite.T(), err)
 
 	// Run multiple goroutines concurrently
@@ -304,7 +299,7 @@ func (suite *InMemoryBusTestSuite) TestConcurrentAccess() {
 
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
-			res, err := suite.bus.Dispatch(ctx, msg)
+			res, err := suite.bus.Dispatch(ctx, "com.org.test_message", msg)
 			assert.Equal(suite.T(), "ok", res)
 			errChan <- err
 		}()
@@ -329,13 +324,13 @@ func (suite *InMemoryBusTestSuite) TestMultipleMessageTypes() {
 	handler1.On("Handle", ctx, msg1).Return(nil)
 	handler2.On("Handle", ctx, msg2).Return(nil)
 
-	err1 := suite.bus.RegisterHandler("TestMessage", handler1)
-	err2 := suite.bus.RegisterHandler("AnotherTestMessage", handler2)
+	err1 := suite.bus.RegisterHandler("com.org.test_message", handler1)
+	err2 := suite.bus.RegisterHandler("com.org.another_test_message", handler2)
 	require.NoError(suite.T(), err1)
 	require.NoError(suite.T(), err2)
 
-	res1, err1 := suite.bus.Dispatch(ctx, msg1)
-	res2, err2 := suite.bus.Dispatch(ctx, msg2)
+	res1, err1 := suite.bus.Dispatch(ctx, "com.org.test_message", msg1)
+	res2, err2 := suite.bus.Dispatch(ctx, "com.org.another_test_message", msg2)
 	assert.NoError(suite.T(), err1)
 	assert.NoError(suite.T(), err2)
 	assert.Nil(suite.T(), res1)
@@ -378,7 +373,7 @@ func TestInMemoryBus_EdgeCases(t *testing.T) {
 			setupFunc: func(bus *message.InMemoryBus) error {
 				handler := &MockHandler{}
 				handler.On("Handle", mock.Anything, mock.Anything).Return(nil)
-				return bus.RegisterHandler("*message.TestMessage", handler)
+				return bus.RegisterHandler("com.org.test_message", handler)
 			},
 			message:         nil,
 			expectedError:   "no handler registered for message type",
@@ -391,7 +386,7 @@ func TestInMemoryBus_EdgeCases(t *testing.T) {
 				return bus.RegisterHandler("", handler)
 			},
 			message:         TestMessage{},
-			expectedError:   "no handler registered for message type TestMessage",
+			expectedError:   "no handler registered for message type com.org.test_message",
 			shouldHaveError: true,
 		},
 	}
@@ -409,7 +404,7 @@ func TestInMemoryBus_EdgeCases(t *testing.T) {
 			}
 
 			if tt.message != nil {
-				res, err := bus.Dispatch(context.Background(), tt.message)
+				res, err := bus.Dispatch(context.Background(), "com.org.test_message", tt.message)
 				if tt.shouldHaveError {
 					assert.Nil(t, res)
 					assert.Error(t, err)

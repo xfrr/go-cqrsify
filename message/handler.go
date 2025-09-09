@@ -2,6 +2,7 @@ package message
 
 import (
 	"context"
+	"fmt"
 )
 
 // Handler is an interface for handling messages.
@@ -21,14 +22,13 @@ type handlerRegistrar interface {
 }
 
 // Handle is a shorthand for handling messages.
-func Handle[M Message, R any](b handlerRegistrar, handlerFn HandlerFn[M, R]) error {
-	msgName := NameOf[M]()
-	return b.RegisterHandler(msgName, HandlerFn[Message, any](func(ctx context.Context, msg Message) (any, error) {
+func Handle[M Message, R any](b handlerRegistrar, topic string, handlerFn HandlerFn[M, R]) error {
+	return b.RegisterHandler(topic, HandlerFn[Message, any](func(ctx context.Context, msg Message) (any, error) {
 		castMessage, ok := msg.(M)
 		if !ok {
 			return nil, InvalidMessageTypeError{
-				Actual:   msgName,
-				Expected: NameOf[M](),
+				Actual:   topic,
+				Expected: fmt.Sprintf("%T", msg),
 			}
 		}
 		return handlerFn.Handle(ctx, castMessage)
@@ -50,14 +50,13 @@ type handlerWithResponseRegistrar interface {
 }
 
 // HandleWithResponse is a shorthand for handling messages with a response.
-func HandleWithResponse[M Message, R any](b handlerWithResponseRegistrar, handlerFn HandlerWithResponseFn[M, R]) error {
-	msgName := NameOf[M]()
+func HandleWithResponse[M Message, R any](msgName string, b handlerWithResponseRegistrar, handlerFn HandlerWithResponseFn[M, R]) error {
 	return b.RegisterHandler(msgName, HandlerWithResponseFn[Message, any](func(ctx context.Context, msg Message) (any, error) {
 		castedMessage, ok := msg.(M)
 		if !ok {
 			return *new(R), InvalidMessageTypeError{
 				Actual:   msgName,
-				Expected: NameOf[M](),
+				Expected: fmt.Sprintf("%T", msg),
 			}
 		}
 		return handlerFn.Handle(ctx, castedMessage)

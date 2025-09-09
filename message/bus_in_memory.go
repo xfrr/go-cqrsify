@@ -3,7 +3,6 @@ package message
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
 )
 
@@ -27,32 +26,31 @@ func NewInMemoryBus() *InMemoryBus {
 	}
 }
 
-func (b *InMemoryBus) Dispatch(ctx context.Context, msg Message) (res any, err error) {
-	t := reflect.TypeOf(msg).Name()
+func (b *InMemoryBus) Dispatch(ctx context.Context, topic string, msg Message) (res any, err error) {
 	b.mu.RLock()
-	handler, ok := b.wrappedHandlers[t]
+	handler, ok := b.wrappedHandlers[topic]
 	b.mu.RUnlock()
 	if !ok {
-		return nil, fmt.Errorf("no handler registered for message type %s", t)
+		return nil, fmt.Errorf("no handler registered for message type %s", topic)
 	}
 
 	return handler(ctx, msg)
 }
 
-func (b *InMemoryBus) RegisterHandler(msgType string, handler Handler[Message, any]) error {
+func (b *InMemoryBus) RegisterHandler(topic string, handler Handler[Message, any]) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if _, exists := b.handlers[msgType]; exists {
-		return fmt.Errorf("handler already registered for message type %s", msgType)
+	if _, exists := b.handlers[topic]; exists {
+		return fmt.Errorf("handler already registered for message type %s", topic)
 	}
 
 	// Store the original handler
-	b.handlers[msgType] = handler
+	b.handlers[topic] = handler
 
 	// Create the wrapped handler with current middleware chain
 	wrapped := b.applyMiddlewares(handler)
-	b.wrappedHandlers[msgType] = func(ctx context.Context, msg Message) (any, error) {
+	b.wrappedHandlers[topic] = func(ctx context.Context, msg Message) (any, error) {
 		return wrapped.Handle(ctx, msg)
 	}
 
