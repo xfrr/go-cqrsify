@@ -1,9 +1,9 @@
-package aggregate
+package domain
 
 type EventAggregateReference struct {
 	aggregateID      any
 	aggregateType    string
-	aggregateVersion Version
+	aggregateVersion AggregateVersion
 }
 
 func (r EventAggregateReference) ID() any {
@@ -14,7 +14,7 @@ func (r EventAggregateReference) Type() string {
 	return r.aggregateType
 }
 
-func (r EventAggregateReference) Version() Version {
+func (r EventAggregateReference) Version() AggregateVersion {
 	return r.aggregateVersion
 }
 
@@ -24,11 +24,11 @@ func CreateEventAggregateRef[T comparable](agg EventSourcedAggregate[T]) *EventA
 	return newEventAggregateReference(
 		agg.AggregateID(),
 		agg.AggregateName(),
-		UncommittedVersion(agg)+1,
+		UncommittedAggregateVersion(agg)+1,
 	)
 }
 
-func newEventAggregateReference(id any, aggregateType string, version Version) *EventAggregateReference {
+func newEventAggregateReference(id any, aggregateType string, version AggregateVersion) *EventAggregateReference {
 	return &EventAggregateReference{
 		aggregateID:      id,
 		aggregateType:    aggregateType,

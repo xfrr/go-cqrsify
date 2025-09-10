@@ -1,4 +1,4 @@
-package policy
+package domainpolicy
 
 // Result represents the outcome of a policy evaluation
 type Result struct {

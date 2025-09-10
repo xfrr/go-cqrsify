@@ -1,4 +1,4 @@
-package policy_test
+package domainpolicy_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/domain/policy"
+
+	policy "github.com/xfrr/go-cqrsify/domain/policy"
 )
 
 type User struct {

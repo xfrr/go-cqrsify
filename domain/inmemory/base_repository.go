@@ -4,26 +4,26 @@ import (
 	"context"
 	"sync"
 
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 )
 
-var _ aggregate.Repository[string] = (*BaseAggregateRepository)(nil)
-var _ aggregate.VersionedRepository[string] = (*BaseAggregateRepository)(nil)
+var _ domain.Repository[string] = (*BaseAggregateRepository)(nil)
+var _ domain.VersionedRepository[string] = (*BaseAggregateRepository)(nil)
 
 type BaseAggregateRepository struct {
 	mu              sync.RWMutex
-	aggregates      []aggregate.Aggregate[string]
-	aggregatesIndex map[string]aggregate.Aggregate[string]
+	aggregates      []domain.Aggregate[string]
+	aggregatesIndex map[string]domain.Aggregate[string]
 }
 
 func NewBaseAggregateRepository() *BaseAggregateRepository {
 	return &BaseAggregateRepository{
-		aggregates:      make([]aggregate.Aggregate[string], 0),
-		aggregatesIndex: make(map[string]aggregate.Aggregate[string]),
+		aggregates:      make([]domain.Aggregate[string], 0),
+		aggregatesIndex: make(map[string]domain.Aggregate[string]),
 	}
 }
 
-func (repo *BaseAggregateRepository) Exists(_ context.Context, agg aggregate.Aggregate[string]) (bool, error) {
+func (repo *BaseAggregateRepository) Exists(_ context.Context, agg domain.Aggregate[string]) (bool, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -31,7 +31,7 @@ func (repo *BaseAggregateRepository) Exists(_ context.Context, agg aggregate.Agg
 	return exists, nil
 }
 
-func (repo *BaseAggregateRepository) Save(_ context.Context, agg aggregate.Aggregate[string]) error {
+func (repo *BaseAggregateRepository) Save(_ context.Context, agg domain.Aggregate[string]) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -41,7 +41,7 @@ func (repo *BaseAggregateRepository) Save(_ context.Context, agg aggregate.Aggre
 }
 
 // Delete removes an aggregate by its instance.
-func (repo *BaseAggregateRepository) Delete(_ context.Context, agg aggregate.Aggregate[string]) error {
+func (repo *BaseAggregateRepository) Delete(_ context.Context, agg domain.Aggregate[string]) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
@@ -61,13 +61,13 @@ func (repo *BaseAggregateRepository) Delete(_ context.Context, agg aggregate.Agg
 }
 
 // Load retrieves an aggregate by its ID.
-func (repo *BaseAggregateRepository) Load(_ context.Context, agg aggregate.Aggregate[string]) error {
+func (repo *BaseAggregateRepository) Load(_ context.Context, agg domain.Aggregate[string]) error {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	loadedAgg, exists := repo.aggregatesIndex[agg.AggregateID()]
 	if !exists {
-		return aggregate.NewNotFoundError(agg.AggregateID())
+		return domain.NewNotFoundError(agg.AggregateID())
 	}
 
 	agg = loadedAgg
@@ -75,11 +75,11 @@ func (repo *BaseAggregateRepository) Load(_ context.Context, agg aggregate.Aggre
 }
 
 // Search retrieves aggregates based on the provided search criteria.
-func (repo *BaseAggregateRepository) Search(_ context.Context, criteria *aggregate.SearchCriteriaOptions) ([]aggregate.Aggregate[string], error) {
+func (repo *BaseAggregateRepository) Search(_ context.Context, criteria *domain.SearchCriteriaOptions) ([]domain.Aggregate[string], error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
-	var results []aggregate.Aggregate[string]
+	var results []domain.Aggregate[string]
 	for _, agg := range repo.aggregates {
 		if criteria.Matches(agg) {
 			results = append(results, agg)
@@ -88,7 +88,7 @@ func (repo *BaseAggregateRepository) Search(_ context.Context, criteria *aggrega
 	return results, nil
 }
 
-func (repo *BaseAggregateRepository) ExistsVersion(_ context.Context, agg aggregate.VersionedAggregate[string], version aggregate.Version) (bool, error) {
+func (repo *BaseAggregateRepository) ExistsVersion(_ context.Context, agg domain.VersionedAggregate[string], version domain.AggregateVersion) (bool, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -97,7 +97,7 @@ func (repo *BaseAggregateRepository) ExistsVersion(_ context.Context, agg aggreg
 		return false, nil
 	}
 
-	versionedAgg, ok := loadedAgg.(aggregate.VersionedAggregate[string])
+	versionedAgg, ok := loadedAgg.(domain.VersionedAggregate[string])
 	if !ok {
 		return false, nil
 	}
@@ -109,22 +109,22 @@ func (repo *BaseAggregateRepository) ExistsVersion(_ context.Context, agg aggreg
 	return true, nil
 }
 
-func (repo *BaseAggregateRepository) LoadVersion(_ context.Context, agg aggregate.VersionedAggregate[string], version aggregate.Version) error {
+func (repo *BaseAggregateRepository) LoadVersion(_ context.Context, agg domain.VersionedAggregate[string], version domain.AggregateVersion) error {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
 	loadedAgg, exists := repo.aggregatesIndex[agg.AggregateID()]
 	if !exists {
-		return aggregate.NewNotFoundError(agg.AggregateID())
+		return domain.NewNotFoundError(agg.AggregateID())
 	}
 
-	versionedAgg, ok := loadedAgg.(aggregate.VersionedAggregate[string])
+	versionedAgg, ok := loadedAgg.(domain.VersionedAggregate[string])
 	if !ok {
-		return aggregate.NewNotFoundError(agg.AggregateID())
+		return domain.NewNotFoundError(agg.AggregateID())
 	}
 
 	if versionedAgg.AggregateVersion() < version {
-		return aggregate.NewNotFoundError(agg.AggregateID())
+		return domain.NewNotFoundError(agg.AggregateID())
 	}
 
 	return nil

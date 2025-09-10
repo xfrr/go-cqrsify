@@ -1,4 +1,4 @@
-package aggregate
+package domain
 
 import (
 	"context"
@@ -25,10 +25,10 @@ type VersionedRepository[ID comparable] interface {
 	Repository[ID]
 
 	// LoadVersion loads the aggregate with the given id and version from the repository.
-	LoadVersion(context.Context, VersionedAggregate[ID], Version) error
+	LoadVersion(context.Context, VersionedAggregate[ID], AggregateVersion) error
 
 	// ExistsVersion checks if the aggregate with the given id and version exists in the repository.
-	ExistsVersion(context.Context, VersionedAggregate[ID], Version) (bool, error)
+	ExistsVersion(context.Context, VersionedAggregate[ID], AggregateVersion) (bool, error)
 }
 
 // EventSourcedRepository is the interface that wraps the basic methods for managing the
@@ -45,9 +45,9 @@ type EventSourcedRepository[ID comparable] interface {
 	// Save saves the aggregate to the repository.
 	Save(context.Context, EventSourcedAggregate[ID]) error
 	// LoadVersion loads the aggregate with the given id and version from the repository.
-	LoadVersion(context.Context, EventSourcedAggregate[ID], Version) error
+	LoadVersion(context.Context, EventSourcedAggregate[ID], AggregateVersion) error
 	// ExistsVersion checks if the aggregate with the given id and version exists in the repository.
-	ExistsVersion(context.Context, EventSourcedAggregate[ID], Version) (bool, error)
+	ExistsVersion(context.Context, EventSourcedAggregate[ID], AggregateVersion) (bool, error)
 }
 
 type NotFoundError struct {

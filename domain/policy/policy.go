@@ -1,5 +1,5 @@
 // Package policy provides DDD Policy pattern implementation for encapsulating business rules
-package policy
+package domainpolicy
 
 import (
 	"context"

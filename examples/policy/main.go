@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/xfrr/go-cqrsify/domain/policy"
+	policy "github.com/xfrr/go-cqrsify/domain/policy"
 )
 
 var _ policy.Policy[User] = (*AgeRestrictionPolicy)(nil)

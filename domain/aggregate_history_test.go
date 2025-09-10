@@ -1,4 +1,4 @@
-package aggregate_test
+package domain_test
 
 import (
 	"crypto/rand"
@@ -6,26 +6,26 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 )
 
 func TestRestoreStateFromHistory_ValidHistory(t *testing.T) {
-	agg := aggregate.New("agg-1", "agg-test")
+	agg := domain.NewAggregate("agg-1", "agg-test")
 	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
 
-	err := aggregate.RestoreFromHistory(agg, events)
+	err := domain.RestoreAggregateFromHistory(agg, events)
 	require.NoError(t, err)
 }
 
-func makeEvents(t *testing.T, aggID, aggName string, n int) []aggregate.Event {
-	events := []aggregate.Event{}
-	agg := aggregate.New(aggID, aggName)
+func makeEvents(t *testing.T, aggID, aggName string, n int) []domain.Event {
+	events := []domain.Event{}
+	agg := domain.NewAggregate(aggID, aggName)
 	defer agg.ClearEvents()
 
 	for range make([]int, n) {
-		evt := aggregate.NewEvent(
+		evt := domain.NewEvent(
 			randomStr(),
-			aggregate.CreateEventAggregateRef(agg),
+			domain.CreateEventAggregateRef(agg),
 		)
 
 		agg.RecordEvent(evt)
@@ -36,7 +36,7 @@ func makeEvents(t *testing.T, aggID, aggName string, n int) []aggregate.Event {
 }
 
 type mockAggregate struct {
-	*aggregate.Base[string]
+	*domain.BaseAggregate[string]
 }
 
 func randomStr() string {

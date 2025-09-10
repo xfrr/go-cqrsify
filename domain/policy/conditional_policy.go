@@ -1,4 +1,4 @@
-package policy
+package domainpolicy
 
 import "context"
 

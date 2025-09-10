@@ -1,4 +1,4 @@
-package aggregate
+package domain
 
 // Aggregate represents a domain-driven design and event-sourced aggregate.
 type Aggregate[ID comparable] interface {
@@ -13,7 +13,7 @@ type VersionedAggregate[ID comparable] interface {
 	Aggregate[ID]
 
 	// AggregateVersion returns the aggregate's version.
-	AggregateVersion() Version
+	AggregateVersion() AggregateVersion
 }
 
 type EventSourcedAggregate[ID comparable] interface {
@@ -29,13 +29,13 @@ type EventSourcedAggregate[ID comparable] interface {
 	HandleEvent(eventName string, handler func(event Event) error)
 }
 
-func Cast[OutID comparable, InID comparable](a Aggregate[InID]) (*Base[OutID], bool) {
+func CastAggregate[OutID comparable, InID comparable](a Aggregate[InID]) (*BaseAggregate[OutID], bool) {
 	id, ok := any(a.AggregateID()).(OutID)
 	if !ok {
 		return nil, false
 	}
 
-	var version Version
+	var version AggregateVersion
 	if va, ok := a.(VersionedAggregate[InID]); ok {
 		version = va.AggregateVersion()
 	}
@@ -45,7 +45,7 @@ func Cast[OutID comparable, InID comparable](a Aggregate[InID]) (*Base[OutID], b
 		events = ea.AggregateEvents()
 	}
 
-	return &Base[OutID]{
+	return &BaseAggregate[OutID]{
 		id:       id,
 		name:     a.AggregateName(),
 		version:  version,

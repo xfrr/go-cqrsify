@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 
-	inmemory "github.com/xfrr/go-cqrsify/domain/aggregate/inmemory"
+	inmemory "github.com/xfrr/go-cqrsify/domain/inmemory"
 )
 
 func TestNewRepository(t *testing.T) {
@@ -20,12 +20,12 @@ func TestInMemory_Delete(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// add and apply a event to the aggregate
-	evt := aggregate.NewEvent("cname", aggregate.CreateEventAggregateRef(agg))
-	aggregate.NextEvent(agg, evt)
+	evt := domain.NewEvent("cname", domain.CreateEventAggregateRef(agg))
+	domain.NextEvent(agg, evt)
 
 	// save the aggregate
 	require.NoError(t, sut.Save(ctx, agg), "Save() error = %v, want nil")
@@ -38,7 +38,7 @@ func TestInMemory_Exists(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// save the aggregate
@@ -54,7 +54,7 @@ func TestInMemory_ExistsVersion(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// save the aggregate
@@ -71,25 +71,25 @@ func TestInMemory_Load(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// add and apply a event to the aggregate
-	evt := aggregate.NewEvent("cname", aggregate.CreateEventAggregateRef(agg))
-	aggregate.NextEvent(agg, evt)
+	evt := domain.NewEvent("cname", domain.CreateEventAggregateRef(agg))
+	domain.NextEvent(agg, evt)
 
 	// save the aggregate
 	err := sut.Save(ctx, agg)
 	require.NoError(t, err, "Save() error = %v, want nil", err)
 
 	// set new aggregate to avoid version conflicts
-	expectedAgg := aggregate.New("1", "test")
+	expectedAgg := domain.NewAggregate("1", "test")
 
 	// load the aggregate
 	err = sut.Load(ctx, expectedAgg)
 	require.NoError(t, err, "Load() error = %v, want nil", err)
 	assert.Equal(t, agg.AggregateID(), expectedAgg.AggregateID(), "expected aggregate id to be %s, got %s", agg.AggregateID(), expectedAgg.AggregateID())
-	assert.Equal(t, aggregate.Version(1), expectedAgg.AggregateVersion(), "expected aggregate version to be 1, got %d", expectedAgg.AggregateVersion())
+	assert.Equal(t, domain.AggregateVersion(1), expectedAgg.AggregateVersion(), "expected aggregate version to be 1, got %d", expectedAgg.AggregateVersion())
 	assert.Empty(t, expectedAgg.AggregateEvents(), "expected aggregate events to be empty, got %d", len(expectedAgg.AggregateEvents()))
 }
 
@@ -97,23 +97,23 @@ func TestInMemory_LoadVersion(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// add and apply a event to the aggregate
-	evt := aggregate.NewEvent("cname", aggregate.CreateEventAggregateRef(agg))
-	aggregate.NextEvent(agg, evt)
+	evt := domain.NewEvent("cname", domain.CreateEventAggregateRef(agg))
+	domain.NextEvent(agg, evt)
 
 	// save the aggregate
 	err := sut.Save(ctx, agg)
 	require.NoError(t, err, "Save() error = %v, want nil", err)
 
 	// load the aggregate
-	agg2 := aggregate.New("1", "test")
+	agg2 := domain.NewAggregate("1", "test")
 	err = sut.LoadVersion(ctx, agg2, 1)
 	require.NoError(t, err, "LoadVersion() error = %v, want nil", err)
 	assert.Equal(t, agg.AggregateID(), agg2.AggregateID(), "expected aggregate id to be %s, got %s", agg.AggregateID(), agg2.AggregateID())
-	assert.Equal(t, aggregate.Version(1), agg2.AggregateVersion(), "expected aggregate version to be 1, got %d", agg2.AggregateVersion())
+	assert.Equal(t, domain.AggregateVersion(1), agg2.AggregateVersion(), "expected aggregate version to be 1, got %d", agg2.AggregateVersion())
 	assert.Empty(t, agg2.AggregateEvents(), "expected aggregate events to be empty, got %d", len(agg2.AggregateEvents()))
 	assert.Equal(t, agg.AggregateName(), agg2.AggregateName(), "expected aggregate name to be %s, got %s", agg.AggregateName(), agg2.AggregateName())
 }
@@ -123,13 +123,13 @@ func TestInMemory_Search(t *testing.T) {
 
 	sut := newEventSourcedAggregateRepositoryWithAggregates(
 		t,
-		aggregate.New("id-1", "test-1"),
-		aggregate.New("id-2", "test-2"),
-		aggregate.New("id-3", "test-3"),
+		domain.NewAggregate("id-1", "test-1"),
+		domain.NewAggregate("id-2", "test-2"),
+		domain.NewAggregate("id-3", "test-3"),
 	)
 
 	t.Run("should return all aggregates when no criteria is provided", func(t *testing.T) {
-		aggs, err := sut.Search(ctx, aggregate.SearchCriteria())
+		aggs, err := sut.Search(ctx, domain.SearchCriteria())
 		require.NoError(t, err, "Search() error = %v, want nil", err)
 
 		expectedN := 3
@@ -138,7 +138,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided ids", func(t *testing.T) {
 		ids := []string{"id-1", "id-2"}
-		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateIDs(ids...))
+		aggs, err := sut.Search(ctx, domain.SearchCriteria().WithSearchAggregateIDs(ids...))
 		require.NoError(t, err, "Search() error = %v, want nil", err)
 
 		expectedN := 2
@@ -152,7 +152,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided names", func(t *testing.T) {
 		names := []string{"test-1", "test-2"}
-		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateNames(names...))
+		aggs, err := sut.Search(ctx, domain.SearchCriteria().WithSearchAggregateNames(names...))
 		require.NoError(t, err, "Search() error = %v, want nil", err)
 
 		expectedN := 2
@@ -166,7 +166,7 @@ func TestInMemory_Search(t *testing.T) {
 
 	t.Run("should return aggregates with provided versions", func(t *testing.T) {
 		version := 1
-		aggs, err := sut.Search(ctx, aggregate.SearchCriteria().WithSearchAggregateVersions(version))
+		aggs, err := sut.Search(ctx, domain.SearchCriteria().WithSearchAggregateVersions(version))
 		require.NoError(t, err, "Search() error = %v, want nil", err)
 
 		expectedN := 3
@@ -174,9 +174,9 @@ func TestInMemory_Search(t *testing.T) {
 
 		expectedV := version
 		for _, agg := range aggs {
-			versionedAgg, ok := agg.(aggregate.VersionedAggregate[string])
+			versionedAgg, ok := agg.(domain.VersionedAggregate[string])
 			require.True(t, ok, "expected aggregate to be versioned, got %T", agg)
-			require.Equal(t, aggregate.Version(expectedV), versionedAgg.AggregateVersion(), "expected aggregate version to be %d, got %d", expectedV, versionedAgg.AggregateVersion())
+			require.Equal(t, domain.AggregateVersion(expectedV), versionedAgg.AggregateVersion(), "expected aggregate version to be %d, got %d", expectedV, versionedAgg.AggregateVersion())
 		}
 	})
 
@@ -186,7 +186,7 @@ func TestInMemory_Save(t *testing.T) {
 	sut := inmemory.NewEventSourcedAggregateRepository()
 	ctx := context.Background()
 
-	agg := aggregate.New("1", "test")
+	agg := domain.NewAggregate("1", "test")
 	require.NotNil(t, agg, "expected aggregate to not be nil")
 
 	// save the aggregate
@@ -194,15 +194,15 @@ func TestInMemory_Save(t *testing.T) {
 	require.NoError(t, err, "Save() error = %v, want nil", err)
 }
 
-func newEventSourcedAggregateRepositoryWithAggregates(t *testing.T, aggregates ...aggregate.EventSourcedAggregate[string]) *inmemory.EventSourcedAggregateRepository {
+func newEventSourcedAggregateRepositoryWithAggregates(t *testing.T, aggregates ...domain.EventSourcedAggregate[string]) *inmemory.EventSourcedAggregateRepository {
 	repo := inmemory.NewEventSourcedAggregateRepository()
 	for _, agg := range aggregates {
-		evt := aggregate.NewEvent(
+		evt := domain.NewEvent(
 			"test.name",
-			aggregate.CreateEventAggregateRef(agg),
+			domain.CreateEventAggregateRef(agg),
 		)
 
-		err := aggregate.NextEvent(agg, evt)
+		err := domain.NextEvent(agg, evt)
 		require.NoError(t, err, "failed to raise event: %v", err)
 
 		err = repo.Save(context.Background(), agg)

@@ -1,3 +1,3 @@
-package aggregate
+package domain
 
 type EventOption func(*BaseEvent)

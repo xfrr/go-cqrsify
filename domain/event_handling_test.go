@@ -1,11 +1,11 @@
-package aggregate_test
+package domain_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 )
 
 func TestNextEvent(t *testing.T) {
@@ -17,39 +17,39 @@ func TestNextEvent(t *testing.T) {
 	)
 
 	type mockAggregate struct {
-		*aggregate.Base[string]
+		*domain.BaseAggregate[string]
 	}
 
 	agg := &mockAggregate{
-		Base: aggregate.New(aggID, aggName),
+		BaseAggregate: domain.NewAggregate(aggID, aggName),
 	}
 
 	handlerCalls := 0
-	agg.HandleEvent(eventName, func(_ aggregate.Event) error {
+	agg.HandleEvent(eventName, func(_ domain.Event) error {
 		handlerCalls++
 		return nil
 	})
 
 	t.Run("should return error if aggregate is nil", func(t *testing.T) {
-		evt := aggregate.NewEvent(eventName, aggregate.CreateEventAggregateRef(agg))
-		err := aggregate.NextEvent[string](
+		evt := domain.NewEvent(eventName, domain.CreateEventAggregateRef(agg))
+		err := domain.NextEvent[string](
 			nil,
 			evt,
 		)
 		require.Error(t, err)
-		require.True(t, errors.Is(err, aggregate.ErrNilAggregate))
+		require.True(t, errors.Is(err, domain.ErrNilAggregate))
 	})
 
 	t.Run("should create and record a new event successfully", func(t *testing.T) {
-		evt := aggregate.NewEvent(eventName, aggregate.CreateEventAggregateRef(agg))
-		err := aggregate.NextEvent(agg, evt)
+		evt := domain.NewEvent(eventName, domain.CreateEventAggregateRef(agg))
+		err := domain.NextEvent(agg, evt)
 		require.NoError(t, err)
 		require.Len(t, agg.AggregateEvents(), 1)
 		require.Equal(t, 1, handlerCalls)
 
 		// apply second event
-		evt2 := aggregate.NewEvent(eventName, aggregate.CreateEventAggregateRef(agg))
-		err = aggregate.NextEvent(agg, evt2)
+		evt2 := domain.NewEvent(eventName, domain.CreateEventAggregateRef(agg))
+		err = domain.NextEvent(agg, evt2)
 		require.NoError(t, err)
 		require.Len(t, agg.AggregateEvents(), 2)
 		require.Equal(t, 2, handlerCalls)

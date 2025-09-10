@@ -1,4 +1,4 @@
-package aggregate
+package domain
 
 // EventCommitter provides methods for tracking aggregate events
 // as a series of events and committing them to update the aggregate's state.

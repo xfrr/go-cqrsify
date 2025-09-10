@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 )
 
 // sample event names
 const (
-	CustomAggregateStatusEventName = "aggregate.status_changed"
+	CustomAggregateStatusEventName = "status_changed"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 }
 
 type CustomAggregateStatusChangedEvent struct {
-	aggregate.BaseEvent
+	domain.BaseEvent
 
 	Previous string
 	New      string
@@ -46,8 +46,8 @@ type CustomAggregateRoot struct {
 }
 
 type CustomAggregate struct {
-	// embed the aggregate.Base to provide the basic functionality of an aggregate
-	*aggregate.Base[string]
+	// embed the domain.Base to provide the basic functionality of an aggregate
+	*domain.BaseAggregate[string]
 
 	CustomAggregateRoot
 }
@@ -61,12 +61,12 @@ func (agg *CustomAggregate) EventStatus(status string) error {
 	// ...
 
 	// apply the event to the aggregate
-	err := aggregate.NextEvent(
+	err := domain.NextEvent(
 		agg,
 		CustomAggregateStatusChangedEvent{
-			BaseEvent: aggregate.NewEvent(
+			BaseEvent: domain.NewEvent(
 				CustomAggregateStatusEventName,
-				aggregate.CreateEventAggregateRef(agg),
+				domain.CreateEventAggregateRef(agg),
 			),
 			Previous: agg.Status,
 			New:      status,
@@ -85,28 +85,28 @@ func handleStatusEvent(agg *CustomAggregate, e CustomAggregateStatusChangedEvent
 }
 
 func makeAggregate(id string, name string) *CustomAggregate {
-	// create a new aggregate with embedded aggregate.Base
+	// create a new aggregate with embedded domain.Base
 	customAggregate := &CustomAggregate{
-		aggregate.New(id, name),
+		domain.NewAggregate(id, name),
 		CustomAggregateRoot{
 			Status: "init",
 		},
 	}
 
 	// start listening for status event events
-	aggregate.HandleEvent(
+	domain.HandleEvent(
 		customAggregate,
 		CustomAggregateStatusEventName,
 		handleStatusEvent,
 	)
 
 	// apply the event to the aggregate
-	aggregate.NextEvent(
+	domain.NextEvent(
 		customAggregate,
 		CustomAggregateStatusChangedEvent{
-			BaseEvent: aggregate.NewEvent(
+			BaseEvent: domain.NewEvent(
 				CustomAggregateStatusEventName,
-				aggregate.CreateEventAggregateRef(customAggregate)),
+				domain.CreateEventAggregateRef(customAggregate)),
 			Previous: "",
 			New:      customAggregate.Status,
 		})

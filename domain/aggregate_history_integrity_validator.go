@@ -1,4 +1,4 @@
-package aggregate
+package domain
 
 import (
 	"errors"
@@ -44,21 +44,21 @@ var (
 //   - No events are nil
 //
 // Returns a HistoryIntegrityError if any integrity check fails, nil otherwise.
-func VerifyHistoryIntegrity[ID comparable](agg EventSourcedAggregate[ID], events []Event) error {
+func VerifyHistoryIntegrity[ID comparable](agg EventSourcedAggregate[ID], history History) error {
 	// Input validation
 	if agg == nil {
 		return ErrNilAggregate
 	}
 
-	if len(events) == 0 {
+	if len(history) == 0 {
 		return ErrEmptyEventHistory
 	}
 
 	aggregateID := agg.AggregateID()
 	aggregateName := agg.AggregateName()
-	baseVersion := UncommittedVersion(agg)
+	baseVersion := UncommittedAggregateVersion(agg)
 
-	for i, evt := range events {
+	for i, evt := range history {
 		// Check for nil events
 		if evt == nil {
 			return NewHistoryIntegrityError(fmt.Sprintf("event at index %d is nil", i)).
@@ -86,7 +86,7 @@ func VerifyHistoryIntegrity[ID comparable](agg EventSourcedAggregate[ID], events
 		}
 
 		// Verify version is sequential
-		expectedVersion := baseVersion + Version(i) + 1
+		expectedVersion := baseVersion + AggregateVersion(i) + 1
 		actualVersion := eventRef.Version()
 		if actualVersion != expectedVersion {
 			return NewHistoryIntegrityError(fmt.Sprintf("event at index %d has unexpected version: got %d, want %d",

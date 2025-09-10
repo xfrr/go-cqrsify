@@ -3,11 +3,11 @@ package inmemory
 import (
 	"slices"
 
-	"github.com/xfrr/go-cqrsify/domain/aggregate"
+	"github.com/xfrr/go-cqrsify/domain"
 )
 
-func filterEventsFromVersion(version aggregate.Version, events []aggregate.Event) []aggregate.Event {
-	filtered := make([]aggregate.Event, 0)
+func filterEventsFromVersion(version domain.AggregateVersion, events []domain.Event) []domain.Event {
+	filtered := make([]domain.Event, 0)
 	for _, ch := range events {
 		aggregateRef := ch.AggregateRef()
 		if aggregateRef.Version() <= version {
@@ -18,12 +18,12 @@ func filterEventsFromVersion(version aggregate.Version, events []aggregate.Event
 	return filtered
 }
 
-func filterEventsByAggregateIDs(aggIDs []string, events []aggregate.Event) []aggregate.Event {
+func filterEventsByAggregateIDs(aggIDs []string, events []domain.Event) []domain.Event {
 	if len(aggIDs) == 0 {
 		return events
 	}
 
-	filtered := make([]aggregate.Event, 0)
+	filtered := make([]domain.Event, 0)
 	for _, ev := range events {
 		aggregateRef := ev.AggregateRef()
 
@@ -36,12 +36,12 @@ func filterEventsByAggregateIDs(aggIDs []string, events []aggregate.Event) []agg
 	return filtered
 }
 
-func filterEventsByAggregateNames(aggNames []string, events []aggregate.Event) []aggregate.Event {
+func filterEventsByAggregateNames(aggNames []string, events []domain.Event) []domain.Event {
 	if len(aggNames) == 0 {
 		return events
 	}
 
-	filtered := make([]aggregate.Event, 0)
+	filtered := make([]domain.Event, 0)
 	for _, ev := range events {
 		aggregateRef := ev.AggregateRef()
 		if slices.Contains(aggNames, aggregateRef.Type()) {
@@ -52,12 +52,12 @@ func filterEventsByAggregateNames(aggNames []string, events []aggregate.Event) [
 	return filtered
 }
 
-func filterEventsByAggregateVersions(aggVersions []int, events []aggregate.Event) []aggregate.Event {
+func filterEventsByAggregateVersions(aggVersions []int, events []domain.Event) []domain.Event {
 	if len(aggVersions) == 0 {
 		return events
 	}
 
-	filtered := make([]aggregate.Event, 0)
+	filtered := make([]domain.Event, 0)
 	for _, ev := range events {
 		aggregateRef := ev.AggregateRef()
 		if slices.Contains(aggVersions, int(aggregateRef.Version())) {

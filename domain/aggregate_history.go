@@ -1,15 +1,15 @@
-package aggregate
+package domain
 
 // History represents a sequence of events
 // that have occurred in an Aggregate.
 type History []Event
 
-// RestoreFromHistory restores the state of the Aggregate from the given History of events.
+// RestoreAggregateFromHistory restores the state of the Aggregate from the given History of events.
 //
 // It records and commits the events if the Aggregate implements the EventCommitter interface.
 //
 // It returns an error if the events cannot be applied.
-func RestoreFromHistory[ID comparable](agg EventSourcedAggregate[ID], events History) error {
+func RestoreAggregateFromHistory[ID comparable](agg EventSourcedAggregate[ID], events History) error {
 	if err := VerifyHistoryIntegrity(agg, events); err != nil {
 		return err
 	}

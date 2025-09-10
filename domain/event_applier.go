@@ -1,4 +1,4 @@
-package aggregate
+package domain
 
 // EventApplier applies events to an Aggregate.
 type EventApplier interface {
