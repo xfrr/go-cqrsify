@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1757536856530,
+  "lastUpdate": 1757536871183,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -2000,6 +2000,108 @@ window.BENCHMARK_DATA = {
             "value": 69.09,
             "unit": "ns/op",
             "extra": "18011216 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "46aa089ea2bbf7813ba5abd612fab08454328ac5",
+          "message": "feat: add retry backoff package\n\n- Implemented a comprehensive retry backoff package that includes various backoff strategies (constant, exponential, and jitter).\n- Added support for result-aware retries and batch processing with shared budgets.\n- Introduced idempotency helpers to ensure at-least-once execution safety.\n- Included observability hooks for metrics and logging during retry attempts.\n- Created an in-memory deduplication store for idempotency tokens.\n- Enhanced error classification with flexible retry conditions.\n- Documented the package with a detailed README outlining features and usage.",
+          "timestamp": "2025-09-10T22:40:36+02:00",
+          "tree_id": "50ebfd6d4f137d5e3f817d97f57b4f07eb45caf1",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/46aa089ea2bbf7813ba5abd612fab08454328ac5"
+        },
+        "date": 1757536870665,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6255,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.84,
+            "unit": "ns/op",
+            "extra": "16421850 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 200.7,
+            "unit": "ns/op",
+            "extra": "6019194 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 438.9,
+            "unit": "ns/op",
+            "extra": "2729222 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.425,
+            "unit": "ns/op",
+            "extra": "350068761 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/string",
+            "value": 20.61,
+            "unit": "ns/op",
+            "extra": "54627232 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/int",
+            "value": 21.35,
+            "unit": "ns/op",
+            "extra": "50517045 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkString",
+            "value": 89.43,
+            "unit": "ns/op",
+            "extra": "13188357 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEquals",
+            "value": 4.056,
+            "unit": "ns/op",
+            "extra": "295311984 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkValidate",
+            "value": 4.06,
+            "unit": "ns/op",
+            "extra": "294270398 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 40.54,
+            "unit": "ns/op",
+            "extra": "28495569 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_Dispatch",
+            "value": 55.71,
+            "unit": "ns/op",
+            "extra": "21342493 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkInMemoryBus_DispatchWithMiddleware",
+            "value": 59.05,
+            "unit": "ns/op",
+            "extra": "20339497 times\n4 procs"
           }
         ]
       }
