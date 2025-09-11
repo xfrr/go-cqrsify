@@ -22,14 +22,14 @@ func (e ErrNoSubscribersForEvent) Error() string {
 type InMemoryEventBus struct {
 	opts        EventBusConfig
 	mu          sync.RWMutex
-	subscribers map[string][]EventHandler
+	subscribers map[string][]EventHandler[Event]
 
 	// async pipeline (enabled if opts.AsyncWorkers > 0)
 	queue   chan queued
 	workers []worker
 
 	// composed middleware chain applied to handlers
-	mw []EventHandlerMiddleware
+	mw []EventHandlerMiddleware[Event]
 
 	closed  bool
 	closeMu sync.Mutex
@@ -39,7 +39,7 @@ type InMemoryEventBus struct {
 type queued struct {
 	ctx context.Context
 	evt Event
-	h   EventHandler
+	h   EventHandler[Event]
 }
 
 type worker struct {
@@ -57,7 +57,7 @@ func NewInMemoryEventBus(optFns ...EventBusConfigModifier) *InMemoryEventBus {
 
 	b := &InMemoryEventBus{
 		opts:        cfg,
-		subscribers: make(map[string][]EventHandler),
+		subscribers: make(map[string][]EventHandler[Event]),
 	}
 
 	if cfg.AsyncWorkers > 0 {
@@ -87,9 +87,9 @@ func (b *InMemoryEventBus) addWorker(id int) {
 	}()
 }
 
-func (b *InMemoryEventBus) Use(mw ...EventHandlerMiddleware) { b.mw = append(b.mw, mw...) }
+func (b *InMemoryEventBus) Use(mw ...EventHandlerMiddleware[Event]) { b.mw = append(b.mw, mw...) }
 
-func (b *InMemoryEventBus) wrap(h EventHandler) EventHandler {
+func (b *InMemoryEventBus) wrap(h EventHandler[Event]) EventHandler[Event] {
 	// Apply middlewares in registration order
 	for i := len(b.mw) - 1; i >= 0; i-- {
 		h = b.mw[i](h)
@@ -106,7 +106,7 @@ func (b *InMemoryEventBus) Publish(ctx context.Context, evts ...Event) error {
 	}
 
 	for _, evt := range evts {
-		handlers := append([]EventHandler(nil), b.subscribers[evt.Name()]...)
+		handlers := append([]EventHandler[Event](nil), b.subscribers[evt.Name()]...)
 		if len(handlers) == 0 {
 			return ErrNoSubscribersForEvent{EventName: evt.Name()}
 		}
@@ -129,7 +129,7 @@ func (b *InMemoryEventBus) Publish(ctx context.Context, evts ...Event) error {
 	return nil
 }
 
-func (b *InMemoryEventBus) Subscribe(eventName string, h EventHandler) (unsubscribe func()) {
+func (b *InMemoryEventBus) Subscribe(eventName string, h EventHandler[Event]) (unsubscribe func()) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.subscribers[eventName] = append(b.subscribers[eventName], h)

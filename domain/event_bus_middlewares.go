@@ -6,9 +6,9 @@ import (
 )
 
 // RecoverMiddleware shields the bus from panics in handlers.
-func RecoverMiddleware(cb func(r any)) EventHandlerMiddleware {
-	return func(next EventHandler) EventHandler {
-		return EventHandlerFunc(func(ctx context.Context, evt Event) (err error) {
+func RecoverMiddleware(cb func(r any)) EventHandlerMiddleware[Event] {
+	return func(next EventHandler[Event]) EventHandler[Event] {
+		return EventHandlerFunc[Event](func(ctx context.Context, evt Event) (err error) {
 			defer func() {
 				if r := recover(); r != nil {
 					cb(r)
@@ -20,9 +20,9 @@ func RecoverMiddleware(cb func(r any)) EventHandlerMiddleware {
 }
 
 // TimeoutMiddleware enforces a per-event timeout; callers may pass ctx with deadline as well.
-func TimeoutMiddleware(d time.Duration) EventHandlerMiddleware {
-	return func(next EventHandler) EventHandler {
-		return EventHandlerFunc(func(ctx context.Context, evt Event) error {
+func TimeoutMiddleware(d time.Duration) EventHandlerMiddleware[Event] {
+	return func(next EventHandler[Event]) EventHandler[Event] {
+		return EventHandlerFunc[Event](func(ctx context.Context, evt Event) error {
 			if _, has := ctx.Deadline(); has || d <= 0 {
 				return next.Handle(ctx, evt)
 			}
@@ -34,9 +34,9 @@ func TimeoutMiddleware(d time.Duration) EventHandlerMiddleware {
 }
 
 // RetryBackoffMiddleware retries the handler with exponential backoff on error.
-func RetryBackoffMiddleware(attempts int, initialDelay time.Duration) EventHandlerMiddleware {
-	return func(next EventHandler) EventHandler {
-		return EventHandlerFunc(func(ctx context.Context, evt Event) error {
+func RetryBackoffMiddleware(attempts int, initialDelay time.Duration) EventHandlerMiddleware[Event] {
+	return func(next EventHandler[Event]) EventHandler[Event] {
+		return EventHandlerFunc[Event](func(ctx context.Context, evt Event) error {
 			var err error
 			delay := initialDelay
 			for i := 0; i < attempts; i++ {
