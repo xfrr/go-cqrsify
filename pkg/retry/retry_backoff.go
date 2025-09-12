@@ -16,7 +16,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 )
 
@@ -42,8 +41,6 @@ type Options struct {
 	MaxAttempts int
 	// MaxElapsed is a wall-clock limit across all attempts including sleeps. 0 means no limit.
 	MaxElapsed time.Duration
-	// RandomSource allows deterministic tests. Defaults to crypto-weak math/rand seeded with time.Now.
-	RandomSource rand.Source
 	// Sleeper allows injecting fake/time-travel clocks for tests. Defaults to RealSleeper.
 	Sleeper Sleeper
 	// Hooks (optional) for observability.
@@ -57,7 +54,6 @@ type Retrier struct {
 	classifier  Classifier
 	maxAttempts int
 	maxElapsed  time.Duration
-	randSrc     rand.Source
 	sleeper     Sleeper
 	stopper     Stopper
 	hooks       Hooks
@@ -71,13 +67,9 @@ func New(opts Options) *Retrier {
 		classifier:  defaultClassifier(opts.Classifier),
 		maxAttempts: opts.MaxAttempts,
 		maxElapsed:  opts.MaxElapsed,
-		randSrc:     opts.RandomSource,
 		sleeper:     opts.Sleeper,
 		hooks:       opts.Hooks,
 		stopper:     opts.Stopper,
-	}
-	if r.randSrc == nil {
-		r.randSrc = rand.NewSource(time.Now().UnixNano())
 	}
 	if r.sleeper == nil {
 		r.sleeper = RealSleeper{}
@@ -92,13 +84,8 @@ func New(opts Options) *Retrier {
 // - Must be idempotent or otherwise safe to run multiple times.
 // - Must be quick to return; long sleeps should be avoided (backoff handles pacing).
 func (r *Retrier) Do(ctx context.Context, fn func(ctx context.Context) error) error {
-	// We snapshot start wall-clock to enforce MaxElapsed.
 	start := r.sleeper.Now()
-	// Reset strategy in case it's stateful.
 	r.strategy.Reset()
-
-	// Per-run RNG; do not share math.Rand across goroutines without a mutex.
-	prng := rand.New(r.randSrc)
 
 	var attempt int
 	for {
@@ -106,97 +93,139 @@ func (r *Retrier) Do(ctx context.Context, fn func(ctx context.Context) error) er
 			r.hooks.OnAttempt(attempt)
 		}
 
-		// Execute user function.
 		err := fn(ctx)
 		if err == nil {
 			return nil
 		}
 
-		// Classify error.
-		if !r.classifier.Retryable(err) {
-			if r.hooks.OnGiveUp != nil {
-				r.hooks.OnGiveUp(attempt, err, ErrNonRetryable)
-			}
-			return wrapFinalError(err, ErrNonRetryable, attempt)
+		if finalErr := r.handleNonRetryable(attempt, err); finalErr != nil {
+			return finalErr
 		}
 
-		// Respect context cancelation.
-		if ctx.Err() != nil {
-			if r.hooks.OnGiveUp != nil {
-				r.hooks.OnGiveUp(attempt, ctx.Err(), ctx.Err())
-			}
-			return wrapFinalError(err, ctx.Err(), attempt)
+		if finalErr := r.handleContextCancel(ctx, attempt, err); finalErr != nil {
+			return finalErr
 		}
 
-		// Stopper check (after failure, before we proceed)
-		if r.stopper != nil {
-			elapsed := r.sleeper.Now().Sub(start)
-			if stop, cause := r.stopper.ShouldStop(ctx, attempt, err, elapsed); stop {
-				if r.hooks.OnGiveUp != nil {
-					r.hooks.OnGiveUp(attempt, err, cause)
-				}
-				return wrapFinalError(err, cause, attempt)
-			}
+		if finalErr := r.handleStopper(ctx, attempt, err, start); finalErr != nil {
+			return finalErr
 		}
 
-		// Check attempts guard BEFORE sleeping (i.e., attempts counts executions).
 		nextAttempt := attempt + 1
-		if r.maxAttempts > 0 && nextAttempt >= r.maxAttempts {
-			if r.hooks.OnGiveUp != nil {
-				r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
-			}
+		if finalErr := r.handleMaxAttempts(nextAttempt, attempt, err); finalErr != nil {
+			return finalErr
+		}
+
+		if finalErr := r.handleMaxElapsedBeforeSleep(attempt, err, start); finalErr != nil {
+			return finalErr
+		}
+
+		delay := r.computeDelay(attempt, err)
+		delay = r.adjustDelayForMaxElapsed(delay, attempt, err, start)
+		if delay == -1 {
 			return wrapFinalError(err, ErrGiveUp, attempt)
-		}
-
-		// Check elapsed limit BEFORE sleeping.
-		if r.maxElapsed > 0 {
-			now := r.sleeper.Now()
-			elapsed := now.Sub(start)
-			if elapsed >= r.maxElapsed {
-				if r.hooks.OnGiveUp != nil {
-					r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
-				}
-				return wrapFinalError(err, ErrGiveUp, attempt)
-			}
-		}
-
-		// Compute delay = jitter(strategy(attempt, err)).
-		base := r.strategy.NextDelay(attempt, err)
-		delay := r.jitter.Apply(base, prng)
-
-		// Adjust delay if it would exceed MaxElapsed.
-		if r.maxElapsed > 0 {
-			now := r.sleeper.Now()
-			remaining := r.maxElapsed - now.Sub(start)
-			if remaining <= 0 {
-				if r.hooks.OnGiveUp != nil {
-					r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
-				}
-				return wrapFinalError(err, ErrGiveUp, attempt)
-			}
-			if delay > remaining {
-				delay = remaining
-			}
 		}
 
 		if r.hooks.OnRetry != nil {
 			r.hooks.OnRetry(attempt, err, delay)
 		}
 
-		// Sleep (context-aware).
-		if delay > 0 {
-			if sleepErr := r.sleeper.Sleep(ctx, delay); sleepErr != nil {
-				// Context canceled during sleep.
-				if r.hooks.OnGiveUp != nil {
-					r.hooks.OnGiveUp(attempt, sleepErr, sleepErr)
-				}
-				return wrapFinalError(err, sleepErr, attempt)
-			}
+		if finalErr := r.handleSleep(ctx, attempt, err, delay); finalErr != nil {
+			return finalErr
 		}
 
-		// Next attempt.
 		attempt = nextAttempt
 	}
+}
+
+func (r *Retrier) handleNonRetryable(attempt int, err error) error {
+	if !r.classifier.Retryable(err) {
+		if r.hooks.OnGiveUp != nil {
+			r.hooks.OnGiveUp(attempt, err, ErrNonRetryable)
+		}
+		return wrapFinalError(err, ErrNonRetryable, attempt)
+	}
+	return nil
+}
+
+func (r *Retrier) handleContextCancel(ctx context.Context, attempt int, err error) error {
+	if ctx.Err() != nil {
+		if r.hooks.OnGiveUp != nil {
+			r.hooks.OnGiveUp(attempt, ctx.Err(), ctx.Err())
+		}
+		return wrapFinalError(err, ctx.Err(), attempt)
+	}
+	return nil
+}
+
+func (r *Retrier) handleStopper(ctx context.Context, attempt int, err error, start time.Time) error {
+	if r.stopper != nil {
+		elapsed := r.sleeper.Now().Sub(start)
+		if stop, cause := r.stopper.ShouldStop(ctx, attempt, err, elapsed); stop {
+			if r.hooks.OnGiveUp != nil {
+				r.hooks.OnGiveUp(attempt, err, cause)
+			}
+			return wrapFinalError(err, cause, attempt)
+		}
+	}
+	return nil
+}
+
+func (r *Retrier) handleMaxAttempts(nextAttempt, attempt int, err error) error {
+	if r.maxAttempts > 0 && nextAttempt >= r.maxAttempts {
+		if r.hooks.OnGiveUp != nil {
+			r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
+		}
+		return wrapFinalError(err, ErrGiveUp, attempt)
+	}
+	return nil
+}
+
+func (r *Retrier) handleMaxElapsedBeforeSleep(attempt int, err error, start time.Time) error {
+	if r.maxElapsed > 0 {
+		now := r.sleeper.Now()
+		elapsed := now.Sub(start)
+		if elapsed >= r.maxElapsed {
+			if r.hooks.OnGiveUp != nil {
+				r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
+			}
+			return wrapFinalError(err, ErrGiveUp, attempt)
+		}
+	}
+	return nil
+}
+
+func (r *Retrier) computeDelay(attempt int, err error) time.Duration {
+	base := r.strategy.NextDelay(attempt, err)
+	return r.jitter.Apply(base)
+}
+
+func (r *Retrier) adjustDelayForMaxElapsed(delay time.Duration, attempt int, err error, start time.Time) time.Duration {
+	if r.maxElapsed > 0 {
+		now := r.sleeper.Now()
+		remaining := r.maxElapsed - now.Sub(start)
+		if remaining <= 0 {
+			if r.hooks.OnGiveUp != nil {
+				r.hooks.OnGiveUp(attempt, err, ErrGiveUp)
+			}
+			return -1
+		}
+		if delay > remaining {
+			delay = remaining
+		}
+	}
+	return delay
+}
+
+func (r *Retrier) handleSleep(ctx context.Context, attempt int, err error, delay time.Duration) error {
+	if delay > 0 {
+		if sleepErr := r.sleeper.Sleep(ctx, delay); sleepErr != nil {
+			if r.hooks.OnGiveUp != nil {
+				r.hooks.OnGiveUp(attempt, sleepErr, sleepErr)
+			}
+			return wrapFinalError(err, sleepErr, attempt)
+		}
+	}
+	return nil
 }
 
 // DoResult behaves like Do but returns a value on success. On failure, it returns
