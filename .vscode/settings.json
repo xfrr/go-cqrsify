@@ -1,0 +1,4 @@
+{
+  "go.lintFlags": ["run", "--issues-exit-code=0", "--show-stats=false"],
+  "go.lintTool": "golangci-lint-v2"
+}
