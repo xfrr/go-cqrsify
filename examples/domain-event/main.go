@@ -40,8 +40,6 @@ func (e speechProcessedDomainEvent) IsError() bool {
 	return e.isError
 }
 
-type SpeechProcessedEventHandler struct{}
-
 type CustomAggregateRoot struct {
 	SpeechText string
 }
@@ -52,6 +50,8 @@ type CustomAggregate struct {
 
 	CustomAggregateRoot
 }
+
+type SpeechProcessedEventHandler struct{}
 
 func (h SpeechProcessedEventHandler) Handle(ctx context.Context, evt SpeechProcessedDomainEvent) error {
 	fmt.Printf("%s🗣️  [User Registered Event]: %s%s\n", Green, evt.Speech(), Reset)
