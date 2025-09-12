@@ -11,13 +11,13 @@ import (
 
 func TestRestoreStateFromHistory_ValidHistory(t *testing.T) {
 	agg := domain.NewAggregate("agg-1", "agg-test")
-	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
+	events := makeEvents(agg.AggregateID(), agg.AggregateName(), 5)
 
 	err := domain.RestoreAggregateFromHistory(agg, events)
 	require.NoError(t, err)
 }
 
-func makeEvents(t *testing.T, aggID, aggName string, n int) []domain.Event {
+func makeEvents(aggID, aggName string, n int) []domain.Event {
 	events := []domain.Event{}
 	agg := domain.NewAggregate(aggID, aggName)
 	defer agg.ClearEvents()

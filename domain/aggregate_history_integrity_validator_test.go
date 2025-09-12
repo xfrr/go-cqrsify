@@ -9,7 +9,7 @@ import (
 
 func TestVerifyHistoryIntegrity_ValidHistory(t *testing.T) {
 	agg := domain.NewAggregate("agg-test-id", "agg-test-name")
-	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
+	events := makeEvents(agg.AggregateID(), agg.AggregateName(), 5)
 	agg.ClearEvents()
 
 	err := domain.VerifyHistoryIntegrity(agg, events)
@@ -18,7 +18,7 @@ func TestVerifyHistoryIntegrity_ValidHistory(t *testing.T) {
 
 func TestVerifyHistoryIntegrity_InvalidHistory_InvalidAggregateID(t *testing.T) {
 	agg := domain.NewAggregate("agg-test-id", "agg-test-name")
-	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
+	events := makeEvents(agg.AggregateID(), agg.AggregateName(), 5)
 	agg.ClearEvents()
 
 	// Modify the events to have an invalid aggregate ID
@@ -32,7 +32,7 @@ func TestVerifyHistoryIntegrity_InvalidHistory_InvalidAggregateID(t *testing.T) 
 
 func TestVerifyHistoryIntegrity_InvalidHistory_InvalidAggregateName(t *testing.T) {
 	agg := domain.NewAggregate("agg-test-id", "agg-test-name")
-	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
+	events := makeEvents(agg.AggregateID(), agg.AggregateName(), 5)
 	agg.ClearEvents()
 
 	// Modify the events to have an invalid aggregate name
@@ -47,7 +47,7 @@ func TestVerifyHistoryIntegrity_InvalidHistory_InvalidAggregateName(t *testing.T
 func TestVerifyHistoryIntegrity_InvalidHistory_UnexpectedVersion(t *testing.T) {
 	agg := domain.NewAggregate("agg-test-id", "agg-test-name")
 	agg.RecordEvent(domain.NewEvent("event-1", domain.CreateEventAggregateRef(agg)))
-	events := makeEvents(t, agg.AggregateID(), agg.AggregateName(), 5)
+	events := makeEvents(agg.AggregateID(), agg.AggregateName(), 5)
 
 	expectedError := domain.NewHistoryIntegrityError("history integrity error")
 	err := domain.VerifyHistoryIntegrity(agg, events)
