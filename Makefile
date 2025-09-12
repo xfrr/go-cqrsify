@@ -20,3 +20,7 @@ test-cover-out: cover
 .PHONY: cover
 test-cover: 
 	go test -coverprofile=coverage.out ./...
+
+.PHONY: lint
+lint:
+	golangci-lint run --timeout 5m
