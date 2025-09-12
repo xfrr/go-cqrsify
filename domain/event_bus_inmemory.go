@@ -162,10 +162,3 @@ func (b *InMemoryEventBus) Close() error {
 	b.wg.Wait()
 	return nil
 }
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
