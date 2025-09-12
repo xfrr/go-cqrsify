@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -18,7 +19,7 @@ func (RealSleeper) Sleep(ctx context.Context, d time.Duration) error {
 	defer t.Stop()
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("sleep interrupted: %w", ctx.Err())
 	case <-t.C:
 		return nil
 	}

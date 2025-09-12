@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func CombineStoppers(stoppers ...Stopper) Stopper {
 	return StopperFunc(func(ctx context.Context, attempt int, lastErr error, elapsed time.Duration) (bool, error) {
 		for _, stopper := range stoppers {
 			if stop, cause := stopper.ShouldStop(ctx, attempt, lastErr, elapsed); stop {
-				return true, cause
+				return true, fmt.Errorf("stopper %T signaled to stop: %w", stopper, cause)
 			}
 		}
 		return false, nil

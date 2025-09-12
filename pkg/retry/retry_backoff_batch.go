@@ -44,7 +44,7 @@ func DoN[T any](
 	)
 	// Shared deadline (if configured)
 	sharedCtx := ctx
-	cancel := func() {}
+	var cancel context.CancelFunc
 	if r.maxElapsed > 0 {
 		deadline := r.sleeper.Now().Add(r.maxElapsed)
 		sharedCtx, cancel = context.WithDeadline(ctx, deadline)

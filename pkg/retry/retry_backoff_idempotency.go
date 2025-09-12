@@ -2,6 +2,7 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func WithIdempotency(store DedupeStore, token string, ttl time.Duration, fn func
 		ctx = WithIdempotencyToken(ctx, token)
 		ok, err := store.Begin(ctx, token, ttl)
 		if err != nil {
-			return err
+			return fmt.Errorf("idempotency begin: %w", err)
 		}
 		if !ok {
 			// Another worker already did (or is doing) the work; treat as no-op for idempotency
@@ -62,7 +63,8 @@ func WithIdempotency(store DedupeStore, token string, ttl time.Duration, fn func
 				panic(rec)
 			}
 		}()
-		if err := fn(ctx); err != nil {
+
+		if err = fn(ctx); err != nil {
 			_ = store.Rollback(ctx, token)
 			return err
 		}
@@ -77,10 +79,11 @@ func WithIdempotencyResult[T any](store DedupeStore, token string, ttl time.Dura
 		if token == "" {
 			return fn(ctx)
 		}
+
 		ctx = WithIdempotencyToken(ctx, token)
 		ok, err := store.Begin(ctx, token, ttl)
 		if err != nil {
-			return zero, err
+			return zero, fmt.Errorf("idempotency begin: %w", err)
 		}
 		if !ok {
 			return zero, nil
@@ -96,8 +99,9 @@ func WithIdempotencyResult[T any](store DedupeStore, token string, ttl time.Dura
 			_ = store.Rollback(ctx, token)
 			return zero, e
 		}
-		if err := store.Commit(ctx, token); err != nil {
-			return zero, err
+
+		if err = store.Commit(ctx, token); err != nil {
+			return zero, fmt.Errorf("idempotency commit: %w", err)
 		}
 		return v, nil
 	}

@@ -6,9 +6,13 @@ import (
 	"time"
 )
 
-// RetryAfterHint is implemented by errors that can surface a server-provided wait.
+const baseExponentialFactor = 2.0
+const baseExponentialBase = 50 * time.Millisecond
+const baseExponentialCap = 30 * time.Second
+
+// AfterHint is implemented by errors that can surface a server-provided wait.
 // (Duration, true) means "wait at least Duration before retrying".
-type RetryAfterHint interface {
+type AfterHint interface {
 	RetryAfter() (time.Duration, bool)
 }
 
@@ -114,7 +118,7 @@ func (s StrategyWithHint) Reset() {
 // 3) err wraps *http.Response via HTTPErrorFromResponse helper you may use at call-site
 func ExtractRetryAfter(err error) (time.Duration, bool) {
 	// 1) RetryAfterHint interface
-	var rh RetryAfterHint
+	var rh AfterHint
 	if errors.As(err, &rh) {
 		if d, ok := rh.RetryAfter(); ok && d > 0 {
 			return d, true
@@ -129,19 +133,19 @@ func ExtractRetryAfter(err error) (time.Duration, bool) {
 	return 0, false
 }
 
-func clampDur(v, cap time.Duration) time.Duration {
-	if cap <= 0 || v <= cap {
+func clampDur(v, durCap time.Duration) time.Duration {
+	if durCap <= 0 || v <= durCap {
 		return v
 	}
-	return cap
+	return durCap
 }
 
 func defaultStrategy(s Strategy) Strategy {
 	if s == nil {
 		return ExponentialStrategy{
-			Base:   50 * time.Millisecond,
-			Factor: 2.0,
-			Cap:    30 * time.Second,
+			Base:   baseExponentialBase,
+			Factor: baseExponentialFactor,
+			Cap:    baseExponentialCap,
 		}
 	}
 	return s

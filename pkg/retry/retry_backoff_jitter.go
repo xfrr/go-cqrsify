@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+const equalJitterDivisor = 2
+const decorrelatedJitterMultiplier = 3
+
 // Jitter perturbs a base delay. Implementations must be deterministic w.r.t. provided rand.Source.
 type Jitter interface {
 	Apply(base time.Duration) time.Duration
@@ -23,8 +26,9 @@ func (FullJitter) Apply(base time.Duration) time.Duration {
 	if base <= 0 {
 		return 0
 	}
-	max := big.NewInt(int64(base) + 1) // inclusive of base
-	n, err := crand.Int(crand.Reader, max)
+
+	maxRetryBackoff := big.NewInt(int64(base) + 1) // inclusive of base
+	n, err := crand.Int(crand.Reader, maxRetryBackoff)
 	if err != nil {
 		return 0
 	}
@@ -39,9 +43,10 @@ func (EqualJitter) Apply(base time.Duration) time.Duration {
 	if base <= 0 {
 		return 0
 	}
-	half := base / 2
-	max := big.NewInt(int64(half) + 1)
-	n, err := crand.Int(crand.Reader, max)
+	half := base / equalJitterDivisor
+
+	maxRetryDelay := big.NewInt(int64(half) + 1)
+	n, err := crand.Int(crand.Reader, maxRetryDelay)
 	if err != nil {
 		return half
 	}
@@ -59,7 +64,7 @@ func (d DecorrelatedJitter) Apply(base time.Duration) time.Duration {
 		return 0
 	}
 	// A lightweight variation without prev-state; still decorrelates as attempts grow.
-	hi := base * 3
+	hi := base * decorrelatedJitterMultiplier
 	if d.Cap > 0 && hi > d.Cap {
 		hi = d.Cap
 	}
@@ -67,8 +72,9 @@ func (d DecorrelatedJitter) Apply(base time.Duration) time.Duration {
 	if span <= 0 {
 		return base
 	}
-	max := big.NewInt(int64(span) + 1)
-	n, err := crand.Int(crand.Reader, max)
+
+	maxRetries := big.NewInt(int64(span) + 1)
+	n, err := crand.Int(crand.Reader, maxRetries)
 	if err != nil {
 		return base
 	}
