@@ -16,7 +16,7 @@ func (e EventTypeMismatchError) Error() string {
 
 // EventHandler is the unit of work that processes an Event.
 // Keep it small and side-effect oriented; pure functions can be wrapped if needed.
-type EventHandler[T any] interface {
+type EventHandler[T Event] interface {
 	Handle(ctx context.Context, evt T) error
 }
 
@@ -47,7 +47,7 @@ type EventBus interface {
 }
 
 // SubscribeEvent is a helper to register typed event handlers with type assertion at runtime.
-func SubscribeEvent[T Event](bus EventBus, eventName string, h EventHandler[T]) (unsubscribe func()) {
+func SubscribeEvent[T Event](bus EventBus, eventName string, h EventHandler[T]) func() {
 	wrapped := EventHandlerFunc[Event](func(ctx context.Context, evt Event) error {
 		e, ok := evt.(T)
 		if !ok {

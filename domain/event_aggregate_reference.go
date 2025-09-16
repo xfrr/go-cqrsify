@@ -2,7 +2,7 @@ package domain
 
 type EventAggregateReference struct {
 	aggregateID      any
-	aggregateType    string
+	aggregateName    string
 	aggregateVersion AggregateVersion
 }
 
@@ -10,8 +10,8 @@ func (r EventAggregateReference) ID() any {
 	return r.aggregateID
 }
 
-func (r EventAggregateReference) Type() string {
-	return r.aggregateType
+func (r EventAggregateReference) Name() string {
+	return r.aggregateName
 }
 
 func (r EventAggregateReference) Version() AggregateVersion {
@@ -28,10 +28,14 @@ func CreateEventAggregateRef[T comparable](agg EventSourcedAggregate[T]) *EventA
 	)
 }
 
-func newEventAggregateReference(id any, aggregateType string, version AggregateVersion) *EventAggregateReference {
+func newEventAggregateReference(
+	aggregateID any,
+	aggregateName string,
+	version AggregateVersion,
+) *EventAggregateReference {
 	return &EventAggregateReference{
-		aggregateID:      id,
-		aggregateType:    aggregateType,
+		aggregateID:      aggregateID,
+		aggregateName:    aggregateName,
 		aggregateVersion: version,
 	}
 }

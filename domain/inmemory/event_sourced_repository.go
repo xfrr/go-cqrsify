@@ -179,7 +179,7 @@ func getAggregates(events []domain.Event) ([]domain.EventSourcedAggregate[string
 
 		agg, ok := aggregateIndex[aggregateID]
 		if !ok {
-			agg = domain.NewAggregate(aggregateID, aggregateRef.Type())
+			agg = domain.NewAggregate(aggregateID, aggregateRef.Name())
 		}
 
 		err := domain.RestoreAggregateFromHistory(agg, []domain.Event{event})

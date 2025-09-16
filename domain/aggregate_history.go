@@ -1,5 +1,7 @@
 package domain
 
+import "fmt"
+
 // History represents a sequence of events
 // that have occurred in an Aggregate.
 type History []Event
@@ -15,7 +17,10 @@ func RestoreAggregateFromHistory[ID comparable](agg EventSourcedAggregate[ID], e
 	}
 
 	for _, event := range events {
-		agg.ApplyEvent(event)
+		err := agg.ApplyEvent(event)
+		if err != nil {
+			return fmt.Errorf("could not apply event: %w", err)
+		}
 	}
 
 	if r, ok := agg.(EventRecorder); ok {

@@ -34,12 +34,12 @@ var (
 	ErrEmptyEventHistory     = errors.New("event history cannot be empty")
 	ErrNilAggregate          = errors.New("aggregate cannot be nil")
 	ErrAggregateIDMismatch   = NewHistoryIntegrityError("event has different aggregate ID")
-	ErrAggregateTypeMismatch = NewHistoryIntegrityError("event has different aggregate type")
+	ErrAggregateNameMismatch = NewHistoryIntegrityError("event has different aggregate name")
 )
 
 // VerifyHistoryIntegrity verifies the integrity of the given event history against the given Aggregate.
 // It performs the following checks:
-//   - All events belong to the same aggregate (ID and type)
+//   - All events belong to the same aggregate (ID and name)
 //   - Event versions are sequential and start from the aggregate's uncommitted version + 1
 //   - No events are nil
 //
@@ -79,10 +79,10 @@ func VerifyHistoryIntegrity[ID comparable](agg EventSourcedAggregate[ID], histor
 		}
 
 		// Verify aggregate type matches
-		if eventRef.Type() != aggregateName {
+		if eventRef.Name() != aggregateName {
 			return NewHistoryIntegrityError(fmt.Sprintf("event at index %d has different aggregate type: got %q, want %q",
-				i, eventRef.Type(), aggregateName)).
-				WithDetails(i, aggregateName, eventRef.Type(), "TYPE_MISMATCH")
+				i, eventRef.Name(), aggregateName)).
+				WithDetails(i, aggregateName, eventRef.Name(), "TYPE_MISMATCH")
 		}
 
 		// Verify version is sequential

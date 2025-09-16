@@ -44,7 +44,7 @@ func filterEventsByAggregateNames(aggNames []string, events []domain.Event) []do
 	filtered := make([]domain.Event, 0)
 	for _, ev := range events {
 		aggregateRef := ev.AggregateRef()
-		if slices.Contains(aggNames, aggregateRef.Type()) {
+		if slices.Contains(aggNames, aggregateRef.Name()) {
 			filtered = append(filtered, ev)
 		}
 	}

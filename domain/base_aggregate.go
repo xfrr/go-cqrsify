@@ -51,7 +51,7 @@ func (agb *BaseAggregate[ID]) CommitEvents() {
 		return
 	}
 
-	agb.version = AggregateVersion(UncommittedAggregateVersion(agb))
+	agb.version = UncommittedAggregateVersion(agb)
 	agb.events = agb.events[:0]
 }
 

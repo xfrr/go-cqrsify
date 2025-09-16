@@ -7,8 +7,6 @@ import (
 // Repository is the interface that wraps the basic methods for managing the
 // lifecycle of an aggregate.
 type Repository[ID comparable] interface {
-	// Delete deletes the aggregate from the repository.
-	Delete(context.Context, Aggregate[ID]) error
 	// Exists checks if the aggregate with the given id exists in the repository.
 	Exists(context.Context, Aggregate[ID]) (bool, error)
 	// Load loads the aggregate with the given id from the repository.
@@ -34,8 +32,6 @@ type VersionedRepository[ID comparable] interface {
 // EventSourcedRepository is the interface that wraps the basic methods for managing the
 // lifecycle of an event-sourced aggregate.
 type EventSourcedRepository[ID comparable] interface {
-	// Delete deletes the aggregate from the repository.
-	Delete(context.Context, EventSourcedAggregate[ID]) error
 	// Exists checks if the aggregate with the given id exists in the repository.
 	Exists(context.Context, EventSourcedAggregate[ID]) (bool, error)
 	// Load loads the aggregate with the given id from the repository.
@@ -50,14 +46,14 @@ type EventSourcedRepository[ID comparable] interface {
 	ExistsVersion(context.Context, EventSourcedAggregate[ID], AggregateVersion) (bool, error)
 }
 
-type NotFoundError struct {
-	ID string
+type NotFoundError[ID comparable] struct {
+	ID ID
 }
 
-func (e NotFoundError) Error() string {
+func (e NotFoundError[ID]) Error() string {
 	return "aggregate not found"
 }
 
-func NewNotFoundError(id string) NotFoundError {
-	return NotFoundError{ID: id}
+func NewNotFoundError[ID comparable](id ID) NotFoundError[ID] {
+	return NotFoundError[ID]{ID: id}
 }
