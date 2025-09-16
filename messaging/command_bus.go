@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"fmt"
 )
 
 type CommandHandler[C Command] = MessageHandler[C]
@@ -44,7 +45,7 @@ func (b *InMemoryCommandBus) Subscribe(ctx context.Context, commandName string, 
 	return b.InMemoryMessageBus.Subscribe(ctx, commandName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		cmd, ok := msg.(Command)
 		if !ok {
-			return nil
+			return InvalidMessageTypeError{Expected: fmt.Sprintf("%T", cmd), Actual: fmt.Sprintf("%T", msg)}
 		}
 		return h.Handle(ctx, cmd)
 	}))

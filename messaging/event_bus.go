@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"fmt"
 )
 
 type EventHandler[E Event] = MessageHandler[E]
@@ -45,8 +46,9 @@ func (b *InMemoryEventBus) Subscribe(ctx context.Context, eventName string, h Ev
 	return b.InMemoryMessageBus.Subscribe(ctx, eventName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		evt, ok := msg.(Event)
 		if !ok {
-			return nil
+			return InvalidMessageTypeError{Expected: fmt.Sprintf("%T", evt), Actual: fmt.Sprintf("%T", msg)}
 		}
+
 		return h.Handle(ctx, evt)
 	}))
 }

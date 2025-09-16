@@ -42,7 +42,7 @@ func RetryBackoffMiddleware(attempts int, initialDelay time.Duration) MessageHan
 		return MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 			var err error
 			delay := initialDelay
-			for i := 0; i < attempts; i++ {
+			for range attempts {
 				err = next.Handle(ctx, msg)
 				if err == nil {
 					return nil

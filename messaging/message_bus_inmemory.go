@@ -18,9 +18,10 @@ var _ MessageBus = (*InMemoryMessageBus)(nil)
 // InMemoryMessageBus is a simple, fast, process-local message bus.
 // Great for tests and single-process apps; swap for a distributed bus in prod if needed.
 type InMemoryMessageBus struct {
-	opts        MessageBusConfig
-	mu          sync.RWMutex
-	subscribers map[string][]MessageHandler[Message]
+	opts                 MessageBusConfig
+	mu                   sync.RWMutex
+	subscribers          map[string][]MessageHandler[Message]
+	subscribersWithReply map[string][]MessageHandlerWithResponse[Message, any]
 
 	// async pipeline (enabled if opts.AsyncWorkers > 0)
 	queue   chan queued
@@ -114,6 +115,24 @@ func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h 
 		for i := range hs {
 			if &hs[i] == &h {
 				b.subscribers[messageName] = append(hs[:i], hs[i+1:]...)
+				break
+			}
+		}
+	}, nil
+}
+
+func (b *InMemoryMessageBus) SubscribeWithReply(_ context.Context, messageName string, h MessageHandlerWithResponse[Message, any]) (func(), error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.subscribersWithReply[messageName] = append(b.subscribersWithReply[messageName], h)
+
+	return func() {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		hs := b.subscribersWithReply[messageName]
+		for i := range hs {
+			if &hs[i] == &h {
+				b.subscribersWithReply[messageName] = append(hs[:i], hs[i+1:]...)
 				break
 			}
 		}
