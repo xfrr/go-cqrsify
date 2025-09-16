@@ -6,32 +6,24 @@ import (
 )
 
 // SubscribeQuery is a shorthand for handling querys.
-func SubscribeQuery[Q Query, R any](
+func SubscribeQuery[E Query](
 	ctx context.Context,
 	subscriber QuerySubscriber,
 	queryType string,
-	handler QueryHandler[Q, R],
+	handler QueryHandler[E],
 ) (func(), error) {
 	return subscriber.Subscribe(
 		ctx,
 		queryType,
-		MessageHandlerWithResponseFn[Query, any](func(ctx context.Context, qry Query) (any, error) {
-			req, ok := qry.(Q)
+		MessageHandlerFn[Query](func(ctx context.Context, evt Query) error {
+			castQuery, ok := evt.(E)
 			if !ok {
-				var zero R
-				return zero, InvalidMessageTypeError{
+				return InvalidMessageTypeError{
 					Actual:   queryType,
-					Expected: fmt.Sprintf("%T", qry),
+					Expected: fmt.Sprintf("%T", evt),
 				}
 			}
-
-			res, err := handler.Handle(ctx, req)
-			if err != nil {
-				var zero R
-				return zero, err
-			}
-
-			return any(res), nil
+			return handler.Handle(ctx, castQuery)
 		}),
 	)
 }

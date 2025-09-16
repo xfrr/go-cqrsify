@@ -18,10 +18,9 @@ var _ MessageBus = (*InMemoryMessageBus)(nil)
 // InMemoryMessageBus is a simple, fast, process-local message bus.
 // Great for tests and single-process apps; swap for a distributed bus in prod if needed.
 type InMemoryMessageBus struct {
-	opts                 MessageBusConfig
-	mu                   sync.RWMutex
-	subscribers          map[string][]MessageHandler[Message]
-	subscribersWithReply map[string][]MessageHandlerWithResponse[Message, any]
+	opts        MessageBusConfig
+	mu          sync.RWMutex
+	subscribers map[string][]MessageHandler[Message]
 
 	// async pipeline (enabled if opts.AsyncWorkers > 0)
 	queue   chan queued
@@ -30,6 +29,7 @@ type InMemoryMessageBus struct {
 	// composed middleware chain applied to handlers
 	mw []MessageHandlerMiddleware
 
+	// lifecycle
 	closed  bool
 	closeMu sync.Mutex
 	wg      sync.WaitGroup
@@ -121,24 +121,6 @@ func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h 
 	}, nil
 }
 
-func (b *InMemoryMessageBus) SubscribeWithReply(_ context.Context, messageName string, h MessageHandlerWithResponse[Message, any]) (func(), error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.subscribersWithReply[messageName] = append(b.subscribersWithReply[messageName], h)
-
-	return func() {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-		hs := b.subscribersWithReply[messageName]
-		for i := range hs {
-			if &hs[i] == &h {
-				b.subscribersWithReply[messageName] = append(hs[:i], hs[i+1:]...)
-				break
-			}
-		}
-	}, nil
-}
-
 func (b *InMemoryMessageBus) Close() error {
 	b.closeMu.Lock()
 	defer b.closeMu.Unlock()
@@ -178,7 +160,6 @@ func (b *InMemoryMessageBus) addWorker(id int) {
 }
 
 func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Message] {
-	// Apply middlewares in registration order
 	for i := len(b.mw) - 1; i >= 0; i-- {
 		h = b.mw[i](h)
 	}

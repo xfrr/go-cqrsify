@@ -21,29 +21,38 @@ const (
 	Cyan   = "\033[36m"
 )
 
+type SpeechPrintedEvent interface {
+	messaging.Event
+	GetSpeech() string
+	IsErrorEvent() bool
+}
+
 // A sample event payload for this example.
-type SpeechPrintedEvent struct {
+type speechPrintedEvent struct {
 	messaging.BaseEvent
 
 	Speech  string `json:"speech"`
 	IsError bool   `json:"-"`
 }
 
+func (e speechPrintedEvent) GetSpeech() string  { return e.Speech }
+func (e speechPrintedEvent) IsErrorEvent() bool { return e.IsError }
+
 // SpeechPrintedEventHandler is a sample event handler that processes SpeechEvent.
 type SpeechPrintedEventHandler struct {
 	wg *sync.WaitGroup
 }
 
-func (h SpeechPrintedEventHandler) Handle(_ context.Context, cmd SpeechPrintedEvent) error {
+func (h SpeechPrintedEventHandler) Handle(_ context.Context, evt SpeechPrintedEvent) error {
 	defer h.wg.Done()
 
 	// Simulate an error if IsError is true.
-	if cmd.IsError {
+	if evt.IsErrorEvent() {
 		return errors.New("simulated error handling event")
 	}
 
 	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
-	fmt.Printf("✅ %s%s%s\n", Green, cmd.Speech, Reset)
+	fmt.Printf("✅ %s%s%s\n", Green, evt.GetSpeech(), Reset)
 	return nil
 }
 
@@ -73,7 +82,7 @@ func main() {
 	}
 
 	// Publish a couple of events.
-	if err = publishEvent(ctx, bus, SpeechPrintedEvent{
+	if err = publishEvent(ctx, bus, speechPrintedEvent{
 		BaseEvent: messaging.NewBaseEvent("com.org.speech_printed.v1"),
 		Speech:    "Welcome to the Event Bus example!",
 		IsError:   false,
@@ -81,7 +90,7 @@ func main() {
 		panicErr(err)
 	}
 
-	if err = publishEvent(ctx, bus, SpeechPrintedEvent{
+	if err = publishEvent(ctx, bus, speechPrintedEvent{
 		BaseEvent: messaging.NewBaseEvent("com.org.speech_printed.v1"),
 		Speech:    "Let's simulate an error handling this event.",
 		IsError:   true, // Just to simulate an error.
@@ -97,10 +106,10 @@ func main() {
 	wg.Wait()
 }
 
-func publishEvent(ctx context.Context, bus messaging.EventPublisher, cmd SpeechPrintedEvent) error {
+func publishEvent(ctx context.Context, bus messaging.EventPublisher, evt SpeechPrintedEvent) error {
 	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
-	fmt.Printf("\n🚀 %s[Publishing Event]: %s%s\n", Cyan, cmd.Speech, Reset)
-	return bus.Publish(ctx, cmd)
+	fmt.Printf("\n🚀 %s[Publishing Event]: %s%s\n", Cyan, evt.GetSpeech(), Reset)
+	return bus.Publish(ctx, evt)
 }
 
 func panicErr(err error) {

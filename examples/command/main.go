@@ -21,13 +21,22 @@ const (
 	Cyan   = "\033[36m"
 )
 
+type PrintSpeechCommand interface {
+	messaging.Command
+	GetSpeech() string
+	GetIsError() bool
+}
+
 // A sample command payload for this example.
-type PrintSpeechCommand struct {
+type printSpeechCommand struct {
 	messaging.BaseCommand
 
 	Speech  string `json:"speech"`
 	IsError bool   `json:"-"`
 }
+
+func (c printSpeechCommand) GetSpeech() string { return c.Speech }
+func (c printSpeechCommand) GetIsError() bool  { return c.IsError }
 
 // PrintSpeechCommandHandler is a sample command handler that processes SpeechCommand.
 type PrintSpeechCommandHandler struct {
@@ -38,12 +47,12 @@ func (h PrintSpeechCommandHandler) Handle(_ context.Context, cmd PrintSpeechComm
 	defer h.wg.Done()
 
 	// Simulate an error if IsError is true.
-	if cmd.IsError {
+	if cmd.GetIsError() {
 		return errors.New("simulated error handling command")
 	}
 
 	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
-	fmt.Printf("✅ %s%s%s\n", Green, cmd.Speech, Reset)
+	fmt.Printf("✅ %s%s%s\n", Green, cmd.GetSpeech(), Reset)
 	return nil
 }
 
@@ -73,7 +82,7 @@ func main() {
 	}
 
 	// Dispatch a couple of commands.
-	if err = dispatchCommand(ctx, bus, PrintSpeechCommand{
+	if err = dispatchCommand(ctx, bus, printSpeechCommand{
 		BaseCommand: messaging.NewBaseCommand("com.org.test_command"),
 		Speech:      "Welcome to the Command Bus example!",
 		IsError:     false,
@@ -81,7 +90,7 @@ func main() {
 		panicErr(err)
 	}
 
-	if err = dispatchCommand(ctx, bus, PrintSpeechCommand{
+	if err = dispatchCommand(ctx, bus, printSpeechCommand{
 		BaseCommand: messaging.NewBaseCommand("com.org.test_command"),
 		Speech:      "Let's simulate an error!",
 		IsError:     true, // Just to simulate an error.
@@ -99,7 +108,7 @@ func main() {
 
 func dispatchCommand(ctx context.Context, bus messaging.CommandDispatcher, cmd PrintSpeechCommand) error {
 	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
-	fmt.Printf("\n🚀 %s[Dispatching Command]: %s%s\n", Cyan, cmd.Speech, Reset)
+	fmt.Printf("\n🚀 %s[Dispatching Command]: %s%s\n", Cyan, cmd.GetSpeech(), Reset)
 	return bus.Dispatch(ctx, cmd)
 }
 
