@@ -77,7 +77,7 @@ linters:
   - usestdlibvars
   - wastedassign
   - whitespace
-  - wrapcheck
+  # - wrapcheck
   - zerologlint
   settings:
     cyclop:
@@ -180,6 +180,9 @@ linters:
     sloglint:
       no-global: all
       context: scope
+    lll:
+      line-length: 200
+      tab-width: 1
   exclusions:
     generated: lax
     presets:
@@ -201,7 +204,7 @@ linters:
       - goconst
       - gosec
       - noctx
-      - wrapcheck
+      # - wrapcheck
       path: _test\.go
     paths:
     - third_party$

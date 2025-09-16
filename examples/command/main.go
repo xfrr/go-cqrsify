@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
+	"time"
 
-	"github.com/xfrr/go-cqrsify/message/command"
+	"github.com/xfrr/go-cqrsify/messaging"
 )
-
-const TimeoutSeconds = 1
 
 // ANSI escape codes for colors.
 const (
@@ -22,66 +22,85 @@ const (
 )
 
 // A sample command payload for this example.
-type SpeechCommand struct {
-	command.Base
-	Speech   string `json:"speech"`
-	IsError  bool   `json:"-"`
-	Response any    `json:"response,omitempty"`
+type PrintSpeechCommand struct {
+	messaging.BaseCommand
+
+	Speech  string `json:"speech"`
+	IsError bool   `json:"-"`
+}
+
+// PrintSpeechCommandHandler is a sample command handler that processes SpeechCommand.
+type PrintSpeechCommandHandler struct {
+	wg *sync.WaitGroup
+}
+
+func (h PrintSpeechCommandHandler) Handle(_ context.Context, cmd PrintSpeechCommand) error {
+	defer h.wg.Done()
+
+	// Simulate an error if IsError is true.
+	if cmd.IsError {
+		return errors.New("simulated error handling command")
+	}
+
+	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
+	fmt.Printf("✅ %s%s%s\n", Green, cmd.Speech, Reset)
+	return nil
 }
 
 func main() {
+	rootCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	// Wait for interrupt signal to gracefully shutdown the app.
 	// Press Ctrl+C to trigger the interrupt signal.
-	ctx, cancelSignal := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancelSignal := signal.NotifyContext(rootCtx, os.Interrupt)
 	defer cancelSignal()
 
-	bus := command.NewInMemoryBus()
-	err := command.Handle(bus, "com.org.test_command", func(ctx context.Context, cmd SpeechCommand) (any, error) {
-		fmt.Printf("\n📨 %s[Command Handled]: %s %s\n", Green, cmd.Speech, Reset)
-		if cmd.IsError {
-			return nil, errors.New("❌ Simulating an error processing the command")
-		}
-		if cmd.Response != nil {
-			return cmd.Response, nil
-		}
-		return nil, nil
-	})
+	wg := &sync.WaitGroup{}
+	//nolint:mnd // just for this example.
+	wg.Add(2) // We plan to dispatch 2 commands.
+
+	// Create an in-memory command bus and subscribe a handler to it.
+	bus := messaging.NewInMemoryCommandBus()
+	unsub, err := messaging.SubscribeCommand(
+		rootCtx,
+		bus,
+		"com.org.test_command",
+		PrintSpeechCommandHandler{wg: wg},
+	)
 	if err != nil {
 		panicErr(err)
 	}
 
-	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
-		Speech:  "Welcome to the Command Bus example!",
-		IsError: false,
+	// Dispatch a couple of commands.
+	if err = dispatchCommand(ctx, bus, PrintSpeechCommand{
+		BaseCommand: messaging.NewBaseCommand("com.org.test_command"),
+		Speech:      "Welcome to the Command Bus example!",
+		IsError:     false,
 	}); err != nil {
 		panicErr(err)
 	}
 
-	if _, err = dispatchCommand(ctx, bus, SpeechCommand{
-		Speech:  "Let's simulate an error!",
-		IsError: true, // Just to simulate an error.
+	if err = dispatchCommand(ctx, bus, PrintSpeechCommand{
+		BaseCommand: messaging.NewBaseCommand("com.org.test_command"),
+		Speech:      "Let's simulate an error!",
+		IsError:     true, // Just to simulate an error.
 	}); err != nil {
-		fmt.Printf("\n%s%s%s\n", Red, err.Error(), Reset)
+		//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
+		fmt.Printf("❌ %sError dispatching command: %s%s\n", Red, err.Error(), Reset)
 	}
 
-	// Sample command with response
-	if res, err := dispatchCommand(ctx, bus, SpeechCommand{
-		Speech:   "How are you?",
-		Response: "I'm just a computer program, but thanks for asking!",
-		IsError:  false,
-	}); err != nil {
-		panicErr(err)
-	} else {
-		fmt.Printf("\n%s📩 [Command Response]: %v%s\n", Green, res, Reset)
-	}
+	// Unsubscribe the handler and shutdown the bus.
+	unsub()
 
-	cancelSignal()
+	// Wait for all commands to be processed.
+	wg.Wait()
 }
 
-func dispatchCommand(ctx context.Context, bus command.Bus, cmd SpeechCommand) (any, error) {
-	fmt.Printf("\n-----------\n")
+func dispatchCommand(ctx context.Context, bus messaging.CommandDispatcher, cmd PrintSpeechCommand) error {
+	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
 	fmt.Printf("\n🚀 %s[Dispatching Command]: %s%s\n", Cyan, cmd.Speech, Reset)
-	return bus.Dispatch(ctx, "com.org.test_command", cmd)
+	return bus.Dispatch(ctx, cmd)
 }
 
 func panicErr(err error) {
