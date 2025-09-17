@@ -35,23 +35,33 @@ type JetstreamMessageBus struct {
 }
 
 func NewJetstreamMessageBus(
+	ctx context.Context,
 	conn *nats.Conn,
 	streamName string,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...MessageBusOption,
+	opts ...JetStreamMessageBusOption,
 ) (*JetstreamMessageBus, error) {
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	busOptions := MessageBusOptions{
-		subjectBuilder: DefaultSubjectBuilder,
-		errorHandler:   messaging.DefaultErrorHandler,
+	busOptions := JetStreamMessageBusOptions{
+		MessageBusOptions: MessageBusOptions{
+			subjectBuilder: DefaultSubjectBuilder,
+			errorHandler:   messaging.DefaultErrorHandler,
+		},
+		streamCfg: defaultStreamConfig(streamName),
 	}
 	for _, opt := range opts {
 		opt(&busOptions)
+	}
+
+	// Create the stream if it doesn't exist
+	_, err = js.CreateOrUpdateStream(ctx, busOptions.streamCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create or update stream: %w", err)
 	}
 
 	p := &JetstreamMessageBus{

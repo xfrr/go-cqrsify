@@ -1,6 +1,9 @@
 package messagingnats
 
-import "github.com/xfrr/go-cqrsify/messaging"
+import (
+	"github.com/nats-io/nats.go/jetstream"
+	"github.com/xfrr/go-cqrsify/messaging"
+)
 
 // MessageBusOption defines a function type for configuring MessageBus options.
 type MessageBusOption func(*MessageBusOptions)
@@ -23,5 +26,25 @@ func WithSubjectBuilder(sb SubjectBuilder) MessageBusOption {
 func WithErrorHandler(eh messaging.ErrorHandler) MessageBusOption {
 	return func(p *MessageBusOptions) {
 		p.errorHandler = eh
+	}
+}
+
+type PubSubMessageBusOptions struct {
+	MessageBusOptions
+}
+
+type PubSubMessageBusOption func(p *PubSubMessageBusOptions)
+
+type JetStreamMessageBusOptions struct {
+	MessageBusOptions
+
+	streamCfg jetstream.StreamConfig
+}
+
+type JetStreamMessageBusOption func(p *JetStreamMessageBusOptions)
+
+func WithStreamConfig(cfg jetstream.StreamConfig) JetStreamMessageBusOption {
+	return func(p *JetStreamMessageBusOptions) {
+		p.streamCfg = cfg
 	}
 }

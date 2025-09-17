@@ -37,13 +37,21 @@ func (p *JetstreamQueryBus) Subscribe(ctx context.Context, subject string, h mes
 }
 
 func NewJetstreamQueryBus(
+	ctx context.Context,
 	conn *nats.Conn,
 	streamName string,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...MessageBusOption,
+	opts ...JetStreamMessageBusOption,
 ) (*JetstreamQueryBus, error) {
-	jmb, err := NewJetstreamMessageBus(conn, streamName, serializer, deserializer, opts...)
+	jmb, err := NewJetstreamMessageBus(
+		ctx,
+		conn,
+		streamName,
+		serializer,
+		deserializer,
+		opts...,
+	)
 	if err != nil {
 		return nil, err
 	}

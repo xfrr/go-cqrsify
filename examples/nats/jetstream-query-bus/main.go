@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
 
 	messagingnats "github.com/xfrr/go-cqrsify/messaging/nats"
@@ -49,12 +50,12 @@ func main() {
 	defer cancel()
 
 	query := getOrderAmountQuery{
-		BaseQuery: messaging.NewBaseQuery("com.example.order.get_amount.v1"),
+		BaseQuery: messaging.NewBaseQuery("com.cqrsify.order.get_amount.v1"),
 		orderID:   123,
 	}
 
 	queryReply := getOrderAmountQueryReply{
-		BaseQuery: messaging.NewBaseQuery("com.example.order.get_amount_reply.v1"),
+		BaseQuery: messaging.NewBaseQuery("com.cqrsify.order.get_amount_reply.v1"),
 		getOrderAmountQueryReplyPayload: getOrderAmountQueryReplyPayload{
 			OrderAmount: 42.50, // Just a dummy amount
 		},
@@ -68,7 +69,12 @@ func main() {
 	registerGetOrderAmountQueryJsonDeserializer(deserializer, query.MessageType())
 	registerGetOrderAmountQueryReplyJsonDeserializer(deserializer, queryReply.MessageType())
 
-	queryBus, closeQueryBus, err := newQueryBus(streamName, serializer, deserializer)
+	queryBus, closeQueryBus, err := newQueryBus(
+		ctx,
+		streamName,
+		serializer,
+		deserializer,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -110,36 +116,8 @@ func main() {
 	}
 }
 
-func createStreamIfNotExists(ctx context.Context, conn *nats.Conn, streamName string) error {
-	js, err := conn.JetStream()
-	if err != nil {
-		return fmt.Errorf("failed to get JetStream context: %w", err)
-	}
-
-	// Check if the stream already exists
-	if _, err := js.StreamInfo(streamName); err == nil {
-		// Stream already exists
-		return nil
-	} else if err != nats.ErrStreamNotFound {
-		// An error occurred while checking for the stream
-		return fmt.Errorf("failed to check stream info: %w", err)
-	}
-
-	// Stream does not exist, create it
-	streamConfig := &nats.StreamConfig{
-		Name:     streamName,
-		Subjects: []string{"com.example.>"},
-		Storage:  nats.FileStorage,
-	}
-
-	if _, err := js.AddStream(streamConfig); err != nil {
-		return fmt.Errorf("failed to create stream: %w", err)
-	}
-
-	return nil
-}
-
 func newQueryBus(
+	ctx context.Context,
 	streamName string,
 	serializer *messaging.JSONSerializer,
 	deserializer *messaging.JSONDeserializer,
@@ -149,16 +127,21 @@ func newQueryBus(
 		panic(err)
 	}
 
-	if err := createStreamIfNotExists(context.Background(), nc, streamName); err != nil {
-		nc.Close()
-		return nil, nil, err
-	}
-
 	queryBus, err := messagingnats.NewJetstreamQueryBus(
+		ctx,
 		nc,
 		streamName,
 		serializer,
 		deserializer,
+		messagingnats.WithStreamConfig(
+			jetstream.StreamConfig{
+				Name:      streamName,
+				Subjects:  []string{"com.cqrsify.>"},
+				MaxAge:    10 * time.Minute,
+				Storage:   jetstream.MemoryStorage,
+				Retention: jetstream.WorkQueuePolicy,
+			},
+		),
 	)
 	if err != nil {
 		nc.Close()
