@@ -2,9 +2,9 @@
 
 Lightweight, easy-to-use Go library designed to facilitate the implementation of software engineering principles such as Domain-Driven Design (DDD), Clean Architecture, Event-Sourcing, and Event-Driven systems.
 
-  [![Build and Test](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml/badge.svg)](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml)
-  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-  [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
+[![Build and Test](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml/badge.svg)](https://github.com/xfrr/go-cqrsify/actions/workflows/go.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/go-cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/go-cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
 ## Purpose
 
