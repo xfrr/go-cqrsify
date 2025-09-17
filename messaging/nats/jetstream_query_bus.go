@@ -7,17 +7,14 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
-// Ensure JetstreamMessageBus implements the MessageBus interface.
 var _ messaging.QueryBus = (*JetstreamQueryBus)(nil)
 
-// JetstreamMessageBus is a NATS-based implementation of the MessageBus interface.
-// It provides methods for publishing and subscribing to messages using NATS as the underlying message bus.
 type JetstreamQueryBus struct {
-	*JetstreamMessageBus
+	*JetStreamMessageBus
 }
 
 func (p *JetstreamQueryBus) DispatchAndWaitReply(ctx context.Context, query messaging.Query) (messaging.Message, error) {
-	res, err := p.JetstreamMessageBus.PublishRequest(ctx, query)
+	res, err := p.PublishRequest(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +22,7 @@ func (p *JetstreamQueryBus) DispatchAndWaitReply(ctx context.Context, query mess
 	return res, nil
 }
 
-func (p *JetstreamQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (unsubscribe func(), err error) {
+func (p *JetstreamQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		query, ok := msg.(messaging.Query)
 		if !ok {
@@ -33,7 +30,7 @@ func (p *JetstreamQueryBus) Subscribe(ctx context.Context, subject string, h mes
 		}
 		return h.Handle(ctx, query)
 	})
-	return p.JetstreamMessageBus.Subscribe(ctx, subject, wrappedHandler)
+	return p.JetStreamMessageBus.Subscribe(ctx, subject, wrappedHandler)
 }
 
 func NewJetstreamQueryBus(
@@ -57,6 +54,6 @@ func NewJetstreamQueryBus(
 	}
 
 	return &JetstreamQueryBus{
-		JetstreamMessageBus: jmb,
+		JetStreamMessageBus: jmb,
 	}, nil
 }

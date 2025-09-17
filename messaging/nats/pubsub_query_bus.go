@@ -25,7 +25,7 @@ func (p *PubSubQueryBus) DispatchAndWaitReply(ctx context.Context, query messagi
 	return res, nil
 }
 
-func (p *PubSubQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (unsubscribe func(), err error) {
+func (p *PubSubQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		query, ok := msg.(messaging.Query)
 		if !ok {

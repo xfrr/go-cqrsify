@@ -37,7 +37,7 @@ func (p *PubSubEventBus) Publish(ctx context.Context, events ...messaging.Event)
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *PubSubEventBus) Subscribe(ctx context.Context, eventType string, handler messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (p *PubSubEventBus) Subscribe(ctx context.Context, eventType string, handler messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		event, ok := msg.(messaging.Event)
 		if !ok {

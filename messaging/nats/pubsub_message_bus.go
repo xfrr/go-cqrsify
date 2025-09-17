@@ -2,6 +2,7 @@ package messagingnats
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -76,7 +77,7 @@ func (p *PubSubMessageBus) Publish(ctx context.Context, msg ...messaging.Message
 // PublishRequest sends a request message and waits for a single reply.
 func (p *PubSubMessageBus) PublishRequest(ctx context.Context, msg messaging.Message) (messaging.Message, error) {
 	if msg == nil {
-		return nil, fmt.Errorf("no messages to publish")
+		return nil, errors.New("nil message provided")
 	}
 
 	data, err := p.serializer.Serialize(msg)
@@ -98,66 +99,39 @@ func (p *PubSubMessageBus) PublishRequest(ctx context.Context, msg messaging.Mes
 	return replyMsg, nil
 }
 
-// Subscribe implements messaging.MessageBus.
 func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handler messaging.MessageHandler[messaging.Message]) (messaging.UnsubscribeFunc, error) {
 	if p.handlers == nil {
 		p.handlers = make(map[string][]messaging.MessageHandler[messaging.Message])
 	}
 
-	// Register the handler
 	p.mu.Lock()
 	p.handlers[msgType] = append(p.handlers[msgType], handler)
 	p.mu.Unlock()
 
 	subject := msgType
-	sub, err := p.conn.Subscribe(subject, func(m *nats.Msg) {
-		msg, err := p.deserializer.Deserialize(m.Data)
-		if err != nil {
-			p.errorHandler(nil, err)
-			return
-		}
-
-		if err := handler.Handle(ctx, msg); err != nil {
-			p.errorHandler(msg, err)
-			return
-		}
-
-		if msgReplier, ok := msg.(messaging.ReplyableMessage); ok && m.Reply != "" {
-			ctx, cancel := context.WithTimeout(ctx, messaging.DefaultReplyTimeoutSeconds*time.Second)
-			defer cancel()
-
-			replyMsg, err := msgReplier.GetReply(ctx)
-			if err != nil {
-				p.errorHandler(msg, fmt.Errorf("failed to get reply message: %w", err))
-				return
-			}
-
-			replyData, err := p.serializer.Serialize(replyMsg)
-			if err != nil {
-				p.errorHandler(replyMsg, fmt.Errorf("failed to serialize reply message: %w", err))
-				return
-			}
-
-			if err := m.Respond(replyData); err != nil {
-				p.errorHandler(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
-				return
-			}
-		}
-	})
+	sub, err := p.conn.Subscribe(subject, p.natsMsgHandler(ctx, handler))
 	if err != nil {
 		return nil, fmt.Errorf("failed to subscribe to subject %s: %w", subject, err)
 	}
 
-	unsubscribe := func() {
+	return p.unsubscribeFn(subject, sub, handler), nil
+}
+
+func (p *PubSubMessageBus) unsubscribeFn(
+	subject string,
+	sub *nats.Subscription,
+	handler messaging.MessageHandler[messaging.Message],
+) func() {
+	return func() {
 		err := sub.Unsubscribe()
 		if err != nil {
 			p.errorHandler(nil, fmt.Errorf("failed to unsubscribe from subject %s: %w", subject, err))
 		}
 
-		// Remove the handler from the map safely
 		p.mu.Lock()
 		defer p.mu.Unlock()
-		handlers := p.handlers[msgType]
+
+		handlers := p.handlers[subject]
 		for i := range handlers {
 			if &handlers[i] == &handler {
 				handlers = append(handlers[:i], handlers[i+1:]...)
@@ -165,11 +139,45 @@ func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handle
 			}
 		}
 
-		// If no handlers left for this message type, remove the entry from the map
 		if len(handlers) == 0 {
-			delete(p.handlers, msgType)
+			delete(p.handlers, subject)
 		}
 	}
+}
 
-	return unsubscribe, nil
+func (p *PubSubMessageBus) natsMsgHandler(ctx context.Context, handler messaging.MessageHandler[messaging.Message]) nats.MsgHandler {
+	return func(m *nats.Msg) {
+		msg, err := p.deserializer.Deserialize(m.Data)
+		if err != nil {
+			p.errorHandler(nil, err)
+			return
+		}
+
+		if err = handler.Handle(ctx, msg); err != nil {
+			p.errorHandler(msg, err)
+			return
+		}
+
+		if msgReplier, ok := msg.(messaging.ReplyableMessage); ok && m.Reply != "" {
+			replyCtx, cancel := context.WithTimeout(ctx, messaging.DefaultReplyTimeoutSeconds*time.Second)
+			defer cancel()
+
+			replyMsg, replyErr := msgReplier.GetReply(replyCtx)
+			if replyErr != nil {
+				p.errorHandler(msg, fmt.Errorf("failed to get reply message: %w", replyErr))
+				return
+			}
+
+			replyData, serializeErr := p.serializer.Serialize(replyMsg)
+			if serializeErr != nil {
+				p.errorHandler(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
+				return
+			}
+
+			if err = m.Respond(replyData); err != nil {
+				p.errorHandler(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
+				return
+			}
+		}
+	}
 }

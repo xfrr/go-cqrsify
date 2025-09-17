@@ -15,11 +15,11 @@ import (
 const replyHeaderKey = "Nats-Reply-Subject"
 
 // Ensure JetstreamMessageBus implements the MessageBus interface.
-var _ messaging.MessageBus = (*JetstreamMessageBus)(nil)
+var _ messaging.MessageBus = (*JetStreamMessageBus)(nil)
 
-// JetstreamMessageBus is a NATS-based implementation of the MessageBus interface.
+// JetStreamMessageBus is a NATS-based implementation of the MessageBus interface.
 // It provides methods for publishing and subscribing to messages using NATS JetStream as the underlying message bus.
-type JetstreamMessageBus struct {
+type JetStreamMessageBus struct {
 	mu sync.Mutex
 
 	conn *nats.Conn
@@ -41,7 +41,7 @@ func NewJetstreamMessageBus(
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
 	opts ...JetStreamMessageBusOption,
-) (*JetstreamMessageBus, error) {
+) (*JetStreamMessageBus, error) {
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func NewJetstreamMessageBus(
 		return nil, fmt.Errorf("failed to create or update stream: %w", err)
 	}
 
-	p := &JetstreamMessageBus{
+	p := &JetStreamMessageBus{
 		conn:           conn,
 		js:             js,
 		streamName:     streamName,
@@ -79,7 +79,7 @@ func NewJetstreamMessageBus(
 }
 
 // Publish implements messaging.MessageBus.
-func (p *JetstreamMessageBus) Publish(ctx context.Context, msg ...messaging.Message) error {
+func (p *JetStreamMessageBus) Publish(ctx context.Context, msg ...messaging.Message) error {
 	for _, m := range msg {
 		data, err := p.serializer.Serialize(m)
 		if err != nil {
@@ -102,7 +102,7 @@ func (p *JetstreamMessageBus) Publish(ctx context.Context, msg ...messaging.Mess
 }
 
 // PublishRequest sends a request message and waits for a single reply.
-func (p *JetstreamMessageBus) PublishRequest(ctx context.Context, msg messaging.Message) (messaging.Message, error) {
+func (p *JetStreamMessageBus) PublishRequest(ctx context.Context, msg messaging.Message) (messaging.Message, error) {
 	// Create a temporary subscription to receive the reply
 	msgSubject := p.subjectBuilder(msg)
 	replySubject := fmt.Sprintf("%s.reply", msgSubject)
@@ -159,7 +159,7 @@ func (p *JetstreamMessageBus) PublishRequest(ctx context.Context, msg messaging.
 	}
 
 	// Acknowledge the reply message
-	if err := replyMsg.Ack(); err != nil {
+	if err = replyMsg.Ack(); err != nil {
 		return nil, fmt.Errorf("failed to ack reply message: %w", err)
 	}
 
@@ -167,7 +167,7 @@ func (p *JetstreamMessageBus) PublishRequest(ctx context.Context, msg messaging.
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *JetstreamMessageBus) Subscribe(ctx context.Context, msgType string, handler messaging.MessageHandler[messaging.Message]) (messaging.UnsubscribeFunc, error) {
+func (p *JetStreamMessageBus) Subscribe(ctx context.Context, msgType string, handler messaging.MessageHandler[messaging.Message]) (messaging.UnsubscribeFunc, error) {
 	consumerCfg := jetstream.ConsumerConfig{
 		Durable:       consumerNameFromMessageType(msgType) + "_durable",
 		DeliverPolicy: jetstream.DeliverAllPolicy,
@@ -181,13 +181,13 @@ func (p *JetstreamMessageBus) Subscribe(ctx context.Context, msgType string, han
 	}
 
 	sub, err := consumer.Consume(func(jmsg jetstream.Msg) {
-		m, err := p.deserializer.Deserialize(jmsg.Data())
-		if err != nil {
-			p.errorHandler(nil, fmt.Errorf("failed to deserialize message: %w", err))
+		m, deserializeErr := p.deserializer.Deserialize(jmsg.Data())
+		if deserializeErr != nil {
+			p.errorHandler(nil, fmt.Errorf("failed to deserialize message: %w", deserializeErr))
 			return
 		}
 
-		if err := handler.Handle(ctx, m); err != nil {
+		if err = handler.Handle(ctx, m); err != nil {
 			p.errorHandler(m, fmt.Errorf("failed to handle message: %w", err))
 			// TODO: check if its temporary or permanent error to decide ack/nack
 			return
@@ -198,26 +198,26 @@ func (p *JetstreamMessageBus) Subscribe(ctx context.Context, msgType string, han
 			replyCtx, cancel := context.WithTimeout(ctx, messaging.DefaultReplyTimeoutSeconds*time.Second)
 			defer cancel()
 
-			replyMsg, err := rmsg.GetReply(replyCtx)
-			if err != nil {
-				p.errorHandler(m, fmt.Errorf("failed to get reply message: %w", err))
+			replyMsg, replyErr := rmsg.GetReply(replyCtx)
+			if replyErr != nil {
+				p.errorHandler(m, fmt.Errorf("failed to get reply message: %w", replyErr))
 				return
 			}
 
-			replyData, err := p.serializer.Serialize(replyMsg)
-			if err != nil {
-				p.errorHandler(replyMsg, fmt.Errorf("failed to serialize reply message: %w", err))
+			replyData, serializeErr := p.serializer.Serialize(replyMsg)
+			if serializeErr != nil {
+				p.errorHandler(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
 				return
 			}
 
 			replySubject := jmsg.Headers().Get(replyHeaderKey)
-			if err := p.conn.Publish(replySubject, replyData); err != nil {
+			if err = p.conn.Publish(replySubject, replyData); err != nil {
 				p.errorHandler(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
 				return
 			}
 		}
 
-		if err := jmsg.Ack(); err != nil {
+		if err = jmsg.Ack(); err != nil {
 			p.errorHandler(m, fmt.Errorf("failed to ack message: %w", err))
 			return
 		}
@@ -226,22 +226,31 @@ func (p *JetstreamMessageBus) Subscribe(ctx context.Context, msgType string, han
 		return nil, fmt.Errorf("failed to subscribe to subject %s: %w", msgType, err)
 	}
 
-	unsubscribe := func() {
+	return p.unsubscribeFn(msgType, sub, handler), nil
+}
+
+func (p *JetStreamMessageBus) unsubscribeFn(
+	subject string,
+	sub jetstream.ConsumeContext,
+	handler messaging.MessageHandler[messaging.Message],
+) func() {
+	return func() {
 		sub.Stop()
 		p.mu.Lock()
 		defer p.mu.Unlock()
 
-		// Remove the handler from the map
-		// If there are no more handlers for the subject, delete the entry
-		delete(p.handlers, msgType)
+		handlers := p.handlers[subject]
+		for i := range handlers {
+			if &handlers[i] == &handler {
+				handlers = append(handlers[:i], handlers[i+1:]...)
+				break
+			}
+		}
+
+		if len(handlers) == 0 {
+			delete(p.handlers, subject)
+		}
 	}
-
-	// Store the handler
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.handlers[msgType] = append(p.handlers[msgType], handler)
-
-	return unsubscribe, nil
 }
 
 // consumerNameFromMessageType generates a consumer name based on the message type.

@@ -33,11 +33,11 @@ func (p *PubSubCommandBus) Dispatch(ctx context.Context, commands ...messaging.C
 	for i, e := range commands {
 		msgs[i] = e
 	}
-	return p.PubSubMessageBus.Publish(ctx, msgs...)
+	return p.Publish(ctx, msgs...)
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *PubSubCommandBus) Subscribe(ctx context.Context, commandType string, handler messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+func (p *PubSubCommandBus) Subscribe(ctx context.Context, commandType string, handler messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		command, ok := msg.(messaging.Command)
 		if !ok {

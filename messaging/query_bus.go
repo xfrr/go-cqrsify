@@ -24,7 +24,7 @@ type QueryDispatcher interface {
 // QuerySubscriber is an interface for subscribing to querys from a query bus.
 type QuerySubscriber interface {
 	// Subscribe registers a handler for a given logical query name.
-	Subscribe(ctx context.Context, subject string, h QueryHandler[Query]) (unsubscribe func(), err error)
+	Subscribe(ctx context.Context, subject string, h QueryHandler[Query]) (UnsubscribeFunc, error)
 }
 
 // InMemoryQueryBus is an in-memory implementation of QueryBus.
@@ -62,7 +62,7 @@ func (b *InMemoryQueryBus) DispatchAndWaitReply(ctx context.Context, qry Query) 
 	}
 }
 
-func (b *InMemoryQueryBus) Subscribe(ctx context.Context, queryName string, h QueryHandler[Query]) (func(), error) {
+func (b *InMemoryQueryBus) Subscribe(ctx context.Context, queryName string, h QueryHandler[Query]) (UnsubscribeFunc, error) {
 	return b.InMemoryMessageBus.Subscribe(ctx, queryName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		cmd, ok := msg.(Query)
 		if !ok {
