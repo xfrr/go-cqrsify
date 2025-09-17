@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758144975025,
+  "lastUpdate": 1758145364458,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3104,6 +3104,96 @@ window.BENCHMARK_DATA = {
             "value": 38.77,
             "unit": "ns/op",
             "extra": "29646999 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "292057458641fa237883c4f5e7b13cca3cde5eba",
+          "message": "refactor: update options parameter type to PubSubMessageBusOption in NATS message bus implementations",
+          "timestamp": "2025-09-17T23:42:08+02:00",
+          "tree_id": "01c67dff71f4e89532f715f488d12d9248e964ad",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/292057458641fa237883c4f5e7b13cca3cde5eba"
+        },
+        "date": 1758145363911,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6432,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.04,
+            "unit": "ns/op",
+            "extra": "16391563 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.3,
+            "unit": "ns/op",
+            "extra": "8958790 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 443,
+            "unit": "ns/op",
+            "extra": "2712080 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.742,
+            "unit": "ns/op",
+            "extra": "320844104 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/string",
+            "value": 20.34,
+            "unit": "ns/op",
+            "extra": "54544442 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/int",
+            "value": 21.09,
+            "unit": "ns/op",
+            "extra": "55433534 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkString",
+            "value": 89.66,
+            "unit": "ns/op",
+            "extra": "13343799 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEquals",
+            "value": 4.076,
+            "unit": "ns/op",
+            "extra": "296195713 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkValidate",
+            "value": 3.758,
+            "unit": "ns/op",
+            "extra": "315122457 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 38.46,
+            "unit": "ns/op",
+            "extra": "28897968 times\n4 procs"
           }
         ]
       }
