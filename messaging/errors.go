@@ -10,6 +10,7 @@ var (
 	ErrMessageIsNotEvent   = errors.New("message is not an event")
 	ErrMessageIsNotCommand = errors.New("message is not a command")
 	ErrMessageIsNotQuery   = errors.New("message is not a query")
+	ErrPublishOnClosedBus  = errors.New("cannot publish on closed bus")
 )
 
 type InvalidMessageTypeError struct {
@@ -23,9 +24,9 @@ func (e InvalidMessageTypeError) Error() string {
 
 // NoSubscribersForMessageError is returned by Publish if no subscribers exist for an message.
 type NoSubscribersForMessageError struct {
-	MessageName string
+	MessageType string
 }
 
 func (e NoSubscribersForMessageError) Error() string {
-	return "messagebus: no subscribers for message " + e.MessageName
+	return "messagebus: no subscribers for message " + e.MessageType
 }

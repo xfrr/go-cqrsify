@@ -35,6 +35,7 @@ func (q BaseQuery) Reply(ctx context.Context, response Message) error {
 	if q.replyCh == nil {
 		return errors.New("no reply channel available")
 	}
+
 	select {
 	case q.replyCh <- response:
 		return nil

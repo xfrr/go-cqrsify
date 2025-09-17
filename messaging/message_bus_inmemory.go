@@ -2,7 +2,6 @@ package messaging
 
 import (
 	"context"
-	"errors"
 	"sync"
 )
 
@@ -74,15 +73,16 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 	defer b.mu.RUnlock()
 
 	if b.closed {
-		return errors.New("message_bus: publish on closed bus")
+		return ErrPublishOnClosedBus
 	}
 
 	for _, msg := range msgs {
-		handlers := append([]MessageHandler[Message](nil), b.subscribers[msg.MessageType()]...)
+		handlers := b.subscribers[msg.MessageType()]
 		if len(handlers) == 0 {
-			return NoSubscribersForMessageError{MessageName: msg.MessageType()}
+			return &NoSubscribersForMessageError{MessageType: msg.MessageType()}
 		}
 
+		// Note: we do not short-circuit on handler errors; we attempt to
 		// dispatch to all handlers (sync or async)
 		for _, h := range handlers {
 			if b.queue == nil {
@@ -97,27 +97,35 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 				continue
 			}
 			// Async: enqueue delivery (non-blocking if buffered; otherwise may block).
-			b.queue <- queued{ctx: ctx, msg: msg, h: h}
+			select {
+			case b.queue <- queued{ctx: ctx, msg: msg, h: h}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
+
 	return nil
 }
 
 func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h MessageHandler[Message]) (UnsubscribeFunc, error) {
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	b.subscribers[messageName] = append(b.subscribers[messageName], h)
+	idx := len(b.subscribers[messageName]) - 1
+	b.mu.Unlock()
 
 	return func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()
 		hs := b.subscribers[messageName]
-		for i := range hs {
-			if &hs[i] == &h {
-				b.subscribers[messageName] = append(hs[:i], hs[i+1:]...)
-				break
-			}
+		if idx < 0 || idx >= len(hs) {
+			// handler already removed
+			return
 		}
+
+		// Remove handler by swapping with last and truncating slice.
+		hs[idx] = hs[len(hs)-1]
+		b.subscribers[messageName] = hs[:len(hs)-1]
 	}, nil
 }
 
@@ -144,8 +152,7 @@ func (b *InMemoryMessageBus) Use(mw ...MessageHandlerMiddleware) {
 func (b *InMemoryMessageBus) addWorker(id int) {
 	// Each worker consumes queued deliveries; failures go to ErrorHandler.
 	b.workers = append(b.workers, worker{id: id})
-	b.wg.Add(1)
-	go func() {
+	b.wg.Go(func() {
 		defer b.wg.Done()
 		for q := range b.queue {
 			// Compose middleware chain around handler for each delivery.
@@ -156,7 +163,7 @@ func (b *InMemoryMessageBus) addWorker(id int) {
 				}
 			}
 		}
-	}()
+	})
 }
 
 func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Message] {
