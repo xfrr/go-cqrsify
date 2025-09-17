@@ -8,10 +8,13 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
 
 	messagingnats "github.com/xfrr/go-cqrsify/messaging/nats"
 )
+
+const streamName = "cqrsify_command_bus_example"
 
 type CreateOrderCommand interface {
 	messaging.Command
@@ -30,7 +33,7 @@ func (e createOrderCommand) OrderID() int {
 }
 
 type createOrderCommandPayload struct {
-	OrderID int `json:"order_id"`
+	OrderID int `json:"orderId"`
 }
 
 func main() {
@@ -38,16 +41,22 @@ func main() {
 	defer cancel()
 
 	command := createOrderCommand{
-		BaseCommand: messaging.NewBaseCommand("com.example.order.create.v1"),
+		BaseCommand: messaging.NewBaseCommand("com.cqrsify.commands.order.create.v1"),
 		orderID:     123,
 	}
 
 	// register serializers and deserializers
 	serializer := messaging.NewJSONSerializer()
-	registerCreateOrderCommandJsonSerializer(serializer, command.MessageType())
+	registerCreateOrderCommandJSONSerializer(serializer, command.MessageType())
 	deserializer := messaging.NewJSONDeserializer()
-	registerCreateOrderCommandJsonDeserializer(deserializer, command.MessageType())
-	commandBus, closeCommandBus, err := newCommandBus(serializer, deserializer)
+	registerCreateOrderCommandJSONDeserializer(deserializer, command.MessageType())
+
+	commandBus, closeCommandBus, err := newCommandBus(
+		ctx,
+		streamName,
+		serializer,
+		deserializer,
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -67,7 +76,7 @@ func main() {
 
 	fmt.Printf("Publishing command '%s'\n", command.MessageType())
 
-	// Publish a command of type "CreateOrder"
+	// Publish the command
 	err = messaging.DispatchCommand(ctx, commandBus, command)
 	if err != nil {
 		panic(err)
@@ -81,6 +90,8 @@ func main() {
 }
 
 func newCommandBus(
+	ctx context.Context,
+	streamName string,
 	serializer *messaging.JSONSerializer,
 	deserializer *messaging.JSONDeserializer,
 ) (messaging.CommandBus, func(), error) {
@@ -89,14 +100,37 @@ func newCommandBus(
 		panic(err)
 	}
 
-	commandBus := messagingnats.NewPubSubCommandBus(nc, serializer, deserializer)
+	commandBus, err := messagingnats.NewJetStreamCommandBus(
+		ctx,
+		nc,
+		streamName,
+		serializer,
+		deserializer,
+		messagingnats.WithStreamConfig(
+			jetstream.StreamConfig{
+				Name:      streamName,
+				Subjects:  []string{"com.cqrsify.commands.>"},
+				MaxAge:    10 * time.Minute,
+				Storage:   jetstream.MemoryStorage,
+				Retention: jetstream.WorkQueuePolicy,
+			},
+		),
+	)
+	if err != nil {
+		nc.Close()
+		return nil, nil, err
+	}
+
 	cleanup := func() {
 		nc.Close()
 	}
 	return commandBus, cleanup, nil
 }
 
-func registerCreateOrderCommandJsonSerializer(serializer *messaging.JSONSerializer, msgType string) *messaging.JSONSerializer {
+func registerCreateOrderCommandJSONSerializer(
+	serializer *messaging.JSONSerializer,
+	msgType string,
+) *messaging.JSONSerializer {
 	messaging.RegisterJSONMessageSerializer(
 		serializer,
 		msgType,
@@ -109,7 +143,10 @@ func registerCreateOrderCommandJsonSerializer(serializer *messaging.JSONSerializ
 	return serializer
 }
 
-func registerCreateOrderCommandJsonDeserializer(deserializer *messaging.JSONDeserializer, msgType string) {
+func registerCreateOrderCommandJSONDeserializer(
+	deserializer *messaging.JSONDeserializer,
+	msgType string,
+) {
 	messaging.RegisterJSONMessageDeserializer(
 		deserializer,
 		msgType,

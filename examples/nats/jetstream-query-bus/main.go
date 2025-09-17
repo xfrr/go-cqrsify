@@ -50,12 +50,12 @@ func main() {
 	defer cancel()
 
 	query := getOrderAmountQuery{
-		BaseQuery: messaging.NewBaseQuery("com.cqrsify.order.get_amount.v1"),
+		BaseQuery: messaging.NewBaseQuery("com.cqrsify.queries.order.get_amount.v1"),
 		orderID:   123,
 	}
 
 	queryReply := getOrderAmountQueryReply{
-		BaseQuery: messaging.NewBaseQuery("com.cqrsify.order.get_amount_reply.v1"),
+		BaseQuery: messaging.NewBaseQuery("com.cqrsify.queries.order.get_amount_reply.v1"),
 		getOrderAmountQueryReplyPayload: getOrderAmountQueryReplyPayload{
 			OrderAmount: 42.50, // Just a dummy amount
 		},
@@ -136,7 +136,7 @@ func newQueryBus(
 		messagingnats.WithStreamConfig(
 			jetstream.StreamConfig{
 				Name:      streamName,
-				Subjects:  []string{"com.cqrsify.>"},
+				Subjects:  []string{"com.cqrsify.queries.>"},
 				MaxAge:    10 * time.Minute,
 				Storage:   jetstream.MemoryStorage,
 				Retention: jetstream.WorkQueuePolicy,

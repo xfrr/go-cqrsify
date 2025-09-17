@@ -7,7 +7,7 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
-var _ messaging.MessageBus = (*JetStreamMessageBus)(nil)
+var _ messaging.CommandBus = (*JetStreamCommandBus)(nil)
 
 type JetStreamCommandBus struct {
 	*JetStreamMessageBus
@@ -38,7 +38,7 @@ func NewJetStreamCommandBus(
 }
 
 // Publish implements messaging.MessageBus.
-func (p *JetStreamCommandBus) Publish(ctx context.Context, commands ...messaging.Command) error {
+func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
 	msgs := make([]messaging.Message, len(commands))
 	for i, e := range commands {
 		msgs[i] = e

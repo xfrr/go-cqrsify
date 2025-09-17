@@ -13,7 +13,7 @@ type JetstreamEventBus struct {
 	*JetStreamMessageBus
 }
 
-func NewJetstreamEventBus(
+func NewJetStreamEventBus(
 	ctx context.Context,
 	conn *nats.Conn,
 	streamName string,
