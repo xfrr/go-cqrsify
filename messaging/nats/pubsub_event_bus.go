@@ -20,7 +20,7 @@ func NewPubSubEventBus(
 	conn *nats.Conn,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...MessageBusOption,
+	opts ...PubSubMessageBusOption,
 ) *PubSubEventBus {
 	return &PubSubEventBus{
 		PubSubMessageBus: NewPubSubMessageBus(conn, serializer, deserializer, opts...),

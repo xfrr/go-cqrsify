@@ -33,11 +33,13 @@ func NewPubSubMessageBus(
 	conn *nats.Conn,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...MessageBusOption,
+	opts ...PubSubMessageBusOption,
 ) *PubSubMessageBus {
-	busOptions := MessageBusOptions{
-		subjectBuilder: DefaultSubjectBuilder,
-		errorHandler:   messaging.DefaultErrorHandler,
+	busOptions := PubSubMessageBusOptions{
+		MessageBusOptions: MessageBusOptions{
+			subjectBuilder: DefaultSubjectBuilder,
+			errorHandler:   messaging.DefaultErrorHandler,
+		},
 	}
 	for _, opt := range opts {
 		opt(&busOptions)
@@ -54,20 +56,16 @@ func NewPubSubMessageBus(
 }
 
 // Publish implements messaging.MessageBus.
-func (p *PubSubMessageBus) Publish(ctx context.Context, msg ...messaging.Message) error {
-	serializedMessages := make([][]byte, len(msg))
+func (p *PubSubMessageBus) Publish(_ context.Context, msg ...messaging.Message) error {
 	for i, m := range msg {
 		data, err := p.serializer.Serialize(m)
 		if err != nil {
 			return err
 		}
-		serializedMessages[i] = data
-	}
 
-	for i, m := range msg {
 		subject := p.subjectBuilder(m)
-		if err := p.conn.Publish(subject, serializedMessages[i]); err != nil {
-			return err
+		if err = p.conn.Publish(subject, data); err != nil {
+			return fmt.Errorf("failed to publish message %d to subject %s: %w", i, subject, err)
 		}
 	}
 
