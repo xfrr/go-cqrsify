@@ -3,6 +3,7 @@ package messagingnats
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -15,33 +16,40 @@ var _ messaging.MessageBus = (*PubSubMessageBus)(nil)
 // PubSubMessageBus is a NATS-based implementation of the MessageBus interface.
 // It provides methods for publishing and subscribing to messages using NATS as the underlying message bus.
 type PubSubMessageBus struct {
+	mu sync.Mutex
+
 	conn *nats.Conn
 
 	subjectBuilder SubjectBuilder
 	serializer     messaging.MessageSerializer
 	deserializer   messaging.MessageDeserializer
 
-	handlers map[string][]messaging.MessageHandler[messaging.Message]
+	handlers     map[string][]messaging.MessageHandler[messaging.Message]
+	errorHandler messaging.ErrorHandler
 }
 
 func NewPubSubMessageBus(
 	conn *nats.Conn,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...PubSubMessageBusOption,
+	opts ...MessageBusOption,
 ) *PubSubMessageBus {
-	p := &PubSubMessageBus{
-		conn:           conn,
+	busOptions := MessageBusOptions{
 		subjectBuilder: DefaultSubjectBuilder,
+		errorHandler:   messaging.DefaultErrorHandler,
+	}
+	for _, opt := range opts {
+		opt(&busOptions)
+	}
+
+	return &PubSubMessageBus{
+		conn:           conn,
 		serializer:     serializer,
 		deserializer:   deserializer,
+		subjectBuilder: busOptions.subjectBuilder,
+		errorHandler:   busOptions.errorHandler,
+		handlers:       make(map[string][]messaging.MessageHandler[messaging.Message]),
 	}
-
-	for _, opt := range opts {
-		opt(p)
-	}
-
-	return p
 }
 
 // Publish implements messaging.MessageBus.
@@ -73,18 +81,18 @@ func (p *PubSubMessageBus) PublishRequest(ctx context.Context, msg messaging.Mes
 
 	data, err := p.serializer.Serialize(msg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to serialize message: %w", err)
 	}
 
 	subject := p.subjectBuilder(msg)
 	natsMsg, err := p.conn.RequestWithContext(ctx, subject, data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
 	replyMsg, err := p.deserializer.Deserialize(natsMsg.Data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to deserialize reply message: %w", err)
 	}
 
 	return replyMsg, nil
@@ -96,18 +104,21 @@ func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handle
 		p.handlers = make(map[string][]messaging.MessageHandler[messaging.Message])
 	}
 
+	// Register the handler
+	p.mu.Lock()
 	p.handlers[msgType] = append(p.handlers[msgType], handler)
+	p.mu.Unlock()
 
 	subject := msgType
 	sub, err := p.conn.Subscribe(subject, func(m *nats.Msg) {
 		msg, err := p.deserializer.Deserialize(m.Data)
 		if err != nil {
-			// Handle deserialization error (log, metrics, etc.)
+			p.errorHandler(nil, err)
 			return
 		}
 
 		if err := handler.Handle(ctx, msg); err != nil {
-			// Handle message handling error (log, metrics, etc.)
+			p.errorHandler(msg, err)
 			return
 		}
 
@@ -117,17 +128,18 @@ func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handle
 
 			replyMsg, err := msgReplier.GetReply(ctx)
 			if err != nil {
-				// Handle error getting reply (log, metrics, etc.)
+				p.errorHandler(msg, fmt.Errorf("failed to get reply message: %w", err))
 				return
 			}
 
 			replyData, err := p.serializer.Serialize(replyMsg)
 			if err != nil {
-				// Handle serialization error (log, metrics, etc.)
+				p.errorHandler(replyMsg, fmt.Errorf("failed to serialize reply message: %w", err))
 				return
 			}
+
 			if err := m.Respond(replyData); err != nil {
-				// Handle NATS respond error (log, metrics, etc.)
+				p.errorHandler(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
 				return
 			}
 		}
@@ -137,8 +149,14 @@ func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handle
 	}
 
 	unsubscribe := func() {
-		sub.Unsubscribe()
-		// Remove handler from the map
+		err := sub.Unsubscribe()
+		if err != nil {
+			p.errorHandler(nil, fmt.Errorf("failed to unsubscribe from subject %s: %w", subject, err))
+		}
+
+		// Remove the handler from the map safely
+		p.mu.Lock()
+		defer p.mu.Unlock()
 		handlers := p.handlers[msgType]
 		for i := range handlers {
 			if &handlers[i] == &handler {
