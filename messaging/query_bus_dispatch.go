@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// DispatchAndWaitReply sends a query and waits for a reply.
-func DispatchAndWaitReply[Q Query, R any](
+// DispatchQuery sends a query and waits for a reply.
+func DispatchQuery[Q Query, R any](
 	ctx context.Context,
 	dispatcher QueryDispatcher,
 	qry Q,

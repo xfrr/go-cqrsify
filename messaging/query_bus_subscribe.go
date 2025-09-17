@@ -11,7 +11,7 @@ func SubscribeQuery[E Query](
 	subscriber QuerySubscriber,
 	queryType string,
 	handler QueryHandler[E],
-) (func(), error) {
+) (UnsubscribeFunc, error) {
 	return subscriber.Subscribe(
 		ctx,
 		queryType,

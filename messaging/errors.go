@@ -6,7 +6,10 @@ import (
 )
 
 var (
-	ErrHandlerNotFound = errors.New("handler not found")
+	ErrHandlerNotFound     = errors.New("handler not found")
+	ErrMessageIsNotEvent   = errors.New("message is not an event")
+	ErrMessageIsNotCommand = errors.New("message is not a command")
+	ErrMessageIsNotQuery   = errors.New("message is not a query")
 )
 
 type InvalidMessageTypeError struct {

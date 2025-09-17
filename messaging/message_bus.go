@@ -18,5 +18,7 @@ type MessagePublisher interface {
 type MessageSubscriber interface {
 	// Subscribe registers a handler for a given logical message name.
 	// It returns an unsubscribe function that can be called to remove the subscription.
-	Subscribe(ctx context.Context, subject string, h MessageHandler[Message]) (func(), error)
+	Subscribe(ctx context.Context, subject string, h MessageHandler[Message]) (UnsubscribeFunc, error)
 }
+
+type UnsubscribeFunc func()

@@ -3,6 +3,7 @@ package messaging
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 // Query represents an action or intent to change the state of the system.
@@ -14,9 +15,20 @@ type Query interface {
 
 // BaseQuery provides a basic implementation of the Query interface.
 type BaseQuery struct {
-	BaseMessage
+	baseMessage
 
-	replyCh chan<- Message
+	replyCh chan Message
+}
+
+type BaseQueryModifier = baseMessageModifier
+
+func (q BaseQuery) GetReply(ctx context.Context) (Message, error) {
+	select {
+	case reply := <-q.replyCh:
+		return reply, nil
+	case <-ctx.Done():
+		return nil, fmt.Errorf("getting reply timed out: %w", ctx.Err())
+	}
 }
 
 func (q BaseQuery) Reply(ctx context.Context, response Message) error {
@@ -32,11 +44,27 @@ func (q BaseQuery) Reply(ctx context.Context, response Message) error {
 }
 
 // NewBaseQuery creates a new BaseQuery with the given name and payload.
-func NewBaseQuery(queryType string, modifiers ...BaseMessageModifier) BaseQuery {
+func NewBaseQuery(queryType string, modifiers ...BaseQueryModifier) BaseQuery {
 	return BaseQuery{
-		BaseMessage: NewBaseMessage(
+		replyCh: make(chan Message, 1),
+		baseMessage: newBaseMessage(
 			queryType,
 			modifiers...,
 		),
+	}
+}
+
+// NewQueryFromJSON creates a BaseQuery from a JSONMessage.
+func NewQueryFromJSON[P any](jsonMsg JSONMessage[P]) BaseQuery {
+	return BaseQuery{
+		replyCh: make(chan Message, 1),
+		baseMessage: baseMessage{
+			id:        jsonMsg.ID,
+			_type:     jsonMsg.Type,
+			schema:    jsonMsg.SchemaURI,
+			source:    jsonMsg.Source,
+			timestamp: jsonMsg.Timestamp,
+			metadata:  jsonMsg.Metadata,
+		},
 	}
 }

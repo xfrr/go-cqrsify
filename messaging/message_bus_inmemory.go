@@ -103,7 +103,7 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 	return nil
 }
 
-func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h MessageHandler[Message]) (func(), error) {
+func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h MessageHandler[Message]) (UnsubscribeFunc, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.subscribers[messageName] = append(b.subscribers[messageName], h)

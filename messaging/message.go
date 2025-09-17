@@ -2,7 +2,7 @@ package messaging
 
 import "time"
 
-var _ Message = (*BaseMessage)(nil)
+var _ Message = (*baseMessage)(nil)
 
 // Message represents a generic message.
 // It can be used as a base interface for more specific message types like Event, Command or Query.
@@ -43,8 +43,8 @@ type Message interface {
 	MessageMetadata() map[string]string
 }
 
-// BaseMessage is the base message implementation.
-type BaseMessage struct {
+// baseMessage is the base message implementation.
+type baseMessage struct {
 	id        string
 	_type     string
 	schema    string
@@ -53,8 +53,15 @@ type BaseMessage struct {
 	metadata  map[string]string
 }
 
-func NewBaseMessage(msgType string, modifiers ...BaseMessageModifier) BaseMessage {
-	b := BaseMessage{
+func (b baseMessage) MessageID() string                  { return b.id }
+func (b baseMessage) MessageType() string                { return b._type }
+func (b baseMessage) MessageSchemaURI() string           { return b.schema }
+func (b baseMessage) MessageSource() string              { return b.source }
+func (b baseMessage) MessageTimestamp() time.Time        { return b.timestamp }
+func (b baseMessage) MessageMetadata() map[string]string { return b.metadata }
+
+func newBaseMessage(msgType string, modifiers ...baseMessageModifier) baseMessage {
+	b := baseMessage{
 		_type:     msgType,
 		id:        "",
 		schema:    "",
@@ -68,10 +75,3 @@ func NewBaseMessage(msgType string, modifiers ...BaseMessageModifier) BaseMessag
 	}
 	return b
 }
-
-func (b BaseMessage) MessageID() string                  { return b.id }
-func (b BaseMessage) MessageType() string                { return b._type }
-func (b BaseMessage) MessageSchemaURI() string           { return b.schema }
-func (b BaseMessage) MessageSource() string              { return b.source }
-func (b BaseMessage) MessageTimestamp() time.Time        { return b.timestamp }
-func (b BaseMessage) MessageMetadata() map[string]string { return b.metadata }

@@ -2,33 +2,33 @@ package messaging
 
 import "time"
 
-// BaseMessageModifier is a functional option for creating new messages.
-type BaseMessageModifier func(*BaseMessage)
+// baseMessageModifier is a functional option for creating new messages.
+type baseMessageModifier func(*baseMessage)
 
 // WithTimestamp sets the timestamp for the message.
-func WithTimestamp(timestamp time.Time) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithTimestamp(timestamp time.Time) baseMessageModifier {
+	return func(b *baseMessage) {
 		b.timestamp = timestamp
 	}
 }
 
 // WithID sets the ID for the message.
-func WithID(id string) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithID(id string) baseMessageModifier {
+	return func(b *baseMessage) {
 		b.id = id
 	}
 }
 
 // WithMetadata sets the metadata for the message.
-func WithMetadata(metadata map[string]string) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithMetadata(metadata map[string]string) baseMessageModifier {
+	return func(b *baseMessage) {
 		b.metadata = metadata
 	}
 }
 
 // WithMetadataKeyValue sets a key-value pair in the metadata for the message.
-func WithMetadataKeyValue(key, value string) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithMetadataKeyValue(key, value string) baseMessageModifier {
+	return func(b *baseMessage) {
 		if b.metadata == nil {
 			b.metadata = make(map[string]string)
 		}
@@ -37,15 +37,15 @@ func WithMetadataKeyValue(key, value string) BaseMessageModifier {
 }
 
 // WithSchema sets the schema for the message.
-func WithSchema(schema string) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithSchema(schema string) baseMessageModifier {
+	return func(b *baseMessage) {
 		b.schema = schema
 	}
 }
 
 // WithSource sets the source for the message.
-func WithSource(source string) BaseMessageModifier {
-	return func(b *BaseMessage) {
+func WithSource(source string) baseMessageModifier {
+	return func(b *baseMessage) {
 		b.source = source
 	}
 }

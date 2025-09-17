@@ -28,7 +28,7 @@ type getSpeechQuery struct {
 }
 
 type getSpeechQueryReply struct {
-	messaging.BaseMessage
+	messaging.BaseQuery
 
 	Speech string
 }
@@ -38,13 +38,13 @@ type GetSpeechQueryHandler struct {
 	wg *sync.WaitGroup
 }
 
-func (h GetSpeechQueryHandler) Handle(_ context.Context, qry GetSpeechQuery) error {
+func (h GetSpeechQueryHandler) Handle(_ context.Context, query GetSpeechQuery) error {
 	defer h.wg.Done()
 
 	// Reply to the query to acknowledge successful handling.
-	if err := qry.Reply(context.Background(), getSpeechQueryReply{
-		BaseMessage: messaging.NewBaseMessage("com.org.test_query_reply"),
-		Speech:      "Welcome to the Query Bus example!",
+	if err := query.Reply(context.Background(), getSpeechQueryReply{
+		BaseQuery: messaging.NewBaseQuery("com.org.test_query.reply"),
+		Speech:    "Welcome to the Query Bus example!",
 	}); err != nil {
 		return fmt.Errorf("failed to reply to query: %w", err)
 	}
@@ -91,7 +91,7 @@ func main() {
 func dispatchQuery(ctx context.Context, bus messaging.QueryDispatcher, qry GetSpeechQuery) (getSpeechQueryReply, error) {
 	//nolint:forbidigo // Using fmt.Printf for simplicity in this example.
 	fmt.Printf("\n🚀 %sDispatching GetSpeech Query%s\n", Cyan, Reset)
-	res, err := messaging.DispatchAndWaitReply[GetSpeechQuery, getSpeechQueryReply](ctx, bus, qry)
+	res, err := messaging.DispatchQuery[GetSpeechQuery, getSpeechQueryReply](ctx, bus, qry)
 	if err != nil {
 		return getSpeechQueryReply{}, err
 	}
