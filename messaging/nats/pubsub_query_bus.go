@@ -40,7 +40,7 @@ func NewPubSubQueryBus(
 	conn *nats.Conn,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...MessageBusOption,
+	opts ...PubSubMessageBusOption,
 ) *PubSubQueryBus {
 	return &PubSubQueryBus{
 		PubSubMessageBus: NewPubSubMessageBus(conn, serializer, deserializer, opts...),

@@ -1,10 +1,10 @@
 package messagingnats
 
-// MessageBusOption defines a function type for configuring PubSubMessageBus options.
-type MessageBusOption func(*PubSubMessageBus)
+// PubSubMessageBusOption defines a function type for configuring PubSubMessageBus options.
+type PubSubMessageBusOption func(*PubSubMessageBus)
 
 // WithSubjectBuilder sets a custom SubjectBuilder for the PubSubMessageBus.
-func WithSubjectBuilder(sb SubjectBuilder) MessageBusOption {
+func WithSubjectBuilder(sb SubjectBuilder) PubSubMessageBusOption {
 	return func(p *PubSubMessageBus) {
 		p.subjectBuilder = sb
 	}
