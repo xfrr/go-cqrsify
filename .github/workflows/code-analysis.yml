@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: codacy-security-scan
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
