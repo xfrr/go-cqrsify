@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758136227962,
+  "lastUpdate": 1758138075190,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -2834,6 +2834,96 @@ window.BENCHMARK_DATA = {
             "value": 39.91,
             "unit": "ns/op",
             "extra": "29250742 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "f4b5374af4372ab94886c77f9be3becbfb4b0c5a",
+          "message": "feat: enhance JetStream integration with updated stream configurations and context handling",
+          "timestamp": "2025-09-17T21:40:40+02:00",
+          "tree_id": "1da3183e8af1d5fd7f6811fe28b807eaea5b9084",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/f4b5374af4372ab94886c77f9be3becbfb4b0c5a"
+        },
+        "date": 1758138074837,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6488,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.93,
+            "unit": "ns/op",
+            "extra": "16431157 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.8,
+            "unit": "ns/op",
+            "extra": "8898952 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 443.1,
+            "unit": "ns/op",
+            "extra": "2707988 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.733,
+            "unit": "ns/op",
+            "extra": "321376268 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/string",
+            "value": 20.27,
+            "unit": "ns/op",
+            "extra": "55097802 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/int",
+            "value": 20.2,
+            "unit": "ns/op",
+            "extra": "55822362 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkString",
+            "value": 94.98,
+            "unit": "ns/op",
+            "extra": "13372797 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEquals",
+            "value": 4.068,
+            "unit": "ns/op",
+            "extra": "291958860 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkValidate",
+            "value": 3.74,
+            "unit": "ns/op",
+            "extra": "320871598 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 38.69,
+            "unit": "ns/op",
+            "extra": "30074632 times\n4 procs"
           }
         ]
       }
