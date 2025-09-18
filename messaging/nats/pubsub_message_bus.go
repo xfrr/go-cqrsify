@@ -124,7 +124,7 @@ func (p *PubSubMessageBus) unsubscribeFn(
 	handler messaging.MessageHandler[messaging.Message],
 ) func() {
 	return func() {
-		err := sub.Unsubscribe()
+		err := sub.Drain()
 		if err != nil {
 			p.errorHandler(nil, fmt.Errorf("failed to unsubscribe from subject %s: %w", subject, err))
 		}

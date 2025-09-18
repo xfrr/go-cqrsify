@@ -239,7 +239,7 @@ func (p *JetStreamMessageBus) unsubscribeFn(
 	handler messaging.MessageHandler[messaging.Message],
 ) func() {
 	return func() {
-		sub.Stop()
+		sub.Drain()
 		p.mu.Lock()
 		defer p.mu.Unlock()
 
