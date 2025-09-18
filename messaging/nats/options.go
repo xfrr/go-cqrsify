@@ -31,9 +31,17 @@ func WithErrorHandler(eh messaging.ErrorHandler) MessageBusOption {
 
 type PubSubMessageBusOptions struct {
 	MessageBusOptions
+
+	queueName string
 }
 
 type PubSubMessageBusOption func(p *PubSubMessageBusOptions)
+
+func WithQueueName(name string) PubSubMessageBusOption {
+	return func(p *PubSubMessageBusOptions) {
+		p.queueName = name
+	}
+}
 
 type JetStreamMessageBusOptions struct {
 	MessageBusOptions

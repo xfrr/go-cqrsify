@@ -21,6 +21,7 @@ type PubSubMessageBus struct {
 
 	conn *nats.Conn
 
+	queueName      string
 	subjectBuilder SubjectBuilder
 	serializer     messaging.MessageSerializer
 	deserializer   messaging.MessageDeserializer
@@ -36,6 +37,7 @@ func NewPubSubMessageBus(
 	opts ...PubSubMessageBusOption,
 ) *PubSubMessageBus {
 	busOptions := PubSubMessageBusOptions{
+		queueName: "cqrsify_message_bus",
 		MessageBusOptions: MessageBusOptions{
 			subjectBuilder: DefaultSubjectBuilder,
 			errorHandler:   messaging.DefaultErrorHandler,
@@ -51,6 +53,7 @@ func NewPubSubMessageBus(
 		deserializer:   deserializer,
 		subjectBuilder: busOptions.subjectBuilder,
 		errorHandler:   busOptions.errorHandler,
+		queueName:      busOptions.queueName,
 		handlers:       make(map[string][]messaging.MessageHandler[messaging.Message]),
 	}
 }
@@ -107,7 +110,7 @@ func (p *PubSubMessageBus) Subscribe(ctx context.Context, msgType string, handle
 	p.mu.Unlock()
 
 	subject := msgType
-	sub, err := p.conn.Subscribe(subject, p.natsMsgHandler(ctx, handler))
+	sub, err := p.conn.QueueSubscribe(subject, p.queueName, p.natsMsgHandler(ctx, handler))
 	if err != nil {
 		return nil, fmt.Errorf("failed to subscribe to subject %s: %w", subject, err)
 	}
