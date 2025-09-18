@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758151258314,
+  "lastUpdate": 1758154068260,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3284,6 +3284,96 @@ window.BENCHMARK_DATA = {
             "value": 39.01,
             "unit": "ns/op",
             "extra": "29367691 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "059da01db388fbaddc26f254f43d693f3d812ed1",
+          "message": "chore: separate bus interfaces and enhance examples",
+          "timestamp": "2025-09-18T02:07:13+02:00",
+          "tree_id": "af5a5365a216d5416fe778e2f12e48cb757595f1",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/059da01db388fbaddc26f254f43d693f3d812ed1"
+        },
+        "date": 1758154067906,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6225,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73,
+            "unit": "ns/op",
+            "extra": "16473574 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.7,
+            "unit": "ns/op",
+            "extra": "8849808 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailCreation",
+            "value": 442.9,
+            "unit": "ns/op",
+            "extra": "2680042 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEmailEquality",
+            "value": 3.734,
+            "unit": "ns/op",
+            "extra": "321032655 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/string",
+            "value": 20.31,
+            "unit": "ns/op",
+            "extra": "53930290 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkNewIdentifier/int",
+            "value": 20.17,
+            "unit": "ns/op",
+            "extra": "55859030 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkString",
+            "value": 89.11,
+            "unit": "ns/op",
+            "extra": "13309740 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkEquals",
+            "value": 4.093,
+            "unit": "ns/op",
+            "extra": "288894348 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkValidate",
+            "value": 3.738,
+            "unit": "ns/op",
+            "extra": "320580519 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkMoneyAddition",
+            "value": 38.7,
+            "unit": "ns/op",
+            "extra": "29731552 times\n4 procs"
           }
         ]
       }
