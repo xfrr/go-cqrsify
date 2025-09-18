@@ -15,16 +15,16 @@ func TestInMemoryQueryBus_Dispatch_NoSubscribers(t *testing.T) {
 	t.Parallel()
 
 	bus := messaging.NewInMemoryQueryBus()
-	qry := messaging.NewBaseQuery("query.no.subscribers")
+	query := messaging.NewBaseQuery("query.no.subscribers")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	res, err := bus.DispatchAndWaitReply(ctx, qry)
+	res, err := bus.DispatchAndWaitReply(ctx, query)
 	require.Error(t, err)
 	assert.Nil(t, res)
 
-	expectedErr := &messaging.NoSubscribersForMessageError{MessageType: qry.MessageType()}
+	expectedErr := &messaging.NoSubscribersForMessageError{MessageType: query.MessageType()}
 	require.ErrorAs(t, err, &expectedErr)
 	assert.Equal(t, "query.no.subscribers", expectedErr.MessageType)
 }
@@ -32,17 +32,25 @@ func TestInMemoryQueryBus_Dispatch_NoSubscribers(t *testing.T) {
 func TestInMemoryQueryBus_Subscribe_ThenHandleSync(t *testing.T) {
 	t.Parallel()
 
+	type testQueryReply struct {
+		messaging.BaseQueryReply
+	}
+
 	bus := messaging.NewInMemoryQueryBus()
 	const topic = "query.sync.topic"
-	qry := messaging.NewBaseQuery(topic)
+	queryMsg := messaging.NewBaseQuery(topic)
+	queryReplyMsg := testQueryReply{
+		BaseQueryReply: messaging.NewBaseQueryReply(queryMsg),
+	}
 
 	seen := make(chan messaging.Query, 1)
 
 	_, err := bus.Subscribe(context.Background(), topic,
 		messaging.QueryHandlerFn[messaging.Query](func(_ context.Context, query messaging.Query) error {
 			seen <- query
-			// Reply to the query to unblock DispatchAndWaitReply
-			query.Reply(context.Background(), query) // Echo reply
+
+			err := query.Reply(context.Background(), queryReplyMsg)
+			require.NoError(t, err)
 			return nil
 		}),
 	)
@@ -51,9 +59,9 @@ func TestInMemoryQueryBus_Subscribe_ThenHandleSync(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 
-	res, err := bus.DispatchAndWaitReply(ctx, qry)
+	res, err := bus.DispatchAndWaitReply(ctx, queryMsg)
 	require.NoError(t, err)
-	assert.Equal(t, qry, res)
+	assert.Equal(t, queryReplyMsg, res)
 
 	select {
 	case got := <-seen:
@@ -135,7 +143,8 @@ func TestInMemoryQueryBus_MiddlewareOrder(t *testing.T) {
 			order = append(order, "H")
 			done <- struct{}{}
 			// Reply to the query to unblock DispatchAndWaitReply
-			query.Reply(context.Background(), queryReply) // Echo reply
+			err := query.Reply(context.Background(), queryReply)
+			require.NoError(t, err)
 			return nil
 		}),
 	)
@@ -203,7 +212,7 @@ func TestInMemoryQueryBus_HandlerError_RoutedToErrorHandler_Timeout(t *testing.T
 	want := errors.New("kapow")
 
 	_, err := bus.Subscribe(context.Background(), topic,
-		messaging.QueryHandlerFn[messaging.Query](func(_ context.Context, query messaging.Query) error {
+		messaging.QueryHandlerFn[messaging.Query](func(_ context.Context, _ messaging.Query) error {
 			return want
 		}),
 	)

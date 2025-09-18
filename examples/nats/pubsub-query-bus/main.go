@@ -38,7 +38,7 @@ type getOrderAmountQueryReplyPayload struct {
 }
 
 type getOrderAmountQueryReply struct {
-	messaging.BaseQuery
+	messaging.BaseQueryReply
 	getOrderAmountQueryReplyPayload
 }
 
@@ -52,7 +52,7 @@ func main() {
 	}
 
 	queryReply := getOrderAmountQueryReply{
-		BaseQuery: messaging.NewBaseQuery("com.example.order.get_amount_reply.v1"),
+		BaseQueryReply: messaging.NewBaseQueryReply(query),
 		getOrderAmountQueryReplyPayload: getOrderAmountQueryReplyPayload{
 			OrderAmount: 42.50, // Just a dummy amount
 		},
@@ -167,9 +167,9 @@ func registerGetOrderAmountQueryReplyJsonDeserializer(deserializer *messaging.JS
 		deserializer,
 		msgType,
 		func(jsonMessage messaging.JSONMessage[getOrderAmountQueryReplyPayload]) (getOrderAmountQueryReply, error) {
-			parsedQueryReply := messaging.NewQueryFromJSON(jsonMessage)
+			parsedQueryReply := messaging.NewQueryReplyFromJSON(jsonMessage)
 			return getOrderAmountQueryReply{
-				BaseQuery:                       parsedQueryReply,
+				BaseQueryReply:                  parsedQueryReply,
 				getOrderAmountQueryReplyPayload: jsonMessage.Payload,
 			}, nil
 		})

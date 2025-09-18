@@ -10,7 +10,7 @@ import (
 type Query interface {
 	Message
 
-	Reply(ctx context.Context, response Message) error
+	Reply(ctx context.Context, reply QueryReply) error
 }
 
 // BaseQuery provides a basic implementation of the Query interface.
@@ -31,13 +31,13 @@ func (q BaseQuery) GetReply(ctx context.Context) (Message, error) {
 	}
 }
 
-func (q BaseQuery) Reply(ctx context.Context, response Message) error {
+func (q BaseQuery) Reply(ctx context.Context, reply QueryReply) error {
 	if q.replyCh == nil {
 		return errors.New("no reply channel available")
 	}
 
 	select {
-	case q.replyCh <- response:
+	case q.replyCh <- reply:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -59,6 +59,42 @@ func NewBaseQuery(queryType string, modifiers ...BaseQueryModifier) BaseQuery {
 func NewQueryFromJSON[P any](jsonMsg JSONMessage[P]) BaseQuery {
 	return BaseQuery{
 		replyCh: make(chan Message, 1),
+		baseMessage: baseMessage{
+			id:        jsonMsg.ID,
+			_type:     jsonMsg.Type,
+			schema:    jsonMsg.SchemaURI,
+			source:    jsonMsg.Source,
+			timestamp: jsonMsg.Timestamp,
+			metadata:  jsonMsg.Metadata,
+		},
+	}
+}
+
+// QueryReply represents a reply to a Query.
+type QueryReply interface {
+	Message
+}
+
+// BaseQueryReply provides a basic implementation of the QueryReply interface.
+type BaseQueryReply struct {
+	baseMessage
+}
+
+type BaseQueryReplyModifier = baseMessageModifier
+
+// NewBaseQueryReply creates a new BaseQueryReply with the given name and payload.
+func NewBaseQueryReply(query Query, modifiers ...BaseQueryReplyModifier) BaseQueryReply {
+	return BaseQueryReply{
+		baseMessage: newBaseMessage(
+			query.MessageType()+".reply",
+			modifiers...,
+		),
+	}
+}
+
+// NewQueryReplyFromJSON creates a BaseQueryReply from a JSONMessage.
+func NewQueryReplyFromJSON[P any](jsonMsg JSONMessage[P]) BaseQueryReply {
+	return BaseQueryReply{
 		baseMessage: baseMessage{
 			id:        jsonMsg.ID,
 			_type:     jsonMsg.Type,

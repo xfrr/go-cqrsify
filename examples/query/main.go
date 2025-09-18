@@ -28,7 +28,7 @@ type getSpeechQuery struct {
 }
 
 type getSpeechQueryReply struct {
-	messaging.BaseQuery
+	messaging.BaseQueryReply
 
 	Speech string
 }
@@ -43,8 +43,8 @@ func (h GetSpeechQueryHandler) Handle(_ context.Context, query GetSpeechQuery) e
 
 	// Reply to the query to acknowledge successful handling.
 	if err := query.Reply(context.Background(), getSpeechQueryReply{
-		BaseQuery: messaging.NewBaseQuery("com.org.test_query.reply"),
-		Speech:    "Welcome to the Query Bus example!",
+		BaseQueryReply: messaging.NewBaseQueryReply(query),
+		Speech:         "Welcome to the Query Bus example!",
 	}); err != nil {
 		return fmt.Errorf("failed to reply to query: %w", err)
 	}

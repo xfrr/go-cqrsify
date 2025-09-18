@@ -41,7 +41,7 @@ type getOrderAmountQueryReplyPayload struct {
 }
 
 type getOrderAmountQueryReply struct {
-	messaging.BaseQuery
+	messaging.BaseQueryReply
 	getOrderAmountQueryReplyPayload
 }
 
@@ -55,7 +55,7 @@ func main() {
 	}
 
 	queryReply := getOrderAmountQueryReply{
-		BaseQuery: messaging.NewBaseQuery("com.cqrsify.queries.order.get_amount_reply.v1"),
+		BaseQueryReply: messaging.NewBaseQueryReply(query),
 		getOrderAmountQueryReplyPayload: getOrderAmountQueryReplyPayload{
 			OrderAmount: 42.50, // Just a dummy amount
 		},
@@ -63,11 +63,11 @@ func main() {
 
 	// register serializers and deserializers
 	serializer := messaging.NewJSONSerializer()
-	registerGetOrderAmountQueryJsonSerializer(serializer, query.MessageType())
-	registerGetOrderAmountQueryReplyJsonSerializer(serializer, queryReply.MessageType())
+	registerGetOrderAmountQueryJSONSerializer(serializer, query.MessageType())
+	registerGetOrderAmountQueryReplyJSONSerializer(serializer, queryReply.MessageType())
 	deserializer := messaging.NewJSONDeserializer()
-	registerGetOrderAmountQueryJsonDeserializer(deserializer, query.MessageType())
-	registerGetOrderAmountQueryReplyJsonDeserializer(deserializer, queryReply.MessageType())
+	registerGetOrderAmountQueryJSONDeserializer(deserializer, query.MessageType())
+	registerGetOrderAmountQueryReplyJSONDeserializer(deserializer, queryReply.MessageType())
 
 	queryBus, closeQueryBus, err := newQueryBus(
 		ctx,
@@ -87,7 +87,7 @@ func main() {
 		fmt.Printf("- Order ID: %d\n", query.OrderID())
 
 		// Reply to the query
-		if err := query.Reply(ctx, queryReply); err != nil {
+		if err = query.Reply(ctx, queryReply); err != nil {
 			return fmt.Errorf("failed to reply to query: %w", err)
 		}
 
@@ -154,7 +154,7 @@ func newQueryBus(
 	return queryBus, cleanup, nil
 }
 
-func registerGetOrderAmountQueryJsonSerializer(serializer *messaging.JSONSerializer, msgType string) *messaging.JSONSerializer {
+func registerGetOrderAmountQueryJSONSerializer(serializer *messaging.JSONSerializer, msgType string) *messaging.JSONSerializer {
 	messaging.RegisterJSONMessageSerializer(
 		serializer,
 		msgType,
@@ -167,7 +167,7 @@ func registerGetOrderAmountQueryJsonSerializer(serializer *messaging.JSONSeriali
 	return serializer
 }
 
-func registerGetOrderAmountQueryJsonDeserializer(deserializer *messaging.JSONDeserializer, msgType string) {
+func registerGetOrderAmountQueryJSONDeserializer(deserializer *messaging.JSONDeserializer, msgType string) {
 	messaging.RegisterJSONMessageDeserializer(
 		deserializer,
 		msgType,
@@ -180,7 +180,7 @@ func registerGetOrderAmountQueryJsonDeserializer(deserializer *messaging.JSONDes
 		})
 }
 
-func registerGetOrderAmountQueryReplyJsonSerializer(serializer *messaging.JSONSerializer, msgType string) {
+func registerGetOrderAmountQueryReplyJSONSerializer(serializer *messaging.JSONSerializer, msgType string) {
 	messaging.RegisterJSONMessageSerializer(
 		serializer,
 		msgType,
@@ -192,14 +192,14 @@ func registerGetOrderAmountQueryReplyJsonSerializer(serializer *messaging.JSONSe
 		})
 }
 
-func registerGetOrderAmountQueryReplyJsonDeserializer(deserializer *messaging.JSONDeserializer, msgType string) {
+func registerGetOrderAmountQueryReplyJSONDeserializer(deserializer *messaging.JSONDeserializer, msgType string) {
 	messaging.RegisterJSONMessageDeserializer(
 		deserializer,
 		msgType,
 		func(jsonMessage messaging.JSONMessage[getOrderAmountQueryReplyPayload]) (getOrderAmountQueryReply, error) {
-			parsedQueryReply := messaging.NewQueryFromJSON(jsonMessage)
+			parsedQueryReply := messaging.NewQueryReplyFromJSON(jsonMessage)
 			return getOrderAmountQueryReply{
-				BaseQuery:                       parsedQueryReply,
+				BaseQueryReply:                  parsedQueryReply,
 				getOrderAmountQueryReplyPayload: jsonMessage.Payload,
 			}, nil
 		})

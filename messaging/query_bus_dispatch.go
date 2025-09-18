@@ -9,12 +9,12 @@ import (
 func DispatchQuery[Q Query, R any](
 	ctx context.Context,
 	dispatcher QueryDispatcher,
-	qry Q,
+	query Q,
 ) (R, error) {
 	var zero R
 
 	// send the query and wait for a reply
-	replyMsg, err := dispatcher.DispatchAndWaitReply(ctx, qry)
+	replyMsg, err := dispatcher.DispatchAndWaitReply(ctx, query)
 	if err != nil {
 		return zero, err
 	}
