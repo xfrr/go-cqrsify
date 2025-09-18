@@ -103,9 +103,14 @@ func (p *JetStreamMessageBus) Publish(ctx context.Context, msg ...messaging.Mess
 
 // PublishRequest sends a request message and waits for a single reply.
 func (p *JetStreamMessageBus) PublishRequest(ctx context.Context, msg messaging.Message) (messaging.Message, error) {
-	// Create a temporary subscription to receive the reply
 	msgSubject := p.subjectBuilder(msg)
-	replySubject := fmt.Sprintf("%s.reply", msgSubject)
+	replySubject := fmt.Sprintf("%s.reply.%d", msgSubject, time.Now().UnixNano())
+	// If the message has a MessageID, use it to create a unique reply subject
+	// This helps in correlating replies in case of multiple requests
+	// being sent simultaneously
+	if msg.MessageID() != "" {
+		replySubject = fmt.Sprintf("%s.reply.%s", msgSubject, msg.MessageID())
+	}
 
 	// Publish the message with a header indicating the reply subject
 	data, err := p.serializer.Serialize(msg)
@@ -115,7 +120,6 @@ func (p *JetStreamMessageBus) PublishRequest(ctx context.Context, msg messaging.
 
 	jsMsg := &nats.Msg{
 		Subject: msgSubject,
-		Reply:   replySubject,
 		Data:    data,
 		Header: nats.Header{
 			replyHeaderKey: []string{replySubject},
