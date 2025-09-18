@@ -9,9 +9,14 @@ var _ Message = (*baseMessage)(nil)
 // Implementations must ensure that MessageID is unique for each message instance.
 type Message interface {
 	// MessageID returns the unique identifier of the message.
-	// It can be optionally used to correlate messages.
+	// It is used to correlate messages and ensure idempotency.
+	//
+	// - MUST be a non-empty string
+	//
+	// - MUST be unique for each message instance
+	//
+	// - SHOULD be a UUID or a similar globally unique identifier
 	MessageID() string
-
 	// MessageType returns the type of the message related to the originating occurrence.
 	// It is used to route messages to the appropriate handler.
 	//

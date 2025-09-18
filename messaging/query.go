@@ -10,7 +10,17 @@ import (
 type Query interface {
 	Message
 
+	QueryID() string
+
 	Reply(ctx context.Context, reply QueryReply) error
+}
+
+type BaseQueryModifier = baseMessageModifier
+
+func WithQueryID(queryID string) BaseQueryModifier {
+	return func(b *baseMessage) {
+		b.id = queryID
+	}
 }
 
 // BaseQuery provides a basic implementation of the Query interface.
@@ -20,7 +30,9 @@ type BaseQuery struct {
 	replyCh chan Message
 }
 
-type BaseQueryModifier = baseMessageModifier
+func (q BaseQuery) QueryID() string {
+	return q.id
+}
 
 func (q BaseQuery) GetReply(ctx context.Context) (Message, error) {
 	select {

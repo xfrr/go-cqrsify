@@ -15,7 +15,7 @@ func SubscribeCommand[E Command](
 	return subscriber.Subscribe(
 		ctx,
 		commandType,
-		MessageHandlerFn[Command](func(ctx context.Context, evt Command) error {
+		CommandHandlerFn[Command](func(ctx context.Context, evt Command) error {
 			castCommand, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{

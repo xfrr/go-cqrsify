@@ -15,7 +15,7 @@ func SubscribeEvent[E Event](
 	return subscriber.Subscribe(
 		ctx,
 		eventType,
-		MessageHandlerFn[Event](func(ctx context.Context, evt Event) error {
+		EventHandlerFn[Event](func(ctx context.Context, evt Event) error {
 			castEvent, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{

@@ -14,7 +14,7 @@ import (
 )
 
 type OrderCreatedEvent interface {
-	messaging.Message
+	messaging.Event
 
 	OrderID() int
 	OrderAmount() float64

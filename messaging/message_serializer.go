@@ -143,8 +143,13 @@ func RegisterJSONMessageDeserializer[T Message, P any](d *JSONDeserializer, msgT
 }
 
 func NewJSONMessage[P any](msg Message, payload P) JSONMessage[P] {
+	var id string
+	if bmsg, ok := msg.(baseMessage); ok {
+		id = bmsg.id
+	}
+
 	return JSONMessage[P]{
-		ID:        msg.MessageID(),
+		ID:        id,
 		Type:      msg.MessageType(),
 		Source:    msg.MessageSource(),
 		SchemaURI: msg.MessageSchemaURI(),
