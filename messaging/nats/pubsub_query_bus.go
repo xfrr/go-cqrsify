@@ -17,7 +17,7 @@ type PubSubQueryBus struct {
 }
 
 func (p *PubSubQueryBus) DispatchAndWaitReply(ctx context.Context, query messaging.Query) (messaging.Message, error) {
-	res, err := p.PubSubMessageBus.PublishRequest(ctx, query)
+	res, err := p.PublishRequest(ctx, query)
 	if err != nil {
 		return nil, err
 	}

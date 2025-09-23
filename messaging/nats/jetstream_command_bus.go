@@ -43,7 +43,7 @@ func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messagin
 	for i, e := range commands {
 		msgs[i] = e
 	}
-	return p.JetStreamMessageBus.Publish(ctx, msgs...)
+	return p.Publish(ctx, msgs...)
 }
 
 // Subscribe implements messaging.MessageBus.
