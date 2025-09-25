@@ -3,5 +3,10 @@ go 1.25.1
 use (
 	.
 	./examples
+
+	// messaging modules
 	./messaging/nats
+
+	// uow modules
+	./uow/postgres
 )
