@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758920039120,
+  "lastUpdate": 1758920600659,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3860,6 +3860,48 @@ window.BENCHMARK_DATA = {
             "value": 134.9,
             "unit": "ns/op",
             "extra": "8887453 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "956e7fb9625904498c398cd1fe7942f4477c3737",
+          "message": "feat: add IsValid and IsZero methods to Sex value object; update tests for Gender and Sex value objects",
+          "timestamp": "2025-09-26T23:02:44+02:00",
+          "tree_id": "b3e4bb91205157c5f44318ad8565d32da7f58a67",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/956e7fb9625904498c398cd1fe7942f4477c3737"
+        },
+        "date": 1758920599650,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6234,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.96,
+            "unit": "ns/op",
+            "extra": "16430889 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.8,
+            "unit": "ns/op",
+            "extra": "8894749 times\n4 procs"
           }
         ]
       }
