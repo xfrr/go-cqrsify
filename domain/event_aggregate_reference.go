@@ -21,14 +21,15 @@ func (r EventAggregateReference) Version() AggregateVersion {
 // CreateEventAggregateRef creates a new EventAggregateReference for the given EventSourcedAggregate.
 // It increments the aggregate version.
 func CreateEventAggregateRef[T comparable](agg EventSourcedAggregate[T]) *EventAggregateReference {
-	return newEventAggregateReference(
+	return NewEventAggregateReference(
 		agg.AggregateID(),
 		agg.AggregateName(),
 		UncommittedAggregateVersion(agg)+1,
 	)
 }
 
-func newEventAggregateReference(
+// NewEventAggregateReference creates a new EventAggregateReference with the given parameters.
+func NewEventAggregateReference(
 	aggregateID any,
 	aggregateName string,
 	version AggregateVersion,
