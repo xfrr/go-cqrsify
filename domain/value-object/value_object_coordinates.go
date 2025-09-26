@@ -26,6 +26,13 @@ func NewCoordinates(latitude, longitude float64) (*Coordinates, error) {
 
 func (c *Coordinates) Latitude() float64  { return c.latitude }
 func (c *Coordinates) Longitude() float64 { return c.longitude }
+func (c *Coordinates) Equals(vo ValueObject) bool {
+	if other, ok := vo.(*Coordinates); ok {
+		return c.latitude == other.latitude && c.longitude == other.longitude
+	}
+	return false
+}
+
 func (c *Coordinates) String() string {
 	return fmt.Sprintf("Latitude: %.6f, Longitude: %.6f", c.latitude, c.longitude)
 }
