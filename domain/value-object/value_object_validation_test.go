@@ -1,10 +1,9 @@
 package valueobject_test
 
 import (
+	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	valueobject "github.com/xfrr/go-cqrsify/domain/value-object"
 )
@@ -21,24 +20,25 @@ type ValidationTestSuite struct {
 func (suite *ValidationTestSuite) TestMultipleValidationErrors() {
 	_, err := valueobject.NewAddress("", "", "", "", "")
 
-	require.Error(suite.T(), err)
+	suite.Require().Error(err)
 
-	multiErr, ok := err.(valueobject.MultiValidationError)
-	require.True(suite.T(), ok, "expected MultiValidationError")
-	assert.Len(suite.T(), multiErr.Errors, 5)
+	var multiErr valueobject.MultiValidationError
+	ok := errors.As(err, &multiErr)
+	suite.Require().True(ok, "expected MultiValidationError")
+	suite.Require().Len(multiErr.Errors, 5)
 
 	// Check that all required fields are mentioned in the error
 	errorStr := err.Error()
-	assert.Contains(suite.T(), errorStr, "street")
-	assert.Contains(suite.T(), errorStr, "city")
-	assert.Contains(suite.T(), errorStr, "state")
-	assert.Contains(suite.T(), errorStr, "zipCode")
-	assert.Contains(suite.T(), errorStr, "country")
+	suite.Contains(errorStr, "street")
+	suite.Contains(errorStr, "city")
+	suite.Contains(errorStr, "state")
+	suite.Contains(errorStr, "zipCode")
+	suite.Contains(errorStr, "country")
 }
 
 func (suite *ValidationTestSuite) TestValidationErrorString() {
 	err := valueobject.ValidationError{Field: "testField", Message: "test message"}
 	expected := "validation error on field 'testField': test message"
 
-	assert.Equal(suite.T(), expected, err.Error())
+	suite.Equal(expected, err.Error())
 }

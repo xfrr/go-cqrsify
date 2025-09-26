@@ -3,8 +3,6 @@ package valueobject_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	valueobject "github.com/xfrr/go-cqrsify/domain/value-object"
 )
@@ -21,25 +19,25 @@ type PersonNameTestSuite struct {
 func (suite *PersonNameTestSuite) TestValidPersonName() {
 	name, err := valueobject.NewPersonName("John", "Doe")
 
-	require.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "John", name.FirstName())
-	assert.Equal(suite.T(), "Doe", name.LastName())
-	assert.Equal(suite.T(), "John Doe", name.FullName())
-	assert.Equal(suite.T(), "John Doe", name.String())
+	suite.Require().NoError(err)
+	suite.Equal("John", name.FirstName())
+	suite.Equal("Doe", name.LastName())
+	suite.Equal("John Doe", name.FullName())
+	suite.Equal("John Doe", name.String())
 }
 
 func (suite *PersonNameTestSuite) TestEmptyFirstName() {
 	_, err := valueobject.NewPersonName("", "Doe")
 
-	assert.Error(suite.T(), err)
-	assert.Contains(suite.T(), err.Error(), "firstName")
+	suite.Require().Error(err)
+	suite.Contains(err.Error(), "firstName")
 }
 
 func (suite *PersonNameTestSuite) TestEmptyLastName() {
 	_, err := valueobject.NewPersonName("John", "")
 
-	assert.Error(suite.T(), err)
-	assert.Contains(suite.T(), err.Error(), "lastName")
+	suite.Require().Error(err)
+	suite.Contains(err.Error(), "lastName")
 }
 
 func (suite *PersonNameTestSuite) TestPersonNameEquality() {
@@ -47,15 +45,15 @@ func (suite *PersonNameTestSuite) TestPersonNameEquality() {
 	name2, _ := valueobject.NewPersonName("John", "Doe")
 	name3, _ := valueobject.NewPersonName("Jane", "Doe")
 
-	assert.True(suite.T(), name1.Equals(name2))
-	assert.False(suite.T(), name1.Equals(name3))
-	assert.False(suite.T(), name1.Equals(nil))
+	suite.True(name1.Equals(name2))
+	suite.False(name1.Equals(name3))
+	suite.False(name1.Equals(nil))
 }
 
 func (suite *PersonNameTestSuite) TestNameTrimming() {
 	name, err := valueobject.NewPersonName("  John  ", "  Doe  ")
 
-	require.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "John", name.FirstName())
-	assert.Equal(suite.T(), "Doe", name.LastName())
+	suite.Require().NoError(err)
+	suite.Equal("John", name.FirstName())
+	suite.Equal("Doe", name.LastName())
 }
