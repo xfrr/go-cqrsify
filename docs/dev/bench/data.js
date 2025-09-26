@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758910628377,
+  "lastUpdate": 1758910700793,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3776,6 +3776,48 @@ window.BENCHMARK_DATA = {
             "value": 133.9,
             "unit": "ns/op",
             "extra": "8879094 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "a58c0137d3d41227c11dbd0811dcff529b160424",
+          "message": "feat: add Equals method to Coordinates value object for comparison functionality",
+          "timestamp": "2025-09-26T20:17:46+02:00",
+          "tree_id": "fc22caeac85530424d33f01adb5439496ff7afc9",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/a58c0137d3d41227c11dbd0811dcff529b160424"
+        },
+        "date": 1758910699823,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6229,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.91,
+            "unit": "ns/op",
+            "extra": "16475860 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.3,
+            "unit": "ns/op",
+            "extra": "8976948 times\n4 procs"
           }
         ]
       }
