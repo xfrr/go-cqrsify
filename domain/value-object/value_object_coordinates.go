@@ -2,6 +2,8 @@ package valueobject
 
 import "fmt"
 
+var _ ValueObject = (*Coordinates)(nil)
+
 // Address value object
 type Coordinates struct {
 	BaseValueObject

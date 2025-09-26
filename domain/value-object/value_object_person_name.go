@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var _ ValueObject = (*PersonName)(nil)
+
 // PersonName value object
 type PersonName struct {
 	BaseValueObject

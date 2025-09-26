@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var _ ValueObject = (*Address)(nil)
+
 // Address value object
 type Address struct {
 	BaseValueObject

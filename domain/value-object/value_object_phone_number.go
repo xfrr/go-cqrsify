@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+var _ ValueObject = (*PhoneNumber)(nil)
+
 // PhoneNumber value object
 type PhoneNumber struct {
 	BaseValueObject

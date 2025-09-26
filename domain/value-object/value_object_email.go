@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var _ ValueObject = (*Email)(nil)
+
 // Email value object
 type Email struct {
 	BaseValueObject

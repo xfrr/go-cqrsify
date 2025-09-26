@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var _ ValueObject = (*DateRange)(nil)
+
 // DateRange value object
 type DateRange struct {
 	BaseValueObject

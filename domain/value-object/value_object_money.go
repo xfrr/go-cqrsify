@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var _ ValueObject = (*Money)(nil)
+
 // Money value object
 type Money struct {
 	BaseValueObject
