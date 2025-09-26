@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758922636518,
+  "lastUpdate": 1758924096230,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3944,6 +3944,48 @@ window.BENCHMARK_DATA = {
             "value": 136.2,
             "unit": "ns/op",
             "extra": "8910548 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "de2eb87f52d28d526b35b32002a059f4b161a77a",
+          "message": "feat: expose NewEventAggregateReference constructor",
+          "timestamp": "2025-09-27T00:01:08+02:00",
+          "tree_id": "9affb1f2d303e0c80ad0ec0a2c987aab9fb2e4f5",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/de2eb87f52d28d526b35b32002a059f4b161a77a"
+        },
+        "date": 1758924095670,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9365,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.78,
+            "unit": "ns/op",
+            "extra": "16453467 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.1,
+            "unit": "ns/op",
+            "extra": "8942322 times\n4 procs"
           }
         ]
       }
