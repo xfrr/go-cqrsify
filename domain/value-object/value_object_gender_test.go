@@ -50,11 +50,53 @@ func (suite *GenderTestSuite) TestGenderEquality() {
 	suite.False(gender1.Equals(nil))
 }
 
-func (suite *GenderTestSuite) TestParseGender() {
-	genderVO, err := valueobject.ParseGender(string(valueobject.FemaleGenderType))
-	suite.Require().NoError(err)
-	suite.Equal(valueobject.FemaleGenderType, genderVO.Value())
+func (suite *GenderTestSuite) TestGenderIsValid() {
+	gender1, _ := valueobject.NewGender(valueobject.MaleGenderType)
+	gender2, _ := valueobject.NewGender("invalid")
 
-	_, err = valueobject.ParseGender("unknown")
-	suite.Require().Error(err)
+	suite.True(gender1.IsValid())
+	suite.False(gender2.IsValid())
+}
+
+func (suite *GenderTestSuite) TestGenderIsEmpty() {
+	gender1, _ := valueobject.NewGender(valueobject.MaleGenderType)
+	gender2, _ := valueobject.NewGender("")
+
+	suite.False(gender1.IsEmpty())
+	suite.True(gender2.IsEmpty())
+}
+
+func (suite *GenderTestSuite) TestGenderIs() {
+	gender1, _ := valueobject.NewGender(valueobject.MaleGenderType)
+	gender2, _ := valueobject.NewGender(valueobject.FemaleGenderType)
+
+	suite.True(gender1.Is(valueobject.MaleGenderType))
+	suite.False(gender1.Is(valueobject.FemaleGenderType))
+	suite.True(gender2.Is(valueobject.FemaleGenderType))
+	suite.False(gender2.Is(valueobject.MaleGenderType))
+}
+
+func (suite *GenderTestSuite) TestParseGender() {
+	testCases := []struct {
+		input    string
+		expected valueobject.GenderType
+		isValid  bool
+	}{
+		{"male", valueobject.MaleGenderType, true},
+		{"female", valueobject.FemaleGenderType, true},
+		{"other", valueobject.OtherGenderType, true},
+		{"unknown", "", false},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.input, func() {
+			genderVO, err := valueobject.ParseGender(tc.input)
+			if tc.isValid {
+				suite.Require().NoError(err)
+				suite.Equal(tc.expected, genderVO.Value())
+			} else {
+				suite.Require().Error(err)
+			}
+		})
+	}
 }

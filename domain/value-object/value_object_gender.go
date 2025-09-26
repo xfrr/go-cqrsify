@@ -36,6 +36,18 @@ func (g Gender) Equals(other ValueObject) bool {
 	return false
 }
 
+func (g Gender) IsValid() bool {
+	return slices.Contains(AllGenderTypes, g.value)
+}
+
+func (g Gender) IsEmpty() bool {
+	return g.value == ""
+}
+
+func (g Gender) Is(gt GenderType) bool {
+	return g.value == gt
+}
+
 func (g Gender) Value() GenderType {
 	return g.value
 }
@@ -46,7 +58,7 @@ func (g Gender) String() string {
 
 func (g Gender) Validate() error {
 	var errs []ValidationError
-	if !slices.Contains(AllGenderTypes, g.value) {
+	if !g.IsValid() {
 		errs = append(errs, ValidationError{
 			Field:   "value",
 			Message: "invalid gender type",
