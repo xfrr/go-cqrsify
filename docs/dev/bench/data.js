@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758924096230,
+  "lastUpdate": 1758924331246,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3986,6 +3986,48 @@ window.BENCHMARK_DATA = {
             "value": 134.1,
             "unit": "ns/op",
             "extra": "8942322 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "192424378e0a49f13ac1b6f88537a442a5922b43",
+          "message": "feat: add domain WithEventTimestamp function to set event timestamp",
+          "timestamp": "2025-09-27T00:05:04+02:00",
+          "tree_id": "8490b4e1a3dca615e8f16f7f2fe2ce9698ee589f",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/192424378e0a49f13ac1b6f88537a442a5922b43"
+        },
+        "date": 1758924330854,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9343,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.74,
+            "unit": "ns/op",
+            "extra": "16517202 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.8,
+            "unit": "ns/op",
+            "extra": "8923116 times\n4 procs"
           }
         ]
       }
