@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758908415005,
+  "lastUpdate": 1758910628377,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3734,6 +3734,48 @@ window.BENCHMARK_DATA = {
             "value": 38.8,
             "unit": "ns/op",
             "extra": "29760489 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "3478dacfc5eb2f2b7c76e29672f679af3cd48143",
+          "message": "chore: update Money value object to use amountCents and currencyISO for improved clarity and consistency",
+          "timestamp": "2025-09-26T20:16:29+02:00",
+          "tree_id": "b0d34b2d8924213099e81be9b619c99898212fe5",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/3478dacfc5eb2f2b7c76e29672f679af3cd48143"
+        },
+        "date": 1758910627329,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6242,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.6,
+            "unit": "ns/op",
+            "extra": "16444123 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 133.9,
+            "unit": "ns/op",
+            "extra": "8879094 times\n4 procs"
           }
         ]
       }
