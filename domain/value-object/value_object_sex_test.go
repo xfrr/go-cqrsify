@@ -50,11 +50,62 @@ func (suite *SexTestSuite) TestSexEquality() {
 	suite.False(sex1.Equals(nil))
 }
 
-func (suite *SexTestSuite) TestParseSex() {
-	sexVO, err := valueobject.ParseSex(string(valueobject.FemaleSexType))
-	suite.Require().NoError(err)
-	suite.Equal(valueobject.FemaleSexType, sexVO.Value())
+func (suite *SexTestSuite) TestSexIsValid() {
+	sex1, _ := valueobject.NewSex(valueobject.MaleSexType)
+	sex2, _ := valueobject.NewSex("invalid")
 
-	_, err = valueobject.ParseSex("unknown")
-	suite.Require().Error(err)
+	suite.True(sex1.IsValid())
+	suite.False(sex2.IsValid())
+}
+
+func (suite *SexTestSuite) TestSexIsZero() {
+	sex1, _ := valueobject.NewSex(valueobject.MaleSexType)
+	sex2 := valueobject.Sex{}
+
+	suite.False(sex1.IsZero())
+	suite.True(sex2.IsZero())
+}
+
+func (suite *SexTestSuite) TestSexIs() {
+	sex1, _ := valueobject.NewSex(valueobject.MaleSexType)
+	sex2, _ := valueobject.NewSex(valueobject.FemaleSexType)
+
+	suite.True(sex1.Is(valueobject.MaleSexType))
+	suite.False(sex1.Is(valueobject.FemaleSexType))
+	suite.True(sex2.Is(valueobject.FemaleSexType))
+	suite.False(sex2.Is(valueobject.MaleSexType))
+}
+
+func (suite *SexTestSuite) TestParseSex() {
+	testCases := []struct {
+		input       string
+		expectedSex valueobject.SexType
+		expectedErr error
+	}{
+		{"male", valueobject.MaleSexType, nil},
+		{"female", valueobject.FemaleSexType, nil},
+		{"intersex", valueobject.IntersexSexType, nil},
+		{"hermaphroditism", valueobject.HermaphroditismSexType, nil},
+		{"sequential_hermaphroditism", valueobject.SequentialHermaphroditismSexType, nil},
+		{"parthenogenesis", valueobject.ParthenogenesisSexType, nil},
+		{"asexual", valueobject.AsexualSexType, nil},
+		{"complex", valueobject.ComplexSexType, nil},
+		{"unknown", "", valueobject.ValidationError{
+			Field:   "value",
+			Message: "invalid sex type",
+		}},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.input, func() {
+			sexVO, err := valueobject.ParseSex(tc.input)
+			if tc.expectedErr != nil {
+				suite.Require().Error(err)
+				suite.Equal(tc.expectedErr, err)
+			} else {
+				suite.Require().NoError(err)
+				suite.Equal(tc.expectedSex, sexVO.Value())
+			}
+		})
+	}
 }

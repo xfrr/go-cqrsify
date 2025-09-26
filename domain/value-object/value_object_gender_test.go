@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/suite"
+
 	valueobject "github.com/xfrr/go-cqrsify/domain/value-object"
 )
 
@@ -58,12 +59,12 @@ func (suite *GenderTestSuite) TestGenderIsValid() {
 	suite.False(gender2.IsValid())
 }
 
-func (suite *GenderTestSuite) TestGenderIsEmpty() {
+func (suite *GenderTestSuite) TestGenderIsZero() {
 	gender1, _ := valueobject.NewGender(valueobject.MaleGenderType)
 	gender2, _ := valueobject.NewGender("")
 
-	suite.False(gender1.IsEmpty())
-	suite.True(gender2.IsEmpty())
+	suite.False(gender1.IsZero())
+	suite.True(gender2.IsZero())
 }
 
 func (suite *GenderTestSuite) TestGenderIs() {

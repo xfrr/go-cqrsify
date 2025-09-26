@@ -40,7 +40,7 @@ func (g Gender) IsValid() bool {
 	return slices.Contains(AllGenderTypes, g.value)
 }
 
-func (g Gender) IsEmpty() bool {
+func (g Gender) IsZero() bool {
 	return g.value == ""
 }
 

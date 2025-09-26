@@ -74,6 +74,18 @@ func (s Sex) Equals(other ValueObject) bool {
 	return false
 }
 
+func (s Sex) IsValid() bool {
+	return slices.Contains(AllSexTypes, s.value)
+}
+
+func (s Sex) IsZero() bool {
+	return s.value == ""
+}
+
+func (s Sex) Is(gt SexType) bool {
+	return s.value == gt
+}
+
 func (s Sex) Validate() error {
 	var errs []ValidationError
 	if !slices.Contains(AllSexTypes, s.value) {
