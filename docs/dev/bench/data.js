@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758910700793,
+  "lastUpdate": 1758920039120,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -3818,6 +3818,48 @@ window.BENCHMARK_DATA = {
             "value": 134.3,
             "unit": "ns/op",
             "extra": "8976948 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "cf08bc3b084944a61143f8c544c54b6f3b5767a5",
+          "message": "refactor: change value object constructors to return value types instead of pointers",
+          "timestamp": "2025-09-26T22:53:25+02:00",
+          "tree_id": "75d80266d8a314e57812d9d5057a4038a226723c",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/cf08bc3b084944a61143f8c544c54b6f3b5767a5"
+        },
+        "date": 1758920038124,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6296,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.9,
+            "unit": "ns/op",
+            "extra": "16461327 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.9,
+            "unit": "ns/op",
+            "extra": "8887453 times\n4 procs"
           }
         ]
       }
