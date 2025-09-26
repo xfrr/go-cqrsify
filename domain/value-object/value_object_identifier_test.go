@@ -89,7 +89,7 @@ func (suite *IdentifierTestSuite) TestString() {
 		{"uint64 value", valueobject.NewIdentifier(uint64(18446744073709551615)), "18446744073709551615"},
 
 		// Float types
-		{"float32 value", valueobject.NewIdentifier(float32(3.14)), "3.140000104904175"},
+		{"float32 value", valueobject.NewIdentifier(float32(3.14)), "3.14"},
 		{"float64 value", valueobject.NewIdentifier(float64(2.718281828)), "2.718281828"},
 		{"float with no decimals", valueobject.NewIdentifier(float64(42)), "42"},
 		{"negative float", valueobject.NewIdentifier(float64(-3.14)), "-3.14"},

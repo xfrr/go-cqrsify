@@ -23,15 +23,33 @@ func NewIdentifier[T comparable](value T, opts ...IdentifierOption) Identifier[T
 
 // String returns the string representation of the Identifier.
 func (id Identifier[T]) String() string {
-	switch kind := reflect.TypeOf(id.value).Kind(); kind {
-	case reflect.String:
-		return fmt.Sprintf("%v", id.value)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return strconv.FormatInt(reflect.ValueOf(id.value).Int(), 10)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return strconv.FormatUint(reflect.ValueOf(id.value).Uint(), 10)
-	case reflect.Float32, reflect.Float64:
-		return strconv.FormatFloat(reflect.ValueOf(id.value).Float(), 'f', -1, 64)
+	switch v := any(id.value).(type) {
+	case string:
+		return v
+	case int:
+		return strconv.FormatInt(int64(v), 10)
+	case int8:
+		return strconv.FormatInt(int64(v), 10)
+	case int16:
+		return strconv.FormatInt(int64(v), 10)
+	case int32:
+		return strconv.FormatInt(int64(v), 10)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint8:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint16:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint32:
+		return strconv.FormatUint(uint64(v), 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
 	default:
 		return fmt.Sprintf("%v", id.value)
 	}
@@ -39,8 +57,8 @@ func (id Identifier[T]) String() string {
 
 // Equals checks if two Identifier values are equal.
 func (id Identifier[T]) Equals(other ValueObject) bool {
-	if otherId, ok := other.(Identifier[T]); ok {
-		return id.value == otherId.value
+	if otherID, ok := other.(Identifier[T]); ok {
+		return id.value == otherID.value
 	}
 	return false
 }
@@ -56,9 +74,9 @@ func (id Identifier[T]) Validate() error {
 		return id.validateFn(id.any())
 	}
 
-	val := reflect.ValueOf(id.value)
-	kind := val.Kind()
-	switch kind {
+	switch val := reflect.ValueOf(id.value); val.Kind() {
+	case reflect.Invalid:
+		return fmt.Errorf("invalid identifier: %v", id.value)
 	case reflect.String:
 		if val.String() == "" {
 			return fmt.Errorf("invalid identifier: %q", val.String())
@@ -67,7 +85,7 @@ func (id Identifier[T]) Validate() error {
 		if val.Int() == 0 {
 			return fmt.Errorf("invalid identifier: %d", val.Int())
 		}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		if val.Uint() == 0 {
 			return fmt.Errorf("invalid identifier: %d", val.Uint())
 		}
@@ -75,6 +93,8 @@ func (id Identifier[T]) Validate() error {
 		if val.Float() == 0 {
 			return fmt.Errorf("invalid identifier: %f", val.Float())
 		}
+	case reflect.Bool, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Struct, reflect.UnsafePointer:
+		return fmt.Errorf("invalid identifier: %v", id.value)
 	default:
 		return fmt.Errorf("invalid identifier: %v", id.value)
 	}

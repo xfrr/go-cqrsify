@@ -12,15 +12,17 @@ var _ ValueObject = (*Money)(nil)
 // Money value object
 type Money struct {
 	BaseValueObject
-	amount   int64 // Store as cents to avoid floating point issues
-	currency string
+	amountCents int64
+	currencyISO string
 }
 
 // NewMoney creates a new Money value object
 func NewMoney(amount float64, currency string) (*Money, error) {
+	const conversionFactor = 100
+
 	m := &Money{
-		amount:   int64(math.Round(amount * 100)), // Convert to cents with proper rounding
-		currency: strings.ToUpper(strings.TrimSpace(currency)),
+		amountCents: int64(math.Round(amount * conversionFactor)),
+		currencyISO: strings.ToUpper(strings.TrimSpace(currency)),
 	}
 	if err := m.Validate(); err != nil {
 		return nil, err
@@ -28,11 +30,11 @@ func NewMoney(amount float64, currency string) (*Money, error) {
 	return m, nil
 }
 
-// NewMoneyFromCents creates Money from cents (avoiding float conversion)
+// NewMoneyFromCents creates a new Money value object instance.
 func NewMoneyFromCents(cents int64, currency string) (*Money, error) {
 	m := &Money{
-		amount:   cents,
-		currency: strings.ToUpper(strings.TrimSpace(currency)),
+		amountCents: cents,
+		currencyISO: strings.ToUpper(strings.TrimSpace(currency)),
 	}
 	if err := m.Validate(); err != nil {
 		return nil, err
@@ -41,32 +43,34 @@ func NewMoneyFromCents(cents int64, currency string) (*Money, error) {
 }
 
 func (m *Money) Amount() float64 {
-	return math.Round(float64(m.amount)) / 100
+	const conversionFactor = 100
+	return math.Round(float64(m.amountCents)) / conversionFactor
 }
 
 func (m *Money) AmountInCents() int64 {
-	return m.amount
+	return m.amountCents
 }
 
 func (m *Money) Currency() string {
-	return m.currency
+	return m.currencyISO
 }
 
 func (m *Money) String() string {
-	return fmt.Sprintf("%.2f %s", m.Amount(), m.currency)
+	return fmt.Sprintf("%.2f %s", m.Amount(), m.currencyISO)
 }
 
 func (m *Money) Validate() error {
-	var errs []ValidationError
+	const currencyLength = 3
 
-	if m.amount < 0 {
+	var errs []ValidationError
+	if m.amountCents < 0 {
 		errs = append(errs, ValidationError{Field: "amount", Message: "cannot be negative"})
 	}
 
-	if m.currency == "" {
+	if m.currencyISO == "" {
 		errs = append(errs, ValidationError{Field: "currency", Message: "cannot be empty"})
-	} else if len(m.currency) != 3 {
-		errs = append(errs, ValidationError{Field: "currency", Message: "must be 3 characters (ISO 4217)"})
+	} else if len(m.currencyISO) != currencyLength {
+		errs = append(errs, ValidationError{Field: "currency", Message: fmt.Sprintf("must be %d characters (ISO 4217)", currencyLength)})
 	}
 
 	if len(errs) > 0 {
@@ -77,23 +81,24 @@ func (m *Money) Validate() error {
 
 func (m *Money) Equals(other ValueObject) bool {
 	if otherMoney, ok := other.(*Money); ok {
-		return m.amount == otherMoney.amount && m.currency == otherMoney.currency
+		return m.amountCents == otherMoney.amountCents &&
+			m.currencyISO == otherMoney.currencyISO
 	}
 	return false
 }
 
 // Add adds two Money values (same currency only)
 func (m *Money) Add(other *Money) (*Money, error) {
-	if m.currency != other.currency {
+	if m.currencyISO != other.currencyISO {
 		return nil, errors.New("cannot add money with different currencies")
 	}
-	return NewMoneyFromCents(m.amount+other.amount, m.currency)
+	return NewMoneyFromCents(m.amountCents+other.amountCents, m.currencyISO)
 }
 
 // Subtract subtracts two Money values (same currency only)
 func (m *Money) Subtract(other *Money) (*Money, error) {
-	if m.currency != other.currency {
+	if m.currencyISO != other.currencyISO {
 		return nil, errors.New("cannot subtract money with different currencies")
 	}
-	return NewMoneyFromCents(m.amount-other.amount, m.currency)
+	return NewMoneyFromCents(m.amountCents-other.amountCents, m.currencyISO)
 }
