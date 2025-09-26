@@ -49,3 +49,12 @@ func (suite *GenderTestSuite) TestGenderEquality() {
 	suite.False(gender1.Equals(gender3))
 	suite.False(gender1.Equals(nil))
 }
+
+func (suite *GenderTestSuite) TestParseGender() {
+	genderVO, err := valueobject.ParseGender(string(valueobject.FemaleGenderType))
+	suite.Require().NoError(err)
+	suite.Equal(valueobject.FemaleGenderType, genderVO.Value())
+
+	_, err = valueobject.ParseGender("unknown")
+	suite.Require().Error(err)
+}

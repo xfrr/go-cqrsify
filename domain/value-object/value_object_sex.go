@@ -96,3 +96,30 @@ func NewSex(value SexType) (Sex, error) {
 	}
 	return s, nil
 }
+
+// ParseSex parses a string into a Sex value object.
+func ParseSex(value string) (Sex, error) {
+	switch SexType(value) {
+	case MaleSexType:
+		return NewSex(MaleSexType)
+	case FemaleSexType:
+		return NewSex(FemaleSexType)
+	case IntersexSexType:
+		return NewSex(IntersexSexType)
+	case HermaphroditismSexType:
+		return NewSex(HermaphroditismSexType)
+	case SequentialHermaphroditismSexType:
+		return NewSex(SequentialHermaphroditismSexType)
+	case ParthenogenesisSexType:
+		return NewSex(ParthenogenesisSexType)
+	case AsexualSexType:
+		return NewSex(AsexualSexType)
+	case ComplexSexType:
+		return NewSex(ComplexSexType)
+	default:
+		return Sex{}, ValidationError{
+			Field:   "value",
+			Message: "invalid sex type",
+		}
+	}
+}

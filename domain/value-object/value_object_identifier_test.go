@@ -195,14 +195,15 @@ func (suite *IdentifierTestSuite) TestValidate() {
 		id            interface{}
 		expectedError string
 	}{
-		{"empty string", valueobject.NewIdentifier(""), `invalid identifier: ""`},
-		{"zero int", valueobject.NewIdentifier(0), "invalid identifier: 0"},
-		{"zero uint", valueobject.NewIdentifier(uint(0)), "invalid identifier: 0"},
-		{"zero float", valueobject.NewIdentifier(0.0), "invalid identifier: 0.000000"},
-		{"zero int64", valueobject.NewIdentifier(int64(0)), "invalid identifier: 0"},
-		{"zero uint32", valueobject.NewIdentifier(uint32(0)), "invalid identifier: 0"},
-		{"zero float32", valueobject.NewIdentifier(float32(0)), "invalid identifier: 0.000000"},
-		{"unsupported type", valueobject.NewIdentifier(true), "invalid identifier: true"},
+		{"empty string", valueobject.NewIdentifier(""), `validation error on field 'identifier': cannot be empty`},
+		{"nil value", valueobject.NewIdentifier[interface{}](nil), "validation error on field 'identifier': cannot be nil"},
+		{"zero int", valueobject.NewIdentifier(0), "validation error on field 'identifier': invalid identifier: 0"},
+		{"zero uint", valueobject.NewIdentifier(uint(0)), "validation error on field 'identifier': invalid identifier: 0"},
+		{"zero float", valueobject.NewIdentifier(0.0), "validation error on field 'identifier': invalid identifier: 0.000000"},
+		{"zero int64", valueobject.NewIdentifier(int64(0)), "validation error on field 'identifier': invalid identifier: 0"},
+		{"zero uint32", valueobject.NewIdentifier(uint32(0)), "validation error on field 'identifier': invalid identifier: 0"},
+		{"zero float32", valueobject.NewIdentifier(float32(0)), "validation error on field 'identifier': invalid identifier: 0.000000"},
+		{"unsupported type", valueobject.NewIdentifier(true), "validation error on field 'identifier': invalid identifier: true"},
 	}
 
 	for _, tt := range invalidCases {

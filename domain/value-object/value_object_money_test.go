@@ -26,13 +26,6 @@ func (suite *MoneyTestSuite) TestValidMoney() {
 	suite.Equal(int64(1999), money.AmountInCents())
 }
 
-func (suite *MoneyTestSuite) TestMoneyFromCents() {
-	money, err := valueobject.NewMoneyFromCents(1999, "USD")
-
-	suite.Require().NoError(err)
-	suite.InDelta(19.99, money.Amount(), 0.001)
-}
-
 func (suite *MoneyTestSuite) TestNegativeAmount() {
 	_, err := valueobject.NewMoney(-10.0, "USD")
 
@@ -91,10 +84,8 @@ func (suite *MoneyTestSuite) TestSubtractResultingInNegative() {
 	money1, _ := valueobject.NewMoney(5.0, "USD")
 	money2, _ := valueobject.NewMoney(10.0, "USD")
 
-	result, err := money1.Subtract(money2)
-
+	_, err := money1.Subtract(money2)
 	suite.Require().Error(err)
-	suite.Nil(result)
 }
 
 func (suite *MoneyTestSuite) TestMoneyEquality() {

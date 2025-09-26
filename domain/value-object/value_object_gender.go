@@ -66,3 +66,20 @@ func NewGender(value GenderType) (Gender, error) {
 	}
 	return g, nil
 }
+
+// ParseGender parses a string into a Gender value object.
+func ParseGender(value string) (Gender, error) {
+	switch GenderType(value) {
+	case MaleGenderType:
+		return NewGender(MaleGenderType)
+	case FemaleGenderType:
+		return NewGender(FemaleGenderType)
+	case OtherGenderType:
+		return NewGender(OtherGenderType)
+	default:
+		return Gender{}, ValidationError{
+			Field:   "value",
+			Message: "invalid gender type",
+		}
+	}
+}

@@ -18,34 +18,34 @@ type PhoneNumber struct {
 var phoneRegex = regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
 
 // NewPhoneNumber creates a new PhoneNumber value object
-func NewPhoneNumber(countryCode, number string) (*PhoneNumber, error) {
-	pn := &PhoneNumber{
+func NewPhoneNumber(countryCode, number string) (PhoneNumber, error) {
+	pn := PhoneNumber{
 		countryCode: strings.TrimSpace(countryCode),
 		number:      strings.ReplaceAll(strings.TrimSpace(number), " ", ""),
 	}
 	if err := pn.Validate(); err != nil {
-		return nil, err
+		return PhoneNumber{}, err
 	}
 	return pn, nil
 }
 
-func (pn *PhoneNumber) CountryCode() string {
+func (pn PhoneNumber) CountryCode() string {
 	return pn.countryCode
 }
 
-func (pn *PhoneNumber) Number() string {
+func (pn PhoneNumber) Number() string {
 	return pn.number
 }
 
-func (pn *PhoneNumber) FullNumber() string {
+func (pn PhoneNumber) FullNumber() string {
 	return fmt.Sprintf("%s%s", pn.countryCode, pn.number)
 }
 
-func (pn *PhoneNumber) String() string {
+func (pn PhoneNumber) String() string {
 	return pn.FullNumber()
 }
 
-func (pn *PhoneNumber) Validate() error {
+func (pn PhoneNumber) Validate() error {
 	var errs []ValidationError
 
 	if pn.countryCode == "" {
@@ -61,14 +61,11 @@ func (pn *PhoneNumber) Validate() error {
 		errs = append(errs, ValidationError{Field: "phoneNumber", Message: "invalid phone number format"})
 	}
 
-	if len(errs) > 0 {
-		return MultiValidationError{Errors: errs}
-	}
-	return nil
+	return ValidationErrors(errs)
 }
 
-func (pn *PhoneNumber) Equals(other ValueObject) bool {
-	if otherPhone, ok := other.(*PhoneNumber); ok {
+func (pn PhoneNumber) Equals(other ValueObject) bool {
+	if otherPhone, ok := other.(PhoneNumber); ok {
 		return pn.countryCode == otherPhone.countryCode && pn.number == otherPhone.number
 	}
 	return false

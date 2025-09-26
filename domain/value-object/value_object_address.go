@@ -18,8 +18,8 @@ type Address struct {
 }
 
 // NewAddress creates a new Address value object
-func NewAddress(street, city, state, zipCode, country string) (*Address, error) {
-	addr := &Address{
+func NewAddress(street, city, state, zipCode, country string) (Address, error) {
+	addr := Address{
 		street:  strings.TrimSpace(street),
 		city:    strings.TrimSpace(city),
 		state:   strings.TrimSpace(state),
@@ -27,22 +27,22 @@ func NewAddress(street, city, state, zipCode, country string) (*Address, error) 
 		country: strings.TrimSpace(country),
 	}
 	if err := addr.Validate(); err != nil {
-		return nil, err
+		return Address{}, err
 	}
 	return addr, nil
 }
 
-func (a *Address) Street() string  { return a.street }
-func (a *Address) City() string    { return a.city }
-func (a *Address) State() string   { return a.state }
-func (a *Address) ZipCode() string { return a.zipCode }
-func (a *Address) Country() string { return a.country }
+func (a Address) Street() string  { return a.street }
+func (a Address) City() string    { return a.city }
+func (a Address) State() string   { return a.state }
+func (a Address) ZipCode() string { return a.zipCode }
+func (a Address) Country() string { return a.country }
 
-func (a *Address) String() string {
+func (a Address) String() string {
 	return fmt.Sprintf("%s, %s, %s %s, %s", a.street, a.city, a.state, a.zipCode, a.country)
 }
 
-func (a *Address) Validate() error {
+func (a Address) Validate() error {
 	var errs []ValidationError
 
 	if a.street == "" {
@@ -61,14 +61,11 @@ func (a *Address) Validate() error {
 		errs = append(errs, ValidationError{Field: "country", Message: "cannot be empty"})
 	}
 
-	if len(errs) > 0 {
-		return MultiValidationError{Errors: errs}
-	}
-	return nil
+	return ValidationErrors(errs)
 }
 
-func (a *Address) Equals(other ValueObject) bool {
-	if otherAddr, ok := other.(*Address); ok {
+func (a Address) Equals(other ValueObject) bool {
+	if otherAddr, ok := other.(Address); ok {
 		return a.street == otherAddr.street &&
 			a.city == otherAddr.city &&
 			a.state == otherAddr.state &&

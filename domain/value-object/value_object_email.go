@@ -7,25 +7,25 @@ import (
 
 var _ ValueObject = (*Email)(nil)
 
+var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
 // Email value object
 type Email struct {
 	BaseValueObject
 	value string
 }
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
 // NewEmail creates a new Email value object
-func NewEmail(email string) (*Email, error) {
-	e := &Email{value: strings.TrimSpace(strings.ToLower(email))}
+func NewEmail(email string) (Email, error) {
+	e := Email{value: strings.TrimSpace(strings.ToLower(email))}
 	if err := e.Validate(); err != nil {
-		return nil, err
+		return Email{}, err
 	}
 	return e, nil
 }
 
 // MustNewEmail creates a new Email value object or panics
-func MustNewEmail(email string) *Email {
+func MustNewEmail(email string) Email {
 	e, err := NewEmail(email)
 	if err != nil {
 		panic(err)
@@ -33,26 +33,27 @@ func MustNewEmail(email string) *Email {
 	return e
 }
 
-func (e *Email) Value() string {
+func (e Email) Value() string {
 	return e.value
 }
 
-func (e *Email) String() string {
+func (e Email) String() string {
 	return e.value
 }
 
-func (e *Email) Validate() error {
-	if e.value == "" {
-		return ValidationError{Field: "email", Message: "cannot be empty"}
+func (e Email) Validate() error {
+	var errs []ValidationError
+	switch {
+	case e.value == "":
+		errs = append(errs, ValidationError{Field: "value", Message: "email cannot be empty"})
+	case !emailRegex.MatchString(e.value):
+		errs = append(errs, ValidationError{Field: "value", Message: "invalid email format"})
 	}
-	if !emailRegex.MatchString(e.value) {
-		return ValidationError{Field: "email", Message: "invalid email format"}
-	}
-	return nil
+	return ValidationErrors(errs)
 }
 
-func (e *Email) Equals(other ValueObject) bool {
-	if otherEmail, ok := other.(*Email); ok {
+func (e Email) Equals(other ValueObject) bool {
+	if otherEmail, ok := other.(Email); ok {
 		return e.value == otherEmail.value
 	}
 	return false

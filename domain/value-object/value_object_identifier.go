@@ -70,36 +70,38 @@ func (id Identifier[T]) Value() T {
 
 // Validate checks if the Identifier value is valid.
 func (id Identifier[T]) Validate() error {
+	var errs []ValidationError
 	if id.validateFn != nil {
-		return id.validateFn(id.any())
+		err := id.validateFn(id.any())
+		return ValidationErrors([]ValidationError{{Field: "identifier", Message: err.Error()}})
 	}
 
 	switch val := reflect.ValueOf(id.value); val.Kind() {
 	case reflect.Invalid:
-		return fmt.Errorf("invalid identifier: %v", id.value)
+		errs = append(errs, ValidationError{Field: "identifier", Message: "cannot be nil"})
 	case reflect.String:
 		if val.String() == "" {
-			return fmt.Errorf("invalid identifier: %q", val.String())
+			errs = append(errs, ValidationError{Field: "identifier", Message: "cannot be empty"})
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if val.Int() == 0 {
-			return fmt.Errorf("invalid identifier: %d", val.Int())
+			errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %d", val.Int())})
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		if val.Uint() == 0 {
-			return fmt.Errorf("invalid identifier: %d", val.Uint())
+			errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %d", val.Uint())})
 		}
 	case reflect.Float32, reflect.Float64:
 		if val.Float() == 0 {
-			return fmt.Errorf("invalid identifier: %f", val.Float())
+			errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %f", val.Float())})
 		}
 	case reflect.Bool, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Struct, reflect.UnsafePointer:
-		return fmt.Errorf("invalid identifier: %v", id.value)
+		errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %v", id.value)})
 	default:
-		return fmt.Errorf("invalid identifier: %v", id.value)
+		errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %v", id.value)})
 	}
 
-	return nil
+	return ValidationErrors(errs)
 }
 
 func (id Identifier[T]) any() Identifier[any] {

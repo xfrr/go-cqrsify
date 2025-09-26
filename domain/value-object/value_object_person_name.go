@@ -15,34 +15,34 @@ type PersonName struct {
 }
 
 // NewPersonName creates a new PersonName value object
-func NewPersonName(firstName, lastName string) (*PersonName, error) {
-	pn := &PersonName{
+func NewPersonName(firstName, lastName string) (PersonName, error) {
+	pn := PersonName{
 		firstName: strings.TrimSpace(firstName),
 		lastName:  strings.TrimSpace(lastName),
 	}
 	if err := pn.Validate(); err != nil {
-		return nil, err
+		return PersonName{}, err
 	}
 	return pn, nil
 }
 
-func (pn *PersonName) FirstName() string {
+func (pn PersonName) FirstName() string {
 	return pn.firstName
 }
 
-func (pn *PersonName) LastName() string {
+func (pn PersonName) LastName() string {
 	return pn.lastName
 }
 
-func (pn *PersonName) FullName() string {
+func (pn PersonName) FullName() string {
 	return fmt.Sprintf("%s %s", pn.firstName, pn.lastName)
 }
 
-func (pn *PersonName) String() string {
+func (pn PersonName) String() string {
 	return pn.FullName()
 }
 
-func (pn *PersonName) Validate() error {
+func (pn PersonName) Validate() error {
 	var errs []ValidationError
 
 	if pn.firstName == "" {
@@ -59,9 +59,10 @@ func (pn *PersonName) Validate() error {
 	return nil
 }
 
-func (pn *PersonName) Equals(other ValueObject) bool {
-	if otherName, ok := other.(*PersonName); ok {
-		return pn.firstName == otherName.firstName && pn.lastName == otherName.lastName
+func (pn PersonName) Equals(other ValueObject) bool {
+	if otherName, ok := other.(PersonName); ok {
+		return pn.firstName == otherName.firstName &&
+			pn.lastName == otherName.lastName
 	}
 	return false
 }
