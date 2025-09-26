@@ -21,9 +21,16 @@ type MultiValidationError struct {
 }
 
 func (e MultiValidationError) Error() string {
-	var messages []string
+	messages := make([]string, 0, len(e.Errors))
 	for _, err := range e.Errors {
 		messages = append(messages, err.Error())
 	}
 	return strings.Join(messages, "; ")
+}
+
+func ValidationErrors(errs []ValidationError) error {
+	if len(errs) == 0 {
+		return nil
+	}
+	return MultiValidationError{Errors: errs}
 }
