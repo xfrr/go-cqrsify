@@ -22,7 +22,7 @@ type PubSubMessageBus struct {
 	conn *nats.Conn
 
 	queueName      string
-	subjectBuilder SubjectBuilder
+	subjectBuilder SubjectBuilderFunc
 	serializer     messaging.MessageSerializer
 	deserializer   messaging.MessageDeserializer
 

@@ -19,7 +19,7 @@ type JetStreamMessageConsumer struct {
 	js         jetstream.JetStream
 	streamName string
 
-	subjectBuilder SubjectBuilder
+	subjectBuilder SubjectBuilderFunc
 	serializer     messaging.MessageSerializer
 	deserializer   messaging.MessageDeserializer
 	handlers       map[string][]messaging.MessageHandler[messaging.Message]

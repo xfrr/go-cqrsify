@@ -10,12 +10,12 @@ type MessageBusOption func(*MessageBusOptions)
 
 // MessageBusOptions holds configuration options for MessageBus.
 type MessageBusOptions struct {
-	subjectBuilder SubjectBuilder
+	subjectBuilder SubjectBuilderFunc
 	errorHandler   messaging.ErrorHandler
 }
 
 // WithSubjectBuilder sets a custom SubjectBuilder for the PubSubMessageBus.
-func WithSubjectBuilder(sb SubjectBuilder) MessageBusOption {
+func WithSubjectBuilder(sb SubjectBuilderFunc) MessageBusOption {
 	return func(p *MessageBusOptions) {
 		p.subjectBuilder = sb
 	}

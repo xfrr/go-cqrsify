@@ -16,9 +16,10 @@ type JetstreamMessagePublisher struct {
 	js         jetstream.JetStream
 	streamName string
 
-	subjectBuilder SubjectBuilder
+	subjectBuilder SubjectBuilderFunc
 	serializer     messaging.MessageSerializer
 	deserializer   messaging.MessageDeserializer
+	cfg            JetStreamMessagePublisherConfig
 }
 
 func NewJetStreamMessagePublisher(
@@ -27,22 +28,14 @@ func NewJetStreamMessagePublisher(
 	streamName string,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageBusOption,
+	opts ...JetStreamMessagePublisherOption,
 ) (*JetstreamMessagePublisher, error) {
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	busOptions := JetStreamMessageBusOptions{
-		MessageBusOptions: MessageBusOptions{
-			subjectBuilder: DefaultSubjectBuilder,
-			errorHandler:   messaging.DefaultErrorHandler,
-		},
-	}
-	for _, opt := range opts {
-		opt(&busOptions)
-	}
+	options := NewJetStreamMessagePublisherConfig(opts...)
 
 	p := &JetstreamMessagePublisher{
 		conn:           conn,
@@ -50,7 +43,7 @@ func NewJetStreamMessagePublisher(
 		streamName:     streamName,
 		serializer:     serializer,
 		deserializer:   deserializer,
-		subjectBuilder: busOptions.subjectBuilder,
+		subjectBuilder: options.SubjectBuilder,
 	}
 
 	return p, nil
@@ -64,7 +57,12 @@ func (p *JetstreamMessagePublisher) Publish(ctx context.Context, msg ...messagin
 			return err
 		}
 
-		opts := []jetstream.PublishOpt{}
+		opts := []jetstream.PublishOpt{
+			jetstream.WithExpectStream(p.streamName),
+			jetstream.WithRetryAttempts(p.getRetryAttempts(m)),
+			jetstream.WithRetryWait(p.getRetryWaitDuration(m)),
+			jetstream.WithMsgTTL(p.getMessageTTL(m)),
+		}
 		if m.MessageID() != "" {
 			opts = append(opts, jetstream.WithMsgID(m.MessageID()))
 		}
@@ -104,7 +102,17 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 		},
 	}
 
-	pubAck, err := p.js.PublishMsg(ctx, jsMsg)
+	opts := []jetstream.PublishOpt{
+		jetstream.WithExpectStream(p.streamName),
+		jetstream.WithRetryAttempts(p.getRetryAttempts(msg)),
+		jetstream.WithRetryWait(p.getRetryWaitDuration(msg)),
+		jetstream.WithMsgTTL(p.getMessageTTL(msg)),
+	}
+	if msg.MessageID() != "" {
+		opts = append(opts, jetstream.WithMsgID(msg.MessageID()))
+	}
+
+	pubAck, err := p.js.PublishMsg(ctx, jsMsg, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to publish request message: %w", err)
 	}
@@ -146,4 +154,33 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	}
 
 	return reply, nil
+}
+
+func (p *JetstreamMessagePublisher) getRetryAttempts(_ messaging.Message) int {
+	// TODO: make it configurable per message type if needed
+	return p.cfg.RetryAttempts
+}
+
+func (p *JetstreamMessagePublisher) getRetryWaitDuration(_ messaging.Message) time.Duration {
+	// TODO: make it configurable per message type if needed
+	return p.cfg.RetryDelay
+}
+
+// Determine the effective TTL for the message.
+// If both StreamTTL and MessageTTL are set, the shorter duration takes precedence.
+func (p *JetstreamMessagePublisher) getMessageTTL(m messaging.Message) time.Duration {
+	if len(p.cfg.MessageTTL) == 0 {
+		return p.cfg.StreamTTL
+	}
+
+	if ttl, ok := p.cfg.MessageTTL[m.MessageType()]; ok && ttl > 0 {
+		if p.cfg.StreamTTL > 0 {
+			if ttl < p.cfg.StreamTTL {
+				return ttl
+			}
+			return p.cfg.StreamTTL
+		}
+		return ttl
+	}
+	return p.cfg.StreamTTL
 }
