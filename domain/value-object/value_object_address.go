@@ -1,11 +1,20 @@
 package valueobject
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
 var _ ValueObject = (*Address)(nil)
+
+var (
+	ErrEmptyStreet  = ValidationError{Field: "street", Message: "cannot be empty"}
+	ErrEmptyCity    = ValidationError{Field: "city", Message: "cannot be empty"}
+	ErrEmptyState   = ValidationError{Field: "state", Message: "cannot be empty"}
+	ErrEmptyZipCode = ValidationError{Field: "zipCode", Message: "cannot be empty"}
+	ErrEmptyCountry = ValidationError{Field: "country", Message: "cannot be empty"}
+)
 
 // Address value object
 type Address struct {
@@ -46,19 +55,19 @@ func (a Address) Validate() error {
 	var errs []ValidationError
 
 	if a.street == "" {
-		errs = append(errs, ValidationError{Field: "street", Message: "cannot be empty"})
+		errs = append(errs, ErrEmptyStreet)
 	}
 	if a.city == "" {
-		errs = append(errs, ValidationError{Field: "city", Message: "cannot be empty"})
+		errs = append(errs, ErrEmptyCity)
 	}
 	if a.state == "" {
-		errs = append(errs, ValidationError{Field: "state", Message: "cannot be empty"})
+		errs = append(errs, ErrEmptyState)
 	}
 	if a.zipCode == "" {
-		errs = append(errs, ValidationError{Field: "zipCode", Message: "cannot be empty"})
+		errs = append(errs, ErrEmptyZipCode)
 	}
 	if a.country == "" {
-		errs = append(errs, ValidationError{Field: "country", Message: "cannot be empty"})
+		errs = append(errs, ErrEmptyCountry)
 	}
 
 	return ValidationErrors(errs)
@@ -71,6 +80,66 @@ func (a Address) Equals(other ValueObject) bool {
 			a.state == otherAddr.state &&
 			a.zipCode == otherAddr.zipCode &&
 			a.country == otherAddr.country
+	}
+	return false
+}
+
+func IsEmptyStreetError(err error) bool {
+	switch {
+	case errors.Is(err, ErrEmptyStreet):
+		return true
+	case IsMultiValidationError(err):
+		var merr MultiValidationError
+		_ = errors.As(err, &merr)
+		return merr.Contains(ErrEmptyStreet)
+	}
+	return false
+}
+
+func IsEmptyCityError(err error) bool {
+	switch {
+	case errors.Is(err, ErrEmptyCity):
+		return true
+	case IsMultiValidationError(err):
+		var merr MultiValidationError
+		_ = errors.As(err, &merr)
+		return merr.Contains(ErrEmptyCity)
+	}
+	return false
+}
+
+func IsEmptyStateError(err error) bool {
+	switch {
+	case errors.Is(err, ErrEmptyState):
+		return true
+	case IsMultiValidationError(err):
+		var merr MultiValidationError
+		_ = errors.As(err, &merr)
+		return merr.Contains(ErrEmptyState)
+	}
+	return false
+}
+
+func IsEmptyZipCodeError(err error) bool {
+	switch {
+	case errors.Is(err, ErrEmptyZipCode):
+		return true
+	case IsMultiValidationError(err):
+		var merr MultiValidationError
+		_ = errors.As(err, &merr)
+		return merr.Contains(ErrEmptyZipCode)
+	}
+	return false
+}
+
+func IsEmptyCountryError(err error) bool {
+	switch {
+	case errors.Is(err, ErrEmptyCountry):
+		return true
+	case IsMultiValidationError(err):
+		var merr MultiValidationError
+		_ = errors.As(err, &merr)
+		return merr.Contains(ErrEmptyCountry)
 	}
 	return false
 }

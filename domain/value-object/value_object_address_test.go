@@ -78,3 +78,68 @@ func (suite *AddressTestSuite) TestAddressTrimming() {
 	suite.Equal("123 Main St", addr.Street())
 	suite.Equal("Anytown", addr.City())
 }
+
+func (suite *AddressTestSuite) TestIsEmptyStreetError() {
+	err := valueobject.ErrEmptyStreet
+	suite.Require().True(valueobject.IsEmptyStreetError(err), "Expected IsEmptyStreetError to return true for ErrEmptyStreet")
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrEmptyStreet, valueobject.ErrEmptyCity},
+	}
+	suite.Require().True(valueobject.IsEmptyStreetError(multiErr), "Expected IsEmptyStreetError to return true for MultiValidationError containing ErrEmptyStreet")
+
+	otherErr := valueobject.ErrEmptyCity
+	suite.Require().False(valueobject.IsEmptyStreetError(otherErr), "Expected IsEmptyStreetError to return false for ErrEmptyCity")
+}
+
+func (suite *AddressTestSuite) TestIsEmptyCityError() {
+	err := valueobject.ErrEmptyCity
+	suite.Require().True(valueobject.IsEmptyCityError(err), "Expected IsEmptyCityError to return true for ErrEmptyCity")
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrEmptyStreet, valueobject.ErrEmptyCity},
+	}
+	suite.Require().True(valueobject.IsEmptyCityError(multiErr), "Expected IsEmptyCityError to return true for MultiValidationError containing ErrEmptyCity")
+
+	otherErr := valueobject.ErrEmptyStreet
+	suite.Require().False(valueobject.IsEmptyCityError(otherErr), "Expected IsEmptyCityError to return false for ErrEmptyStreet")
+}
+
+func (suite *AddressTestSuite) TestIsEmptyStateError() {
+	err := valueobject.ErrEmptyState
+	suite.Require().True(valueobject.IsEmptyStateError(err), "Expected IsEmptyStateError to return true for ErrEmptyState")
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrEmptyState, valueobject.ErrEmptyCity},
+	}
+	suite.Require().True(valueobject.IsEmptyStateError(multiErr), "Expected IsEmptyStateError to return true for MultiValidationError containing ErrEmptyState")
+
+	otherErr := valueobject.ErrEmptyCity
+	suite.Require().False(valueobject.IsEmptyStateError(otherErr), "Expected IsEmptyStateError to return false for ErrEmptyCity")
+}
+
+func (suite *AddressTestSuite) TestIsEmptyZipCodeError() {
+	err := valueobject.ErrEmptyZipCode
+	suite.Require().True(valueobject.IsEmptyZipCodeError(err), "Expected IsEmptyZipCodeError to return true for ErrEmptyZipCode")
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrEmptyZipCode, valueobject.ErrEmptyCity},
+	}
+	suite.Require().True(valueobject.IsEmptyZipCodeError(multiErr), "Expected IsEmptyZipCodeError to return true for MultiValidationError containing ErrEmptyZipCode")
+
+	otherErr := valueobject.ErrEmptyCity
+	suite.Require().False(valueobject.IsEmptyZipCodeError(otherErr), "Expected IsEmptyZipCodeError to return false for ErrEmptyCity")
+}
+
+func (suite *AddressTestSuite) TestIsEmptyCountryError() {
+	err := valueobject.ErrEmptyCountry
+	suite.Require().True(valueobject.IsEmptyCountryError(err), "Expected IsEmptyCountryError to return true for ErrEmptyCountry")
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrEmptyCountry, valueobject.ErrEmptyCity},
+	}
+	suite.Require().True(valueobject.IsEmptyCountryError(multiErr), "Expected IsEmptyCountryError to return true for MultiValidationError containing ErrEmptyCountry")
+
+	otherErr := valueobject.ErrEmptyCity
+	suite.Require().False(valueobject.IsEmptyCountryError(otherErr), "Expected IsEmptyCountryError to return false for ErrEmptyCity")
+}

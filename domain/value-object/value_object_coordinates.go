@@ -1,6 +1,9 @@
 package valueobject
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 var _ ValueObject = (*Coordinates)(nil)
 
@@ -57,4 +60,28 @@ func (c Coordinates) Validate() error {
 	}
 
 	return ValidationErrors(errs)
+}
+
+func IsInvalidLatitudeError(err error) bool {
+	switch {
+	case errors.Is(err, ErrInvalidLatitude):
+		return true
+	case IsMultiValidationError(err):
+		var multiErr MultiValidationError
+		_ = errors.As(err, &multiErr)
+		return multiErr.Contains(ErrInvalidLatitude)
+	}
+	return false
+}
+
+func IsInvalidLongitudeError(err error) bool {
+	switch {
+	case errors.Is(err, ErrInvalidLongitude):
+		return true
+	case IsMultiValidationError(err):
+		var multiErr MultiValidationError
+		_ = errors.As(err, &multiErr)
+		return multiErr.Contains(ErrInvalidLongitude)
+	}
+	return false
 }

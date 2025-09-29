@@ -61,3 +61,47 @@ func (suite *CoordinatesTestSuite) TestInvalidLongitude() {
 	}
 	suite.ErrorAs(err, &expected)
 }
+
+func (suite *CoordinatesTestSuite) TestCoordinatesEquality() {
+	coords1, _ := valueobject.NewCoordinates(37.7749, -122.4194)
+	coords2, _ := valueobject.NewCoordinates(37.7749, -122.4194)
+	coords3, _ := valueobject.NewCoordinates(34.0522, -118.2437)
+
+	suite.True(coords1.Equals(coords2))
+	suite.False(coords1.Equals(coords3))
+	suite.False(coords1.Equals(nil))
+}
+
+func (suite *CoordinatesTestSuite) TestIsZero() {
+	coords1, _ := valueobject.NewCoordinates(0, 0)
+	coords2, _ := valueobject.NewCoordinates(37.7749, -122.4194)
+
+	suite.True(coords1.IsZero())
+	suite.False(coords2.IsZero())
+}
+
+func (suite *CoordinatesTestSuite) TestIsInvalidLatitudeError() {
+	err := valueobject.ErrInvalidLatitude
+	suite.Require().True(valueobject.IsInvalidLatitudeError(err))
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrInvalidLongitude, valueobject.ErrInvalidLatitude},
+	}
+	suite.Require().True(valueobject.IsInvalidLatitudeError(multiErr))
+
+	otherErr := valueobject.ErrInvalidLongitude
+	suite.Require().False(valueobject.IsInvalidLatitudeError(otherErr))
+}
+
+func (suite *CoordinatesTestSuite) TestIsInvalidLongitudeError() {
+	err := valueobject.ErrInvalidLongitude
+	suite.Require().True(valueobject.IsInvalidLongitudeError(err))
+
+	multiErr := valueobject.MultiValidationError{
+		Errors: []valueobject.ValidationError{valueobject.ErrInvalidLongitude, valueobject.ErrInvalidLatitude},
+	}
+	suite.Require().True(valueobject.IsInvalidLongitudeError(multiErr))
+
+	otherErr := valueobject.ErrInvalidLatitude
+	suite.Require().False(valueobject.IsInvalidLongitudeError(otherErr))
+}
