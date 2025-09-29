@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1758924331246,
+  "lastUpdate": 1759161155004,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4028,6 +4028,48 @@ window.BENCHMARK_DATA = {
             "value": 134.8,
             "unit": "ns/op",
             "extra": "8923116 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "0d9a9e1c145e52dcb00d8c0b9d1ebc35cd5c2464",
+          "message": "chore: implement JetStreamMessagePublisherConfig",
+          "timestamp": "2025-09-29T00:37:05+02:00",
+          "tree_id": "cafe7649d9796a396f6dc712a8d7b286af02ca64",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/0d9a9e1c145e52dcb00d8c0b9d1ebc35cd5c2464"
+        },
+        "date": 1759161154021,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9363,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.82,
+            "unit": "ns/op",
+            "extra": "16501328 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.2,
+            "unit": "ns/op",
+            "extra": "8864786 times\n4 procs"
           }
         ]
       }
