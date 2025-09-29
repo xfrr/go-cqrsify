@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759161155004,
+  "lastUpdate": 1759170701431,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4070,6 +4070,48 @@ window.BENCHMARK_DATA = {
             "value": 135.2,
             "unit": "ns/op",
             "extra": "8864786 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "21b909992abb0deba50276c8d0a8dba65375d117",
+          "message": "chore: extract validation error messages for latitude and longitude in Coordinates",
+          "timestamp": "2025-09-29T20:31:10+02:00",
+          "tree_id": "7702b87cbb622f166726a2067776e817e3d72ed1",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/21b909992abb0deba50276c8d0a8dba65375d117"
+        },
+        "date": 1759170700799,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9418,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.7,
+            "unit": "ns/op",
+            "extra": "16505632 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.9,
+            "unit": "ns/op",
+            "extra": "8908687 times\n4 procs"
           }
         ]
       }
