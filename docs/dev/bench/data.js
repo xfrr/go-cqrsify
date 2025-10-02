@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759170701431,
+  "lastUpdate": 1759428320564,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4112,6 +4112,48 @@ window.BENCHMARK_DATA = {
             "value": 135.9,
             "unit": "ns/op",
             "extra": "8908687 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "208b4372948bc19acb7ff42142ad4623586f1d61",
+          "message": "feat: implement apix package with JSON:API helpers and HTTP request validation",
+          "timestamp": "2025-10-02T20:04:42+02:00",
+          "tree_id": "bb7119bccd2118dad48c8a029ccc1d48c158b9fe",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/208b4372948bc19acb7ff42142ad4623586f1d61"
+        },
+        "date": 1759428319268,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9777,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.94,
+            "unit": "ns/op",
+            "extra": "16458621 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.2,
+            "unit": "ns/op",
+            "extra": "8893846 times\n4 procs"
           }
         ]
       }
