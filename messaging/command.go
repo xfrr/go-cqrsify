@@ -9,7 +9,7 @@ type Command interface {
 
 // BaseCommand provides a basic implementation of the Command interface.
 type BaseCommand struct {
-	baseMessage
+	BaseMessage
 }
 
 func (c BaseCommand) CommandID() string {
@@ -21,7 +21,7 @@ type BaseCommandModifier = baseMessageModifier
 // NewBaseCommand creates a new BaseCommand with the given name and payload.
 func NewBaseCommand(commandType string, modifiers ...BaseCommandModifier) BaseCommand {
 	return BaseCommand{
-		baseMessage: newBaseMessage(
+		BaseMessage: NewBaseMessage(
 			commandType,
 			modifiers...,
 		),
@@ -31,7 +31,7 @@ func NewBaseCommand(commandType string, modifiers ...BaseCommandModifier) BaseCo
 // NewCommandFromJSON creates a BaseCommand from a JSONMessage.
 func NewCommandFromJSON[P any](jsonMsg JSONMessage[P]) BaseCommand {
 	return BaseCommand{
-		baseMessage: baseMessage{
+		BaseMessage: BaseMessage{
 			id:        jsonMsg.ID,
 			_type:     jsonMsg.Type,
 			schema:    jsonMsg.SchemaURI,

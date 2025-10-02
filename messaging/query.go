@@ -18,14 +18,14 @@ type Query interface {
 type BaseQueryModifier = baseMessageModifier
 
 func WithQueryID(queryID string) BaseQueryModifier {
-	return func(b *baseMessage) {
+	return func(b *BaseMessage) {
 		b.id = queryID
 	}
 }
 
 // BaseQuery provides a basic implementation of the Query interface.
 type BaseQuery struct {
-	baseMessage
+	BaseMessage
 
 	replyCh chan Message
 }
@@ -60,7 +60,7 @@ func (q BaseQuery) Reply(ctx context.Context, reply QueryReply) error {
 func NewBaseQuery(queryType string, modifiers ...BaseQueryModifier) BaseQuery {
 	return BaseQuery{
 		replyCh: make(chan Message, 1),
-		baseMessage: newBaseMessage(
+		BaseMessage: NewBaseMessage(
 			queryType,
 			modifiers...,
 		),
@@ -71,7 +71,7 @@ func NewBaseQuery(queryType string, modifiers ...BaseQueryModifier) BaseQuery {
 func NewQueryFromJSON[P any](jsonMsg JSONMessage[P]) BaseQuery {
 	return BaseQuery{
 		replyCh: make(chan Message, 1),
-		baseMessage: baseMessage{
+		BaseMessage: BaseMessage{
 			id:        jsonMsg.ID,
 			_type:     jsonMsg.Type,
 			schema:    jsonMsg.SchemaURI,
@@ -89,7 +89,7 @@ type QueryReply interface {
 
 // BaseQueryReply provides a basic implementation of the QueryReply interface.
 type BaseQueryReply struct {
-	baseMessage
+	BaseMessage
 }
 
 type BaseQueryReplyModifier = baseMessageModifier
@@ -97,7 +97,7 @@ type BaseQueryReplyModifier = baseMessageModifier
 // NewBaseQueryReply creates a new BaseQueryReply with the given name and payload.
 func NewBaseQueryReply(query Query, modifiers ...BaseQueryReplyModifier) BaseQueryReply {
 	return BaseQueryReply{
-		baseMessage: newBaseMessage(
+		BaseMessage: NewBaseMessage(
 			query.MessageType()+".reply",
 			modifiers...,
 		),
@@ -107,7 +107,7 @@ func NewBaseQueryReply(query Query, modifiers ...BaseQueryReplyModifier) BaseQue
 // NewQueryReplyFromJSON creates a BaseQueryReply from a JSONMessage.
 func NewQueryReplyFromJSON[P any](jsonMsg JSONMessage[P]) BaseQueryReply {
 	return BaseQueryReply{
-		baseMessage: baseMessage{
+		BaseMessage: BaseMessage{
 			id:        jsonMsg.ID,
 			_type:     jsonMsg.Type,
 			schema:    jsonMsg.SchemaURI,

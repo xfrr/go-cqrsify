@@ -12,6 +12,7 @@ func SubscribeCommand[E Command](
 	commandType string,
 	handler CommandHandler[E],
 ) (func(), error) {
+	var cmde E
 	return subscriber.Subscribe(
 		ctx,
 		commandType,
@@ -19,8 +20,8 @@ func SubscribeCommand[E Command](
 			castCommand, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{
-					Actual:   commandType,
-					Expected: fmt.Sprintf("%T", evt),
+					Actual:   fmt.Sprintf("%T", evt),
+					Expected: fmt.Sprintf("%T", cmde),
 				}
 			}
 			return handler.Handle(ctx, castCommand)

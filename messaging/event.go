@@ -9,7 +9,7 @@ type Event interface {
 
 // BaseEvent provides a basic implementation of the Event interface.
 type BaseEvent struct {
-	baseMessage
+	BaseMessage
 }
 
 func (e BaseEvent) EventID() string {
@@ -21,7 +21,7 @@ type BaseEventModifier = baseMessageModifier
 // NewBaseEvent creates a new BaseEvent with the given name and payload.
 func NewBaseEvent(eventType string, modifiers ...BaseEventModifier) BaseEvent {
 	return BaseEvent{
-		baseMessage: newBaseMessage(
+		BaseMessage: NewBaseMessage(
 			eventType,
 			modifiers...,
 		),
@@ -31,7 +31,7 @@ func NewBaseEvent(eventType string, modifiers ...BaseEventModifier) BaseEvent {
 // NewEventFromJSON creates a BaseEvent from a JSONMessage.
 func NewEventFromJSON[P any](jsonMsg JSONMessage[P]) BaseEvent {
 	return BaseEvent{
-		baseMessage: baseMessage{
+		BaseMessage: BaseMessage{
 			id:        jsonMsg.ID,
 			_type:     jsonMsg.Type,
 			schema:    jsonMsg.SchemaURI,
