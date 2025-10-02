@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759428548168,
+  "lastUpdate": 1759428621062,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4196,6 +4196,48 @@ window.BENCHMARK_DATA = {
             "value": 135,
             "unit": "ns/op",
             "extra": "8866675 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "5891bd6967e598695a9685805bafa5bd497af1f2",
+          "message": "feat: implement messaging HTTP server\n\n- Renamed baseMessage to BaseMessage for consistency in naming conventions.\n- Updated BaseCommand and BaseEvent to use BaseMessage.\n- Introduced HTTPMessageServer for handling incoming messages via HTTP.\n- Added JSON:API message decoding support in HTTPMessageServer.\n- Implemented message registration and decoding mechanisms.\n- Enhanced error handling and validation in HTTPMessageServer.\n- Added comprehensive tests for HTTPMessageServer and message handling.\n- Updated go.mod and go.sum to include new dependencies for HTTP handling.",
+          "timestamp": "2025-10-02T20:09:37+02:00",
+          "tree_id": "3653504a1ca4e30f0f0a8ef0ef43fafad51bc5a4",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/5891bd6967e598695a9685805bafa5bd497af1f2"
+        },
+        "date": 1759428619963,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.8664,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 52.59,
+            "unit": "ns/op",
+            "extra": "22794758 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 105,
+            "unit": "ns/op",
+            "extra": "11367630 times\n4 procs"
           }
         ]
       }
