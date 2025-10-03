@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759509264217,
+  "lastUpdate": 1759511624230,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4322,6 +4322,48 @@ window.BENCHMARK_DATA = {
             "value": 135.3,
             "unit": "ns/op",
             "extra": "8917030 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "4789c78f297550bb710e8fb6fd11ba3a4924a9bd",
+          "message": "feat: add WebSocket support for command handling and implement MessageWebsocketServer",
+          "timestamp": "2025-10-03T19:13:17+02:00",
+          "tree_id": "877e723653ab9561b02fd8affb448b6eed2fa827",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/4789c78f297550bb710e8fb6fd11ba3a4924a9bd"
+        },
+        "date": 1759511623849,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9473,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.75,
+            "unit": "ns/op",
+            "extra": "16471198 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.3,
+            "unit": "ns/op",
+            "extra": "8908846 times\n4 procs"
           }
         ]
       }
