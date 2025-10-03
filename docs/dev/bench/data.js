@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759428621062,
+  "lastUpdate": 1759492812833,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4238,6 +4238,48 @@ window.BENCHMARK_DATA = {
             "value": 105,
             "unit": "ns/op",
             "extra": "11367630 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "a5af759a3074d45969ad8aa367e9bf60605c66d5",
+          "message": "feat: HTTP command handling and server structure\n\n- Renamed CommandHTTPServer to CommandHandler for clarity and consistency.\n- Introduced CommandServer to handle HTTP commands using Gin framework.\n- Added CreateBaseCommandFromSingleDocument function to convert JSON:API single documents into BaseCommand.\n- Implemented server configuration options for timeouts in http_server_options.go.\n- Updated MessageHandler to improve HTTP message handling and error management.\n- Enhanced message decoding functions to support JSON:API format.\n- Added new dependencies in go.mod for improved functionality.\n- Cleaned up and organized code for better readability and maintainability.",
+          "timestamp": "2025-10-03T13:59:42+02:00",
+          "tree_id": "72589ae1c04b877d02663419f918343c6b4e35f2",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/a5af759a3074d45969ad8aa367e9bf60605c66d5"
+        },
+        "date": 1759492812189,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9344,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.75,
+            "unit": "ns/op",
+            "extra": "16494417 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.7,
+            "unit": "ns/op",
+            "extra": "8843644 times\n4 procs"
           }
         ]
       }
