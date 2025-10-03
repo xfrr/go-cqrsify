@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759492812833,
+  "lastUpdate": 1759509264217,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4280,6 +4280,48 @@ window.BENCHMARK_DATA = {
             "value": 134.7,
             "unit": "ns/op",
             "extra": "8843644 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "b10efdc21504eee2e1d65f6237fc9c7a2558cad2",
+          "message": "refactor: command handling to use CommandDispatcher and update server types",
+          "timestamp": "2025-10-03T18:33:54+02:00",
+          "tree_id": "1f7ce5dc9c1bfef5fe7e71466a9e6d5cf49864d9",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/b10efdc21504eee2e1d65f6237fc9c7a2558cad2"
+        },
+        "date": 1759509263772,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9384,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.3,
+            "unit": "ns/op",
+            "extra": "16508160 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.3,
+            "unit": "ns/op",
+            "extra": "8917030 times\n4 procs"
           }
         ]
       }
