@@ -24,9 +24,7 @@ func NewGINCommandServer(handler *CommandHandler, engine *gin.Engine, opts ...Se
 }
 
 func (s *GINCommandServer) ListenAndServe(addr string) error {
-	s.engine.POST("/commands", func(ctx *gin.Context) {
-		s.h.ServeHTTP(ctx.Writer, ctx.Request)
-	})
+	s.engine.POST("/commands", gin.WrapH(s.h))
 
 	s.srv = &http.Server{
 		Addr:              addr,

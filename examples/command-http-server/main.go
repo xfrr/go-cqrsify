@@ -78,12 +78,18 @@ func main() {
 
 	// Create HTTP Command Server
 	cmdServer := messaginghttp.NewGINCommandServer(cmdbusHandler, r)
+	wsServer := messaginghttp.NewCommandWebsocketServer(cmdbus, cmdbusHandler)
+	r.Any("/ws/commands", gin.WrapH(wsServer))
 
 	// Start HTTP Command Server
 	go func() {
 		_ = cmdServer.ListenAndServe(":8091")
 	}()
-	defer cmdServer.Close()
+
+	defer func() {
+		_ = cmdServer.Close()
+		_ = wsServer.Close()
+	}()
 
 	fmt.Println("HTTP Command Server is running on :8091")
 	fmt.Println("Press Ctrl+C to stop.")
@@ -91,7 +97,8 @@ func main() {
 	// curl example
 	fmt.Println(" ")
 	fmt.Println("Example curl command to send a command:")
-	fmt.Println(`curl -X POST http://localhost:8091/commands -H "Content-Type: application/vnd.api+json" -d '{"data": {"type": "cqrsify.commands.print_text", "id": "cmd-123", "attributes": {"text": "Hello, CQRS!"}}}'`)
+	fmt.Println("> websocat ws://localhost:8091/ws/commands")
+	fmt.Println(`> curl -X POST http://localhost:8091/commands -H "Content-Type: application/vnd.api+json" -d '{"data": {"type": "cqrsify.commands.print_text", "id": "cmd-123", "attributes": {"text": "Hello, CQRS!"}}}'`)
 	<-ctx.Done()
 	fmt.Println("Shutting down HTTP Command Server...")
 }
