@@ -87,18 +87,8 @@ func (st *HTTPMessageServerSuite) AfterTest(_, _ string) {
 	}
 }
 
-func (st *HTTPMessageServerSuite) Test_ServeHTTP_NoValidatorConfigured_Returns500() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, nil)
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("X", ""))
-
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Equal(http.StatusInternalServerError, rr.Code)
-	st.Contains(rr.Body.String(), "no validator configured")
-}
-
 func (st *HTTPMessageServerSuite) Test_ServeHTTP_NoBusConfigured_Returns500() {
-	v := &fakeMessageHTTPValidator{}
-	s := messaginghttp.NewMessageHTTPHandler(nil, v)
+	s := messaginghttp.NewMessageHTTPHandler(nil)
 
 	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("X", ""))
 
@@ -108,9 +98,7 @@ func (st *HTTPMessageServerSuite) Test_ServeHTTP_NoBusConfigured_Returns500() {
 }
 
 func (st *HTTPMessageServerSuite) Test_ServeHTTP_UnsupportedContentType_Returns415() {
-	v := &fakeMessageHTTPValidator{}
-
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	req := httptest.NewRequest(http.MethodPost, "/messages", strings.NewReader(`{}`))
 	req.Header.Set(apix.ContentTypeHeaderKey, "text/plain; charset=utf-8")
@@ -121,9 +109,7 @@ func (st *HTTPMessageServerSuite) Test_ServeHTTP_UnsupportedContentType_Returns4
 }
 
 func (st *HTTPMessageServerSuite) Test_JSONAPI_MissingType_Returns400() {
-	v := &fakeMessageHTTPValidator{}
-
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	req := makeJSONAPIMessageRequest(st.T(), []byte(`{"data":{"attributes":{"x":1}}}`))
 	rr := recordHTTPResponse(srv, req)
@@ -132,9 +118,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_MissingType_Returns400() {
 }
 
 func (st *HTTPMessageServerSuite) Test_JSONAPI_UnknownMessageType_Returns400() {
-	v := &fakeMessageHTTPValidator{}
-
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("unknown-msg", `"x":1`))
 	rr := recordHTTPResponse(srv, req)
@@ -143,9 +127,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_UnknownMessageType_Returns400() {
 }
 
 func (st *HTTPMessageServerSuite) Test_JSONAPI_NoDecoderForEncoding_Returns415() {
-	v := &fakeMessageHTTPValidator{}
-
-	s := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	s := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	// Register a decoder under a different message type, so lookup for "createUser" fails.
 	err := messaginghttp.RegisterJSONAPIMessageDecoder(s, "otherType", func(_ apix.SingleDocument[any]) (messaging.Message, error) {
@@ -167,8 +149,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_NoDecoderForEncoding_Returns415()
 }
 
 func (st *HTTPMessageServerSuite) Test_JSONAPI_DecoderError_Returns400() {
-	v := &fakeMessageHTTPValidator{}
-	sut := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	sut := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	dec := &countingDecoder{err: errors.New("boom")}
 
@@ -187,7 +168,6 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_DecoderError_Returns400() {
 }
 
 func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
-	v := &fakeMessageHTTPValidator{}
 	type fakeCmd struct {
 		messaging.BaseMessage
 		X int `json:"x"`
@@ -204,7 +184,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
 	st.Require().NoError(err)
 	defer unsub()
 
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 
 	decoderCalls := 0
 	decodeErr := messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(doc apix.SingleDocument[map[string]any]) (messaging.Message, error) {
@@ -235,8 +215,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
 }
 
 func (st *HTTPMessageServerSuite) Test_BodyTooLarge_Returns400() {
-	v := &fakeMessageHTTPValidator{}
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v, messaginghttp.WithMaxBodyBytes(10)) // very small
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, messaginghttp.WithMaxBodyBytes(10)) // very small
 
 	// Body larger than 10 bytes
 	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":"1234567890ABCDEF"`))
@@ -248,8 +227,7 @@ func (st *HTTPMessageServerSuite) Test_BodyTooLarge_Returns400() {
 }
 
 func (st *HTTPMessageServerSuite) Test_DuplicateRegistration_ReturnsError() {
-	v := &fakeMessageHTTPValidator{}
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 	err := messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
 		return messaging.NewBaseMessage("createUser"), nil
 	})
@@ -265,7 +243,7 @@ func (st *HTTPMessageServerSuite) Test_DuplicateRegistration_ReturnsError() {
 func (st *HTTPMessageServerSuite) Test_ValidatorProblem_Returned() {
 	v := &fakeMessageHTTPValidator{problem: ptr(apix.NewBadRequestProblem("bad headers"))}
 
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, v)
+	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, messaginghttp.WithValidator(v))
 
 	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":1`))
 	rr := recordHTTPResponse(srv, req)

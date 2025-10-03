@@ -69,27 +69,3 @@ func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) {
 	w.WriteHeader(options.Status)
 	_, _ = w.Write(b)
 }
-
-// IsJSONAPIContentNegotiable checks if the request Accept header is compatible.
-// You can use it to return 406 Not Acceptable if needed.
-func IsJSONAPIContentNegotiable(r *http.Request) bool {
-	accept := r.Header.Get("Accept")
-	return accept == "" ||
-		accept == "*/*" ||
-		containsToken(accept, ContentTypeJSONAPI.String())
-}
-
-// containsToken is a simple substring matcher for media types in Accept.
-// TODO: implement a weighted media type parser.
-func containsToken(s, token string) bool {
-	return len(s) >= len(token) && (s == token || (len(s) > len(token) && (contains(s, token))))
-}
-
-func contains(s, sub string) bool {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return true
-		}
-	}
-	return false
-}

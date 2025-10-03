@@ -10,26 +10,26 @@ import (
 	apihttp "github.com/xfrr/go-cqrsify/pkg/apix"
 )
 
-var _ apihttp.HTTPRequestValidator = (*Validator)(nil)
+var _ apihttp.HTTPRequestValidator = (*HTTPRequestValidator)(nil)
 
-// Validator allows validating http request against a JSON Schema.
-type Validator struct {
+// HTTPRequestValidator allows validating http request against a JSON Schema.
+type HTTPRequestValidator struct {
 	filepathResolver FilepathResolver
 	problemURL       string
 }
 
 // FilepathResolver is a function that retrieves the JSON Schema file path
 // based on the incoming HTTP request.
-type FilepathResolver func(r *http.Request) string
+type FilepathResolver func(r *http.Request) (string, error)
 
 // NewValidator creates a new JSON Schema validator.
-func NewValidator(options ...ValidatorOption) *Validator {
+func NewValidator(options ...ValidatorOption) *HTTPRequestValidator {
 	const defaultProblemURL = "https://example.com/problems"
-	var defaultFilepathResolver FilepathResolver = func(r *http.Request) string {
-		return "./schemas" + r.URL.Path + ".json"
+	var defaultFilepathResolver FilepathResolver = func(r *http.Request) (string, error) {
+		return "./schemas" + r.URL.Path + ".schema.json", nil
 	}
 
-	v := &Validator{
+	v := &HTTPRequestValidator{
 		problemURL:       defaultProblemURL,
 		filepathResolver: defaultFilepathResolver,
 	}
@@ -41,8 +41,13 @@ func NewValidator(options ...ValidatorOption) *Validator {
 }
 
 // Validate implements apihttp.Validator.
-func (v *Validator) Validate(_ context.Context, r *http.Request) *apihttp.Problem {
-	schema := gojsonschema.NewReferenceLoader(v.filepathResolver(r))
+func (v *HTTPRequestValidator) Validate(_ context.Context, r *http.Request) *apihttp.Problem {
+	schemaPath, err := v.filepathResolver(r)
+	if err != nil {
+		return v.failedToLoadSchema(err)
+	}
+
+	schema := gojsonschema.NewReferenceLoader(schemaPath)
 	if schema == nil {
 		return v.failedToLoadSchema(nil)
 	}
@@ -58,7 +63,7 @@ func (v *Validator) Validate(_ context.Context, r *http.Request) *apihttp.Proble
 	return nil
 }
 
-func (v *Validator) failedToLoadSchema(err error) *apihttp.Problem {
+func (v *HTTPRequestValidator) failedToLoadSchema(err error) *apihttp.Problem {
 	return &apihttp.Problem{
 		Type:   v.problemURL + "/schema-load-failure",
 		Title:  "Failed to load JSON Schema",
@@ -67,7 +72,7 @@ func (v *Validator) failedToLoadSchema(err error) *apihttp.Problem {
 	}
 }
 
-func (v *Validator) failedToValidateRequest(err error) *apihttp.Problem {
+func (v *HTTPRequestValidator) failedToValidateRequest(err error) *apihttp.Problem {
 	return &apihttp.Problem{
 		Type:   v.problemURL + "/validation-failure",
 		Title:  "Request validation failed",

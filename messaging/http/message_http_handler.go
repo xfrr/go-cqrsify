@@ -32,33 +32,21 @@ type HTTPMessageServer struct {
 	decoders map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)
 
 	messageBus     messaging.MessageBus
-	maxBodyBytes   int64
 	allowEncodings map[HTTPMessageEncoding]struct{}
-}
 
-// --- Options ---
-
-type HTTPMessageServerOption func(*HTTPMessageServer)
-
-// WithErrorMapper sets a custom domain-error -> Problem mapper.
-func WithErrorMapper(mapper func(error) apix.Problem) HTTPMessageServerOption {
-	return func(s *HTTPMessageServer) { s.errorMapper = mapper }
-}
-
-// WithMaxBodyBytes sets the maximum allowed request body size (defaults to 1MiB).
-func WithMaxBodyBytes(n int64) HTTPMessageServerOption {
-	return func(s *HTTPMessageServer) { s.maxBodyBytes = n }
+	// maxBodyBytes is the maximum allowed request body size in bytes.
+	// If zero or negative, no limit is applied.
+	maxBodyBytes int64
 }
 
 // NewMessageHTTPHandler creates a new HTTPMessageServer with the given MessageBus and options.
-// The validator is required to validate incoming requests.
 // If no decoders are registered, the server will return 500 Internal Server Error.
-func NewMessageHTTPHandler(messageBus messaging.MessageBus, validator HTTPMessageRequestValidator, opts ...HTTPMessageServerOption) *HTTPMessageServer {
+func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageServerOption) *HTTPMessageServer {
 	s := &HTTPMessageServer{
 		messageBus:     messageBus,
-		validator:      validator,
 		maxBodyBytes:   defaultMaxBodyBytes,
 		errorMapper:    nil,
+		validator:      nil,
 		decoders:       make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)),
 		allowEncodings: map[HTTPMessageEncoding]struct{}{HTTPMessageEncodingJSONAPI: {}},
 	}
@@ -70,29 +58,24 @@ func NewMessageHTTPHandler(messageBus messaging.MessageBus, validator HTTPMessag
 
 // ServeHTTP implements http.Handler.
 func (s *HTTPMessageServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Basic dependency checks
-	if s.validator == nil {
-		apix.WriteProblem(w, apix.NewInternalServerErrorProblem("no validator configured"))
-		return
-	}
 	if s.messageBus == nil {
 		apix.WriteProblem(w, apix.NewInternalServerErrorProblem("no message bus configured"))
 		return
 	}
 
-	// Bound body size early (protect downstream decoders / validators).
 	if s.maxBodyBytes > 0 {
 		r.Body = http.MaxBytesReader(w, r.Body, s.maxBodyBytes)
 	}
 	defer r.Body.Close()
 
-	// Validate request (headers, method, etc.)
-	if problem := s.validator.Validate(r.Context(), r); problem != nil {
-		apix.WriteProblem(w, *problem)
-		return
+	if s.validator != nil {
+		// Validate request (body, headers, method, etc.)
+		if problem := s.validator.Validate(r.Context(), r); problem != nil {
+			apix.WriteProblem(w, *problem)
+			return
+		}
 	}
 
-	// Decode, dispatch, respond
 	msg, problem := s.decodeMessageFromHTTPRequest(r)
 	if problem != nil {
 		apix.WriteProblem(w, *problem)
@@ -104,7 +87,6 @@ func (s *HTTPMessageServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 202 Accepted (asynchronous message handling is common for messages)
 	w.WriteHeader(http.StatusAccepted)
 }
 
@@ -116,7 +98,6 @@ func (s *HTTPMessageServer) handleDispatchError(w http.ResponseWriter, err error
 	apix.WriteProblem(w, apix.NewInternalServerErrorProblem(err.Error()))
 }
 
-// decodeMessageFromHTTPRequest parses Content-Type and routes to the right decoder.
 func (s *HTTPMessageServer) decodeMessageFromHTTPRequest(r *http.Request) (messaging.Message, *apix.Problem) {
 	if s.decoders == nil {
 		problem := apix.NewInternalServerErrorProblem("no message decoders configured")
@@ -138,12 +119,11 @@ func (s *HTTPMessageServer) decodeMessageFromHTTPRequest(r *http.Request) (messa
 	}
 }
 
-// decodeJSONAPIMessage peeks the JSON:API document to get data.type, then runs the registered decoder.
 func (s *HTTPMessageServer) decodeJSONAPIMessage(r *http.Request, encoding HTTPMessageEncoding) (messaging.Message, *apix.Problem) {
 	// Read entire (bounded) body so we can unmarshal multiple times.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		problem := apix.NewBadRequestProblem(fmt.Sprintf("failed to read request body: %v", err))
+		problem := apix.NewBadRequestProblem(fmt.Sprintf("failed to read request body: %s", err))
 		return nil, &problem
 	}
 
@@ -159,7 +139,7 @@ func (s *HTTPMessageServer) decodeJSONAPIMessage(r *http.Request, encoding HTTPM
 
 	peek, unmarshallErr := apix.UnmarshalSingleDocument[peekDoc](body)
 	if unmarshallErr != nil {
-		problem := apix.NewBadRequestProblem(fmt.Sprintf("failed to unmarshal JSON:API document: %v", unmarshallErr))
+		problem := apix.NewBadRequestProblem(fmt.Sprintf("failed to unmarshal JSON:API document: %s", unmarshallErr))
 		return nil, &problem
 	}
 
@@ -192,7 +172,6 @@ func (s *HTTPMessageServer) decodeJSONAPIMessage(r *http.Request, encoding HTTPM
 	return msg, nil
 }
 
-// makeMessageDecoder wraps a typed JSON:API SingleDocument[P] decoder.
 func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messaging.Message, error)) func(*http.Request) (messaging.Message, error) {
 	return func(r *http.Request) (messaging.Message, error) {
 		defer r.Body.Close()
@@ -231,9 +210,8 @@ func (s *HTTPMessageServer) RegisterJSONAPIMessageDecoder(msgType string, decode
 // Backwards-compatible free function (optional; can be removed if not needed).
 func RegisterJSONAPIMessageDecoder[P any](server *HTTPMessageServer, msgType string, decodeFunc func(apix.SingleDocument[P]) (messaging.Message, error)) error {
 	return server.RegisterJSONAPIMessageDecoder(msgType, func(sd apix.SingleDocument[any]) (messaging.Message, error) {
-		// Convert SingleDocument[any] to SingleDocument[P]
 		var converted apix.SingleDocument[P]
-		attr, ok := sd.Data.Attributes.(P) // This requires that sd.Data is of type P
+		attr, ok := sd.Data.Attributes.(P)
 		if !ok {
 			return nil, fmt.Errorf("failed to convert attributes to %T: %v", converted.Data, sd.Data.Attributes)
 		}

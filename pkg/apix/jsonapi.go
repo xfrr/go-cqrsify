@@ -2,6 +2,8 @@ package apix
 
 import (
 	"encoding/json"
+	"mime"
+	"net/http"
 )
 
 type ContentType string
@@ -112,4 +114,44 @@ func UnmarshalManyDocument[T any](data []byte) (ManyDocument[T], error) {
 	var doc ManyDocument[T]
 	err := json.Unmarshal(data, &doc)
 	return doc, err
+}
+
+// IsJSONAPIContentNegotiable checks if the request Accept header is compatible.
+// You can use it to return 406 Not Acceptable if needed.
+func IsJSONAPIContentNegotiable(r *http.Request) bool {
+	accept := r.Header.Get("Accept")
+	return accept == "" ||
+		accept == "*/*" ||
+		containsToken(accept, ContentTypeJSONAPI.String())
+}
+
+// IsJSONAPIContentType checks if the request Content-Type header is application/vnd.api+json.
+func IsJSONAPIContentType(r *http.Request) bool {
+	ct := r.Header.Get(ContentTypeHeaderKey)
+	if ct == "" {
+		return false
+	}
+
+	// ParseMediaType handles parameters (e.g., charset)
+	mt, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return false
+	}
+
+	return mt == ContentTypeJSONAPI.String()
+}
+
+// containsToken is a simple substring matcher for media types in Accept.
+// TODO: implement a weighted media type parser.
+func containsToken(s, token string) bool {
+	return len(s) >= len(token) && (s == token || (len(s) > len(token) && (contains(s, token))))
+}
+
+func contains(s, sub string) bool {
+	for i := 0; i+len(sub) <= len(s); i++ {
+		if s[i:i+len(sub)] == sub {
+			return true
+		}
+	}
+	return false
 }
