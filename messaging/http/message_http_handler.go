@@ -31,8 +31,8 @@ type MessageHandler struct {
 	// decoders: messageType -> encoding -> decode
 	decoders map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)
 
-	messageBus     messaging.MessageBus
-	allowEncodings map[HTTPMessageEncoding]struct{}
+	messagePublisher messaging.MessagePublisher
+	allowEncodings   map[HTTPMessageEncoding]struct{}
 
 	// maxBodyBytes is the maximum allowed request body size in bytes.
 	// If zero or negative, no limit is applied.
@@ -41,14 +41,14 @@ type MessageHandler struct {
 
 // NewMessageHTTPHandler creates a new HTTPMessageServer with the given MessageBus and options.
 // If no decoders are registered, the server will return 500 Internal Server Error.
-func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageServerOption) *MessageHandler {
+func NewMessageHTTPHandler(msgPublisher messaging.MessagePublisher, opts ...HTTPMessageServerOption) *MessageHandler {
 	s := &MessageHandler{
-		messageBus:     messageBus,
-		maxBodyBytes:   defaultMaxBodyBytes,
-		errorMapper:    nil,
-		validator:      nil,
-		decoders:       make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)),
-		allowEncodings: map[HTTPMessageEncoding]struct{}{HTTPMessageEncodingJSONAPI: {}},
+		messagePublisher: msgPublisher,
+		maxBodyBytes:     defaultMaxBodyBytes,
+		errorMapper:      nil,
+		validator:        nil,
+		decoders:         make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)),
+		allowEncodings:   map[HTTPMessageEncoding]struct{}{HTTPMessageEncodingJSONAPI: {}},
 	}
 	for _, o := range opts {
 		o(s)
@@ -58,7 +58,7 @@ func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageS
 
 // ServeHTTP implements http.Handler.
 func (handler *MessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if handler.messageBus == nil {
+	if handler.messagePublisher == nil {
 		apix.WriteProblem(w, apix.NewInternalServerErrorProblem("no message bus configured"))
 		return
 	}
@@ -69,7 +69,6 @@ func (handler *MessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	defer r.Body.Close()
 
 	if handler.validator != nil {
-		// Validate request (body, headers, method, etc.)
 		if problem := handler.validator.Validate(r.Context(), r); problem != nil {
 			apix.WriteProblem(w, *problem)
 			return
@@ -82,7 +81,7 @@ func (handler *MessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := handler.messageBus.Publish(r.Context(), msg); err != nil {
+	if err := handler.messagePublisher.Publish(r.Context(), msg); err != nil {
 		handler.handleDispatchError(w, err)
 		return
 	}
@@ -190,6 +189,8 @@ func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messagin
 	}
 }
 
+// RegisterJSONAPIMessageDecoder registers a JSON:API message decoder for the given message type.
+// If a decoder for the same message type and encoding already exists, an error is returned.
 func RegisterJSONAPIMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Message, error)) error {
 	if handler.decoders == nil {
 		handler.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
@@ -209,6 +210,8 @@ func RegisterJSONAPIMessageDecoder[A any](handler *MessageHandler, msgType strin
 	return nil
 }
 
+// RegisterJSONAPICommandDecoder registers a JSON:API command decoder for the given command type.
+// If a decoder for the same command type and encoding already exists, an error is returned.
 func RegisterJSONAPICommandDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Command, error)) error {
 	if handler.decoders == nil {
 		handler.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))

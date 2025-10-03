@@ -215,7 +215,16 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
 }
 
 func (st *HTTPMessageServerSuite) Test_BodyTooLarge_Returns400() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, messaginghttp.WithMaxBodyBytes(10)) // very small
+	srv := messaginghttp.NewMessageHTTPHandler(
+		st.cmdbus,
+		messaginghttp.WithMaxBodyBytes(10),
+		messaginghttp.WithErrorMapper(func(err error) apix.Problem {
+			if errors.Is(err, http.ErrContentLength) {
+				return apix.NewBadRequestProblem("request body too large")
+			}
+			return apix.NewInternalServerErrorProblem("internal server error")
+		}),
+	)
 
 	// Body larger than 10 bytes
 	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":"1234567890ABCDEF"`))
