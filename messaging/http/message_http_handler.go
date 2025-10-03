@@ -23,8 +23,8 @@ const (
 	defaultMaxBodyBytes                            = int64(1 << 20) // 1 MiB sane default
 )
 
-// HTTPMessageServer is an HTTP server for receiving messages.
-type HTTPMessageServer struct {
+// MessageHandler is an HTTP server for receiving messages.
+type MessageHandler struct {
 	validator   apix.HTTPRequestValidator
 	errorMapper func(error) apix.Problem
 
@@ -41,8 +41,8 @@ type HTTPMessageServer struct {
 
 // NewMessageHTTPHandler creates a new HTTPMessageServer with the given MessageBus and options.
 // If no decoders are registered, the server will return 500 Internal Server Error.
-func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageServerOption) *HTTPMessageServer {
-	s := &HTTPMessageServer{
+func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageServerOption) *MessageHandler {
+	s := &MessageHandler{
 		messageBus:     messageBus,
 		maxBodyBytes:   defaultMaxBodyBytes,
 		errorMapper:    nil,
@@ -57,49 +57,49 @@ func NewMessageHTTPHandler(messageBus messaging.MessageBus, opts ...HTTPMessageS
 }
 
 // ServeHTTP implements http.Handler.
-func (s *HTTPMessageServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if s.messageBus == nil {
+func (handler *MessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if handler.messageBus == nil {
 		apix.WriteProblem(w, apix.NewInternalServerErrorProblem("no message bus configured"))
 		return
 	}
 
-	if s.maxBodyBytes > 0 {
-		r.Body = http.MaxBytesReader(w, r.Body, s.maxBodyBytes)
+	if handler.maxBodyBytes > 0 {
+		r.Body = http.MaxBytesReader(w, r.Body, handler.maxBodyBytes)
 	}
 	defer r.Body.Close()
 
-	if s.validator != nil {
+	if handler.validator != nil {
 		// Validate request (body, headers, method, etc.)
-		if problem := s.validator.Validate(r.Context(), r); problem != nil {
+		if problem := handler.validator.Validate(r.Context(), r); problem != nil {
 			apix.WriteProblem(w, *problem)
 			return
 		}
 	}
 
-	msg, problem := s.decodeMessageFromHTTPRequest(r)
+	msg, problem := handler.decodeMessageFromHTTPRequest(r)
 	if problem != nil {
 		apix.WriteProblem(w, *problem)
 		return
 	}
 
-	if err := s.messageBus.Publish(r.Context(), msg); err != nil {
-		s.handleDispatchError(w, err)
+	if err := handler.messageBus.Publish(r.Context(), msg); err != nil {
+		handler.handleDispatchError(w, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (s *HTTPMessageServer) handleDispatchError(w http.ResponseWriter, err error) {
-	if s.errorMapper != nil {
-		apix.WriteProblem(w, s.errorMapper(err))
+func (handler *MessageHandler) handleDispatchError(w http.ResponseWriter, err error) {
+	if handler.errorMapper != nil {
+		apix.WriteProblem(w, handler.errorMapper(err))
 		return
 	}
 	apix.WriteProblem(w, apix.NewInternalServerErrorProblem(err.Error()))
 }
 
-func (s *HTTPMessageServer) decodeMessageFromHTTPRequest(r *http.Request) (messaging.Message, *apix.Problem) {
-	if s.decoders == nil {
+func (handler *MessageHandler) decodeMessageFromHTTPRequest(r *http.Request) (messaging.Message, *apix.Problem) {
+	if handler.decoders == nil {
 		problem := apix.NewInternalServerErrorProblem("no message decoders configured")
 		return nil, &problem
 	}
@@ -112,14 +112,14 @@ func (s *HTTPMessageServer) decodeMessageFromHTTPRequest(r *http.Request) (messa
 
 	switch mediaType {
 	case apix.ContentTypeJSONAPI.String():
-		return s.decodeJSONAPIMessage(r, HTTPMessageEncodingJSONAPI)
+		return handler.decodeJSONAPIMessage(r, HTTPMessageEncodingJSONAPI)
 	default:
 		problem := apix.NewUnsupportedMediaTypeProblem(fmt.Sprintf("unsupported content type: %s", mediaType))
 		return nil, &problem
 	}
 }
 
-func (s *HTTPMessageServer) decodeJSONAPIMessage(r *http.Request, encoding HTTPMessageEncoding) (messaging.Message, *apix.Problem) {
+func (handler *MessageHandler) decodeJSONAPIMessage(r *http.Request, encoding HTTPMessageEncoding) (messaging.Message, *apix.Problem) {
 	// Read entire (bounded) body so we can unmarshal multiple times.
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *HTTPMessageServer) decodeJSONAPIMessage(r *http.Request, encoding HTTPM
 		return nil, &problem
 	}
 
-	msgDecoders, ok := s.decoders[msgType]
+	msgDecoders, ok := handler.decoders[msgType]
 	if !ok {
 		problem := apix.NewBadRequestProblem(fmt.Sprintf("no decoder registered for message type: %s", msgType))
 		return nil, &problem
@@ -190,43 +190,41 @@ func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messagin
 	}
 }
 
-// RegisterJSONAPIMessageDecoder registers a decoder for a given message type (method form).
-func (s *HTTPMessageServer) RegisterJSONAPIMessageDecoder(msgType string, decodeFunc func(apix.SingleDocument[any]) (messaging.Message, error)) error {
-	if s.decoders == nil {
-		s.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
+func RegisterJSONAPIMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Message, error)) error {
+	if handler.decoders == nil {
+		handler.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
 	}
-	msgDecoders, ok := s.decoders[msgType]
+
+	msgDecoders, ok := handler.decoders[msgType]
 	if !ok {
 		msgDecoders = make(map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
-		s.decoders[msgType] = msgDecoders
+		handler.decoders[msgType] = msgDecoders
 	}
+
 	if _, exists := msgDecoders[HTTPMessageEncodingJSONAPI]; exists {
 		return fmt.Errorf("message decoder for %q and encoding %q already exists", msgType, HTTPMessageEncodingJSONAPI)
 	}
-	msgDecoders[HTTPMessageEncodingJSONAPI] = makeMessageDecoder(decodeFunc)
+
+	msgDecoders[HTTPMessageEncodingJSONAPI] = makeMessageDecoder[A](decodeFunc)
 	return nil
 }
 
-// Backwards-compatible free function (optional; can be removed if not needed).
-func RegisterJSONAPIMessageDecoder[P any](server *HTTPMessageServer, msgType string, decodeFunc func(apix.SingleDocument[P]) (messaging.Message, error)) error {
-	return server.RegisterJSONAPIMessageDecoder(msgType, func(sd apix.SingleDocument[any]) (messaging.Message, error) {
-		var converted apix.SingleDocument[P]
-		attr, ok := sd.Data.Attributes.(P)
-		if !ok {
-			return nil, fmt.Errorf("failed to convert attributes to %T: %v", converted.Data, sd.Data.Attributes)
-		}
+func RegisterJSONAPICommandDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Command, error)) error {
+	if handler.decoders == nil {
+		handler.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
+	}
 
-		converted.Included = sd.Included
-		converted.Meta = sd.Meta
-		converted.Links = sd.Links
-		converted.Data = apix.Resource[P]{
-			Type:          sd.Data.Type,
-			ID:            sd.Data.ID,
-			Attributes:    attr,
-			Relationships: sd.Data.Relationships,
-			Meta:          sd.Data.Meta,
-		}
+	msgDecoders, ok := handler.decoders[msgType]
+	if !ok {
+		msgDecoders = make(map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
+		handler.decoders[msgType] = msgDecoders
+	}
+	if _, exists := msgDecoders[HTTPMessageEncodingJSONAPI]; exists {
+		return fmt.Errorf("command decoder for %q and encoding %q already exists", msgType, HTTPMessageEncodingJSONAPI)
+	}
 
-		return decodeFunc(converted)
+	msgDecoders[HTTPMessageEncodingJSONAPI] = makeMessageDecoder[A](func(sd apix.SingleDocument[A]) (messaging.Message, error) {
+		return decodeFunc(sd)
 	})
+	return nil
 }

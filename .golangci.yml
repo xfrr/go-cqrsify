@@ -204,12 +204,18 @@ linters:
       - goconst
       - gosec
       - noctx
-      # - wrapcheck
+      - forbidigo
+      - wrapcheck
       path: _test\.go
     paths:
-    - third_party$
-    - builtin$
-    - examples$
+    - ^examples/.*
+    - ^testdata/.*
+    - ^tools/.*
+    - ^cmd/.*-test\.go$
+    - .*\.pb\.go$
+    - .*\.pb\.gw\.go$
+    - .*\.gen\.go$
+    - .*_mock\.go$
 issues:
   max-same-issues: 50
 formatters:

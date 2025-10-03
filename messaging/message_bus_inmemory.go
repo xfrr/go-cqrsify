@@ -82,8 +82,7 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 			return &NoSubscribersForMessageError{MessageType: msg.MessageType()}
 		}
 
-		// Note: we do not short-circuit on handler errors; we attempt to
-		// dispatch to all handlers (sync or async)
+		// Deliver to all handlers (sync or async).
 		for _, h := range handlers {
 			if b.queue == nil {
 				// Synchronous inline dispatch

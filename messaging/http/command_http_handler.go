@@ -7,12 +7,12 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
-// CommandHTTPServer is an alias to HTTPMessageServer to keep external API surface familiar.
-type CommandHTTPServer = HTTPMessageServer
+// CommandHandler is an alias to HTTPMessageServer to keep external API surface familiar.
+type CommandHandler = MessageHandler
 
-// NewCommandHTTPHandler creates a new CommandHTTPServer with the given CommandBus and options.
+// NewCommandHandler creates a new CommandHTTPServer with the given CommandBus and options.
 // If no decoders are registered, the server will return 500 Internal Server Error.
-func NewCommandHTTPHandler(messageBus messaging.CommandBus, opts ...HTTPMessageServerOption) *CommandHTTPServer {
+func NewCommandHandler(messageBus messaging.CommandBus, opts ...HTTPMessageServerOption) *CommandHandler {
 	return NewMessageHTTPHandler(&cmdbusWrapper{messageBus}, opts...)
 }
 
