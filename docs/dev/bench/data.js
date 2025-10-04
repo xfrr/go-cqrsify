@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759511624230,
+  "lastUpdate": 1759571566596,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4364,6 +4364,48 @@ window.BENCHMARK_DATA = {
             "value": 134.3,
             "unit": "ns/op",
             "extra": "8908846 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "6976a373a2b24fcd3963a29a4430a4658b7ad363",
+          "message": "refactor: websocket messaging server",
+          "timestamp": "2025-10-04T11:52:20+02:00",
+          "tree_id": "28a331a18d8098f23fe6c7a534869816a0f63160",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/6976a373a2b24fcd3963a29a4430a4658b7ad363"
+        },
+        "date": 1759571566231,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9349,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.74,
+            "unit": "ns/op",
+            "extra": "16480438 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.7,
+            "unit": "ns/op",
+            "extra": "8906092 times\n4 procs"
           }
         ]
       }
