@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759571566596,
+  "lastUpdate": 1759571694202,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4406,6 +4406,48 @@ window.BENCHMARK_DATA = {
             "value": 134.7,
             "unit": "ns/op",
             "extra": "8906092 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "ecb26330bcd77178d6dfde30e734c3816b968da5",
+          "message": "chore: rename HTTP command server",
+          "timestamp": "2025-10-04T11:54:24+02:00",
+          "tree_id": "1a875587372f94a1fcd70269b463534e12ff2190",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/ecb26330bcd77178d6dfde30e734c3816b968da5"
+        },
+        "date": 1759571693765,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.963,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.76,
+            "unit": "ns/op",
+            "extra": "16511890 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.5,
+            "unit": "ns/op",
+            "extra": "8938851 times\n4 procs"
           }
         ]
       }
