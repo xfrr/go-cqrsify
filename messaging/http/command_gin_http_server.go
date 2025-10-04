@@ -6,24 +6,24 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type GINCommandServer struct {
+type CommandGINServer struct {
 	cfg    ServerConfig
 	h      *MessageHandler
 	srv    *http.Server
 	engine *gin.Engine
 }
 
-// NewGINCommandServer creates a new CommandHTTPServer with the given CommandBus and options.
-func NewGINCommandServer(handler *CommandHandler, engine *gin.Engine, opts ...ServerOption) *GINCommandServer {
+// NewCommandGINServer creates a new CommandHTTPServer with the given CommandBus and options.
+func NewCommandGINServer(handler *CommandHandler, engine *gin.Engine, opts ...ServerOption) *CommandGINServer {
 	cfg := new(ServerConfig)
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
-	return &GINCommandServer{h: handler, cfg: *cfg, engine: engine}
+	return &CommandGINServer{h: handler, cfg: *cfg, engine: engine}
 }
 
-func (s *GINCommandServer) ListenAndServe(addr string) error {
+func (s *CommandGINServer) ListenAndServe(addr string) error {
 	s.engine.POST("/commands", gin.WrapH(s.h))
 
 	s.srv = &http.Server{
@@ -38,7 +38,7 @@ func (s *GINCommandServer) ListenAndServe(addr string) error {
 	return s.srv.ListenAndServe()
 }
 
-func (s *GINCommandServer) Close() error {
+func (s *CommandGINServer) Close() error {
 	if s.srv != nil {
 		return s.srv.Close()
 	}
