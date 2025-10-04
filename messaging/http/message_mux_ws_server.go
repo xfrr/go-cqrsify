@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/xfrr/go-cqrsify/messaging"
 )
 
 const (
@@ -23,26 +22,18 @@ const (
 	maxMessageSize = 5120 // 5KB
 )
 
-// MessageWebsocketServer allows receiving Messages over WebSocket connections
+// MessageMUXWebsocketServer allows receiving Messages over WebSocket connections
 // and dispatching them to a MessagePublisher (e.g., CommandBus or EventBus).
-type MessageWebsocketServer struct {
+type MessageMUXWebsocketServer struct {
 	handler      *MessageHandler
 	upgrader     websocket.Upgrader
 	errorHandler func(error)
 }
 
-type MessageWebsocketServerOption func(*MessageWebsocketServer)
-
-// WithWebsocketErrorHandler sets a custom error handler for websocket errors.
-func WithWebsocketErrorHandler(h func(error)) MessageWebsocketServerOption {
-	return func(s *MessageWebsocketServer) {
-		s.errorHandler = h
-	}
-}
-
-// NewMessageWebsocketServer creates a new MessageWebsocketServer with the given MessagePublisher and options.
-func NewMessageWebsocketServer(publisher messaging.MessagePublisher, handler *MessageHandler) *MessageWebsocketServer {
-	return &MessageWebsocketServer{
+// NewMUXMessageWebsocketServer creates a new MessageWebsocketServer
+// with the given MessagePublisher and options.
+func NewMUXMessageWebsocketServer(handler *MessageHandler) *MessageMUXWebsocketServer {
+	return &MessageMUXWebsocketServer{
 		handler: handler,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  defaultReadBufferSize,
@@ -55,7 +46,7 @@ func NewMessageWebsocketServer(publisher messaging.MessagePublisher, handler *Me
 }
 
 // ServeHTTP implements http.Handler.
-func (s *MessageWebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *MessageMUXWebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -67,12 +58,12 @@ func (s *MessageWebsocketServer) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	go s.writePump(conn)
 }
 
-func (s *MessageWebsocketServer) Close() error {
+func (s *MessageMUXWebsocketServer) Close() error {
 	// No persistent resources to close in this implementation
 	return nil
 }
 
-func (s *MessageWebsocketServer) readPump(conn *websocket.Conn, w http.ResponseWriter, r *http.Request) {
+func (s *MessageMUXWebsocketServer) readPump(conn *websocket.Conn, w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		closeErr := conn.Close()
 		if closeErr != nil {
@@ -103,7 +94,7 @@ func (s *MessageWebsocketServer) readPump(conn *websocket.Conn, w http.ResponseW
 	}
 }
 
-func (s *MessageWebsocketServer) writePump(conn *websocket.Conn) {
+func (s *MessageMUXWebsocketServer) writePump(conn *websocket.Conn) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()

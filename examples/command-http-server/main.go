@@ -78,7 +78,7 @@ func main() {
 
 	// Create HTTP Command Server
 	cmdServer := messaginghttp.NewGINCommandServer(cmdbusHandler, r)
-	wsServer := messaginghttp.NewCommandWebsocketServer(cmdbus, cmdbusHandler)
+	wsServer := messaginghttp.NewMUXCommandWebsocketServer(cmdbusHandler)
 	r.Any("/ws/commands", gin.WrapH(wsServer))
 
 	// Start HTTP Command Server
