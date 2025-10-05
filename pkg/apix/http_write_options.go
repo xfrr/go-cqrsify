@@ -56,7 +56,12 @@ func (o *WriteOptions) apply(opts ...WriteOption) {
 			if k != "" && v != "" {
 				// Avoid overwriting standard headers
 				switch k {
-				case "Content-Type", "Cache-Control", "Last-Modified", "ETag", "Vary":
+				case ContentTypeHeaderKey,
+					CacheControlHeaderKey,
+					LastModifiedHeaderKey,
+					ETagHeaderKey,
+					VaryHeaderKey,
+					IfModifiedSinceHeaderKey:
 				default:
 					// Custom header
 					o.Headers[k] = v

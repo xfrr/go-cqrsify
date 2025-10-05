@@ -17,6 +17,7 @@ const (
 	ContentTypeJSONAPI     ContentType = "application/vnd.api+json"
 	ContentTypeProblemJSON ContentType = "application/problem+json"
 	ContentTypeMergePatch  ContentType = "application/merge-patch+json"
+	ContentTypeJSON        ContentType = "application/json"
 )
 
 // Links models top-level or relationship links as per JSON:API.
