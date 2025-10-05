@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759571694202,
+  "lastUpdate": 1759656771213,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4448,6 +4448,48 @@ window.BENCHMARK_DATA = {
             "value": 134.5,
             "unit": "ns/op",
             "extra": "8938851 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "925aca63ecd40f9df80d2df2168a82e4e14a0cea",
+          "message": "chore: update Go version to 1.25.1",
+          "timestamp": "2025-10-05T11:32:20+02:00",
+          "tree_id": "148d959ea3b96645ddeca4730a38a4b9eef58746",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/925aca63ecd40f9df80d2df2168a82e4e14a0cea"
+        },
+        "date": 1759656770588,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9409,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.78,
+            "unit": "ns/op",
+            "extra": "16518096 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.1,
+            "unit": "ns/op",
+            "extra": "8895622 times\n4 procs"
           }
         ]
       }
