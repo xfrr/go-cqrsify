@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759656771213,
+  "lastUpdate": 1759658884948,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4490,6 +4490,48 @@ window.BENCHMARK_DATA = {
             "value": 134.1,
             "unit": "ns/op",
             "extra": "8895622 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "a580d5fdb05e9023d0d354797c511ca028130187",
+          "message": "test: add apix unit tests",
+          "timestamp": "2025-10-05T12:07:35+02:00",
+          "tree_id": "3f497f14aa1df5fac7f93a00f6ed4819e66282e4",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/a580d5fdb05e9023d0d354797c511ca028130187"
+        },
+        "date": 1759658884551,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9361,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.76,
+            "unit": "ns/op",
+            "extra": "16479214 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 141.6,
+            "unit": "ns/op",
+            "extra": "8471574 times\n4 procs"
           }
         ]
       }
