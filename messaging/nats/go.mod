@@ -1,6 +1,6 @@
 module github.com/xfrr/go-cqrsify/messaging/nats
 
-go 1.25.0
+go 1.25.1
 
 require github.com/nats-io/nats.go v1.46.0
 
