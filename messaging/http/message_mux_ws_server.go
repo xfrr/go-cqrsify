@@ -30,9 +30,9 @@ type MessageMUXWebsocketServer struct {
 	errorHandler func(error)
 }
 
-// NewMUXMessageWebsocketServer creates a new MessageWebsocketServer
+// NewMessageWebsocketServer creates a new MessageWebsocketServer
 // with the given MessagePublisher and options.
-func NewMUXMessageWebsocketServer(handler *MessageHandler) *MessageMUXWebsocketServer {
+func NewMessageWebsocketServer(handler *MessageHandler) *MessageMUXWebsocketServer {
 	return &MessageMUXWebsocketServer{
 		handler: handler,
 		upgrader: websocket.Upgrader{
