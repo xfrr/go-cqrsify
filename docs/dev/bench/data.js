@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1759658884948,
+  "lastUpdate": 1760747785362,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4532,6 +4532,48 @@ window.BENCHMARK_DATA = {
             "value": 141.6,
             "unit": "ns/op",
             "extra": "8471574 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "dfe1d5d89bcb0cf118d34577f1add6c5a01964cb",
+          "message": "chore: upgrade deps",
+          "timestamp": "2025-10-18T02:35:36+02:00",
+          "tree_id": "b3ed6c2a5cb2359fb0b92424aca7065038c092c5",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/dfe1d5d89bcb0cf118d34577f1add6c5a01964cb"
+        },
+        "date": 1760747784728,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6234,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.06,
+            "unit": "ns/op",
+            "extra": "16437763 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.1,
+            "unit": "ns/op",
+            "extra": "8930707 times\n4 procs"
           }
         ]
       }
