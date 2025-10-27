@@ -8,10 +8,12 @@ type MessageBus interface {
 }
 
 // MessagePublisher is an interface for publishing messages to an message bus.
+//
+//go:generate moq -pkg messagingmock -out mock/message_publisher.go . MessagePublisher:MessagePublisher
 type MessagePublisher interface {
 	// Publish emits one or more messages. Implementations should provide at-least-once delivery semantics
 	// unless otherwise documented.
-	Publish(ctx context.Context, msg ...Message) error
+	Publish(ctx context.Context, messages ...Message) error
 }
 
 // MessageSubscriber is an interface for subscribing to messages from an message bus.

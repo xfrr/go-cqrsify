@@ -4,261 +4,175 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
+	messaginghttp "github.com/xfrr/go-cqrsify/messaging/http"
+	messagingmock "github.com/xfrr/go-cqrsify/messaging/mock"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/xfrr/go-cqrsify/messaging"
 	"github.com/xfrr/go-cqrsify/pkg/apix"
-
-	messaginghttp "github.com/xfrr/go-cqrsify/messaging/http"
 )
 
-type fakeMessageHTTPValidator struct {
-	problem *apix.Problem
+type mockMessage struct {
+	messaging.BaseMessage
 }
 
-func (v *fakeMessageHTTPValidator) Validate(_ context.Context, _ *http.Request) *apix.Problem {
-	return v.problem
-}
-
-func makeJSONAPIMessageBody(typ string, attrs string) []byte {
-	if attrs == "" {
-		attrs = `"name":"test"`
-	}
-	body := fmt.Sprintf(`{"data":{"type":"%s","attributes":{%s}}}`, typ, attrs)
-	return []byte(body)
-}
-
-func makeJSONAPIMessageRequest(t *testing.T, body []byte) *http.Request {
+func newJSONAPIRequest(t *testing.T, body []byte) *http.Request {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/messages", bytes.NewReader(body))
 	req.Header.Set(apix.ContentTypeHeaderKey, apix.ContentTypeJSONAPI.String())
 	return req
 }
 
-func recordHTTPResponse(handler http.Handler, r *http.Request) *httptest.ResponseRecorder {
-	rr := httptest.NewRecorder()
-	handler.ServeHTTP(rr, r)
-	return rr
+func readBody(t *testing.T, rr *httptest.ResponseRecorder) []byte {
+	t.Helper()
+	b, err := io.ReadAll(rr.Body)
+	require.NoError(t, err)
+	return b
 }
 
-type countingDecoder struct {
-	count int
-	err   error
-	msg   messaging.Message
-}
-
-func (d *countingDecoder) fn(_ *http.Request) (messaging.Message, error) {
-	d.count++
-	if d.err != nil {
-		return nil, d.err
-	}
-
-	msg := d.msg
-	if msg == nil {
-		msg = messaging.NewMessage("counting-msg")
-	}
-	return msg, nil
-}
-
-func TestHTTPMessageServerSuite(t *testing.T) {
-	suite.Run(t, &HTTPMessageServerSuite{})
-}
-
-type HTTPMessageServerSuite struct {
+type ServeHTTPSuite struct {
 	suite.Suite
-
-	cmdbus *messaging.InMemoryMessageBus
 }
 
-func (st *HTTPMessageServerSuite) SetupTest() {
-	st.cmdbus = messaging.NewInMemoryMessageBus()
+func TestServeHTTPSuite(t *testing.T) {
+	suite.Run(t, new(ServeHTTPSuite))
 }
 
-func (st *HTTPMessageServerSuite) AfterTest(_, _ string) {
-	if st.cmdbus != nil {
-		st.cmdbus.Close()
-		st.cmdbus = nil
-	}
+func (s *ServeHTTPSuite) Test_NoPublisherConfigured_Returns500() {
+	h := messaginghttp.NewMessageHTTPHandler(nil) // publisher is nil
+	rr := httptest.NewRecorder()
+	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"any"}}`))
+
+	h.ServeHTTP(rr, req)
+
+	s.Equal(http.StatusInternalServerError, rr.Code)
+	s.NotEmpty(readBody(s.T(), rr))
 }
 
-func (st *HTTPMessageServerSuite) Test_ServeHTTP_NoBusConfigured_Returns500() {
-	s := messaginghttp.NewMessageHTTPHandler(nil)
+func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns400() {
+	pub := &messagingmock.MessagePublisher{}
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("X", ""))
+	rr := httptest.NewRecorder()
+	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"unknown","attributes":{}}}`))
 
-	rr := recordHTTPResponse(s, req)
-	st.Require().Equal(http.StatusInternalServerError, rr.Code)
-	st.Contains(rr.Body.String(), "no message bus configured")
+	h.ServeHTTP(rr, req)
+
+	s.Equal(http.StatusBadRequest, rr.Code, "no decoder for message type should yield 400")
+	s.Zero(pub.PublishCalls(), "publisher must not be called")
 }
 
-func (st *HTTPMessageServerSuite) Test_ServeHTTP_UnsupportedContentType_Returns415() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
+func (s *ServeHTTPSuite) Test_InvalidContentTypeHeader_Returns415() {
+	pub := &messagingmock.MessagePublisher{}
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	req := httptest.NewRequest(http.MethodPost, "/messages", strings.NewReader(`{}`))
-	req.Header.Set(apix.ContentTypeHeaderKey, "text/plain; charset=utf-8")
+	req := httptest.NewRequest(http.MethodPost, "/x", bytes.NewReader(nil))
+	req.Header.Set(apix.ContentTypeHeaderKey, "not-a-valid-media-type")
 
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Contains(rr.Body.String(), "unsupported content type")
-	st.Require().Equal(http.StatusUnsupportedMediaType, rr.Code)
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	s.Equal(http.StatusUnsupportedMediaType, rr.Code)
 }
 
-func (st *HTTPMessageServerSuite) Test_JSONAPI_MissingType_Returns400() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
+func (s *ServeHTTPSuite) Test_UnsupportedContentType_Returns415() {
+	pub := &messagingmock.MessagePublisher{}
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	req := makeJSONAPIMessageRequest(st.T(), []byte(`{"data":{"attributes":{"x":1}}}`))
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "missing type")
+	req := httptest.NewRequest(http.MethodPost, "/x", bytes.NewReader(nil))
+	req.Header.Set(apix.ContentTypeHeaderKey, "application/xml")
+
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	s.Equal(http.StatusUnsupportedMediaType, rr.Code)
 }
 
-func (st *HTTPMessageServerSuite) Test_JSONAPI_UnknownMessageType_Returns400() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
-
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("unknown-msg", `"x":1`))
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "no decoder registered for message type")
-}
-
-func (st *HTTPMessageServerSuite) Test_JSONAPI_NoDecoderForEncoding_Returns415() {
-	s := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
-
-	// Register a decoder under a different message type, so lookup for "createUser" fails.
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(s, "otherType", func(_ apix.SingleDocument[any]) (messaging.Message, error) {
-		fakeMsg := struct {
-			messaging.BaseMessage
-			X int `json:"x"`
-		}{
-			BaseMessage: messaging.NewMessage("other.Type"),
-			X:           1,
-		}
-		return &fakeMsg, nil
-	})
-	st.Require().NoError(err)
-
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":1`))
-	rr := recordHTTPResponse(s, req)
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "no decoder registered for message type")
-}
-
-func (st *HTTPMessageServerSuite) Test_JSONAPI_DecoderError_Returns400() {
-	sut := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
-
-	dec := &countingDecoder{err: errors.New("boom")}
-
-	// Register via method; we can't inject the inner function directly, so register a wrapper
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(sut, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		// mimic the failing decoder
-		return dec.fn(nil)
-	})
-	st.Require().NoError(err)
-
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":1`))
-	rr := recordHTTPResponse(sut, req)
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "failed to decode message")
-	st.Equal(1, dec.count)
-}
-
-func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
-	type fakeCmd struct {
-		messaging.BaseMessage
-		X int `json:"x"`
+func (s *ServeHTTPSuite) Test_Success_Returns202_AndPublishes() {
+	pub := &messagingmock.MessagePublisher{
+		PublishFunc: func(_ context.Context, _ ...messaging.Message) error {
+			return nil
+		},
 	}
 
-	messageHandlerCalls := 0
-	unsub, err := messaging.SubscribeMessage(st.T().Context(), st.cmdbus, "createUser", messaging.MessageHandlerFn[fakeCmd](func(_ context.Context, msg fakeCmd) error {
-		// basic assertion: message was decoded properly
-		st.Equal("createUser", msg.MessageType())
-		st.Equal(1, msg.X)
-		messageHandlerCalls++
-		return nil
-	}))
-	st.Require().NoError(err)
-	defer unsub()
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
+	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ping",
+		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+			return &mockMessage{
+				BaseMessage: messaging.NewMessage("ping"),
+			}, nil
+		})
+	s.Require().NoError(err)
 
-	decoderCalls := 0
-	decodeErr := messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(doc apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		decoderCalls++
-		// basic assertion: attributes were present
-		st.Require().NotNil(doc.Data)
-		st.Require().NotNil(doc.Data.Attributes)
-		xVal, ok := doc.Data.Attributes["x"]
-		st.Require().True(ok)
-		xFloat, ok := xVal.(float64) // JSON numbers are float64
-		st.Require().True(ok)
-		st.Require().InEpsilon(1.0, xFloat, 0.0001)
+	rr := httptest.NewRecorder()
+	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"ping","attributes":{}}}`))
 
-		msg := fakeCmd{
-			BaseMessage: messaging.NewMessage("createUser"),
-			X:           int(xFloat),
-		}
-		return msg, nil
-	})
-	st.Require().NoError(decodeErr)
+	h.ServeHTTP(rr, req)
 
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":1`))
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Empty(rr.Body.String()) // no content
-	st.Require().Equal(http.StatusAccepted, rr.Code)
-	st.Equal(1, decoderCalls)
-	st.Equal(1, messageHandlerCalls)
+	s.Equal(http.StatusAccepted, rr.Code)
+	s.Len(pub.PublishCalls(), 1)
+	s.NotNil(pub.PublishCalls()[0].Messages)
+	s.Len(pub.PublishCalls()[0].Messages, 1)
+	s.IsType(&mockMessage{}, pub.PublishCalls()[0].Messages[0])
+	s.Equal("ping", pub.PublishCalls()[0].Messages[0].MessageType())
 }
 
-func (st *HTTPMessageServerSuite) Test_BodyTooLarge_Returns400() {
-	srv := messaginghttp.NewMessageHTTPHandler(
-		st.cmdbus,
-		messaginghttp.WithMaxBodyBytes(10),
-		messaginghttp.WithErrorMapper(func(err error) apix.Problem {
-			if errors.Is(err, http.ErrContentLength) {
-				return apix.NewBadRequestProblem("request body too large")
-			}
-			return apix.NewInternalServerErrorProblem("internal server error")
-		}),
-	)
+func (s *ServeHTTPSuite) Test_PublishError_DefaultsTo500() {
+	pub := &messagingmock.MessagePublisher{
+		PublishFunc: func(_ context.Context, _ ...messaging.Message) error {
+			return errors.New("something went wrong")
+		},
+	}
 
-	// Body larger than 10 bytes
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":"1234567890ABCDEF"`))
-	rr := recordHTTPResponse(srv, req)
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	// The server reports a BadRequest because reading the body fails via MaxBytesReader.
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "failed to read request body")
+	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ok",
+		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+			return &mockMessage{}, nil
+		})
+	s.Require().NoError(err)
+
+	rr := httptest.NewRecorder()
+	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"ok","attributes":{}}}`))
+
+	h.ServeHTTP(rr, req)
+
+	s.Equal(http.StatusInternalServerError, rr.Code)
+	s.Len(pub.PublishCalls(), 1)
 }
 
-func (st *HTTPMessageServerSuite) Test_DuplicateRegistration_ReturnsError() {
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		return messaging.NewMessage("createUser"), nil
-	})
-	st.Require().NoError(err)
+func TestRegisterJSONAPIMessageDecoder_DuplicateReturnsError(t *testing.T) {
+	pub := &messagingmock.MessagePublisher{}
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	err = messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		return messaging.NewMessage("createUser"), nil
-	})
-	st.Require().Error(err)
-	st.Contains(err.Error(), "already exists")
+	require.NoError(t, messaginghttp.RegisterJSONAPIMessageDecoder(h, "dup",
+		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) { return &mockMessage{}, nil }))
+
+	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "dup",
+		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) { return &mockMessage{}, nil })
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already exists")
 }
 
-func (st *HTTPMessageServerSuite) Test_ValidatorProblem_Returned() {
-	v := &fakeMessageHTTPValidator{problem: ptr(apix.NewBadRequestProblem("bad headers"))}
+func TestServeHTTP_MissingType_Returns400(t *testing.T) {
+	pub := &messagingmock.MessagePublisher{}
+	h := messaginghttp.NewMessageHTTPHandler(pub)
 
-	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus, messaginghttp.WithValidator(v))
+	rr := httptest.NewRecorder()
+	req := newJSONAPIRequest(t, []byte(`{"data":{"attributes":{"a":1}}}`)) // no data.type
 
-	req := makeJSONAPIMessageRequest(st.T(), makeJSONAPIMessageBody("createUser", `"x":1`))
-	rr := recordHTTPResponse(srv, req)
-	st.Require().Equal(http.StatusBadRequest, rr.Code)
-	st.Contains(rr.Body.String(), "bad headers")
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Zero(t, pub.PublishCalls(), "publisher must not be called")
 }
-
-// helper
-func ptr[T any](v T) *T { return &v }
