@@ -21,7 +21,7 @@ type BaseCommandModifier = baseMessageModifier
 // NewBaseCommand creates a new BaseCommand with the given name and payload.
 func NewBaseCommand(commandType string, modifiers ...BaseCommandModifier) BaseCommand {
 	return BaseCommand{
-		BaseMessage: NewBaseMessage(
+		BaseMessage: NewMessage(
 			commandType,
 			modifiers...,
 		),

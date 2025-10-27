@@ -65,7 +65,7 @@ func (b BaseMessage) MessageSource() string              { return b.source }
 func (b BaseMessage) MessageTimestamp() time.Time        { return b.timestamp }
 func (b BaseMessage) MessageMetadata() map[string]string { return b.metadata }
 
-func NewBaseMessage(msgType string, modifiers ...baseMessageModifier) BaseMessage {
+func NewMessage(msgType string, modifiers ...baseMessageModifier) BaseMessage {
 	b := BaseMessage{
 		_type:     msgType,
 		id:        "",

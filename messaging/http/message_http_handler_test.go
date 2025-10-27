@@ -61,7 +61,7 @@ func (d *countingDecoder) fn(_ *http.Request) (messaging.Message, error) {
 
 	msg := d.msg
 	if msg == nil {
-		msg = messaging.NewBaseMessage("counting-msg")
+		msg = messaging.NewMessage("counting-msg")
 	}
 	return msg, nil
 }
@@ -135,7 +135,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_NoDecoderForEncoding_Returns415()
 			messaging.BaseMessage
 			X int `json:"x"`
 		}{
-			BaseMessage: messaging.NewBaseMessage("other.Type"),
+			BaseMessage: messaging.NewMessage("other.Type"),
 			X:           1,
 		}
 		return &fakeMsg, nil
@@ -199,7 +199,7 @@ func (st *HTTPMessageServerSuite) Test_JSONAPI_HappyPath_Returns202() {
 		st.Require().InEpsilon(1.0, xFloat, 0.0001)
 
 		msg := fakeCmd{
-			BaseMessage: messaging.NewBaseMessage("createUser"),
+			BaseMessage: messaging.NewMessage("createUser"),
 			X:           int(xFloat),
 		}
 		return msg, nil
@@ -238,12 +238,12 @@ func (st *HTTPMessageServerSuite) Test_BodyTooLarge_Returns400() {
 func (st *HTTPMessageServerSuite) Test_DuplicateRegistration_ReturnsError() {
 	srv := messaginghttp.NewMessageHTTPHandler(st.cmdbus)
 	err := messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		return messaging.NewBaseMessage("createUser"), nil
+		return messaging.NewMessage("createUser"), nil
 	})
 	st.Require().NoError(err)
 
 	err = messaginghttp.RegisterJSONAPIMessageDecoder(srv, "createUser", func(_ apix.SingleDocument[map[string]any]) (messaging.Message, error) {
-		return messaging.NewBaseMessage("createUser"), nil
+		return messaging.NewMessage("createUser"), nil
 	})
 	st.Require().Error(err)
 	st.Contains(err.Error(), "already exists")

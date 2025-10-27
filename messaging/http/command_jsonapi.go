@@ -65,7 +65,7 @@ func CreateBaseCommandFromSingleDocument[A any](cmdType string, sd apix.SingleDo
 	}
 
 	return messaging.BaseCommand{
-		BaseMessage: messaging.NewBaseMessage(
+		BaseMessage: messaging.NewMessage(
 			cmdType,
 			messaging.WithID(sd.Data.ID),
 			messaging.WithMetadata(resourceMetadata),

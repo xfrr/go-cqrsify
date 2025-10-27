@@ -60,7 +60,7 @@ func (q BaseQuery) Reply(ctx context.Context, reply QueryReply) error {
 func NewBaseQuery(queryType string, modifiers ...BaseQueryModifier) BaseQuery {
 	return BaseQuery{
 		replyCh: make(chan Message, 1),
-		BaseMessage: NewBaseMessage(
+		BaseMessage: NewMessage(
 			queryType,
 			modifiers...,
 		),
@@ -97,7 +97,7 @@ type BaseQueryReplyModifier = baseMessageModifier
 // NewBaseQueryReply creates a new BaseQueryReply with the given name and payload.
 func NewBaseQueryReply(query Query, modifiers ...BaseQueryReplyModifier) BaseQueryReply {
 	return BaseQueryReply{
-		BaseMessage: NewBaseMessage(
+		BaseMessage: NewMessage(
 			query.MessageType()+".reply",
 			modifiers...,
 		),

@@ -51,7 +51,7 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 				},
 			},
 			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewBaseMessage("createUser",
+				BaseMessage: messaging.NewMessage("createUser",
 					messaging.WithID("123e4567-e89b-12d3-a456-426614174000"),
 					messaging.WithSchema("testSchema"),
 					messaging.WithSource("testSource"),
@@ -89,7 +89,7 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 				},
 			},
 			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewBaseMessage("updateUser",
+				BaseMessage: messaging.NewMessage("updateUser",
 					messaging.WithID("223e4567-e89b-12d3-a456-426614174001"),
 					messaging.WithSchema("resourceSchema"),
 					messaging.WithSource("resourceSource"),
@@ -134,7 +134,7 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 				},
 			},
 			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewBaseMessage("deleteUser",
+				BaseMessage: messaging.NewMessage("deleteUser",
 					messaging.WithID("323e4567-e89b-12d3-a456-426614174002"),
 					messaging.WithTimestamp(time.Now()), // Approximate, will be checked in test
 					messaging.WithMetadata(map[string]string{
@@ -168,7 +168,7 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 				},
 			},
 			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewBaseMessage("simpleCommand"),
+				BaseMessage: messaging.NewMessage("simpleCommand"),
 			},
 		},
 	}

@@ -21,7 +21,7 @@ type BaseEventModifier = baseMessageModifier
 // NewBaseEvent creates a new BaseEvent with the given name and payload.
 func NewBaseEvent(eventType string, modifiers ...BaseEventModifier) BaseEvent {
 	return BaseEvent{
-		BaseMessage: NewBaseMessage(
+		BaseMessage: NewMessage(
 			eventType,
 			modifiers...,
 		),
