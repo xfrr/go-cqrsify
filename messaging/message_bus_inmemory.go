@@ -86,25 +86,40 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 		for _, h := range handlers {
 			if b.queue == nil {
 				// Synchronous inline dispatch
-				if err := b.wrap(h).Handle(ctx, msg); err != nil {
-					if b.opts.ErrorHandler != nil {
-						b.opts.ErrorHandler(msg.MessageType(), err)
-					} else {
-						return err
-					}
+				if err := b.deliverSync(ctx, h, msg); err != nil {
+					return err
 				}
 				continue
 			}
+
 			// Async: enqueue delivery (non-blocking if buffered; otherwise may block).
-			select {
-			case b.queue <- queued{ctx: ctx, msg: msg, h: h}:
-			case <-ctx.Done():
-				return ctx.Err()
+			if err := b.enqueue(ctx, h, msg); err != nil {
+				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func (b *InMemoryMessageBus) deliverSync(ctx context.Context, h MessageHandler[Message], msg Message) error {
+	if err := b.wrap(h).Handle(ctx, msg); err != nil {
+		if b.opts.ErrorHandler != nil {
+			b.opts.ErrorHandler(msg.MessageType(), err)
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (b *InMemoryMessageBus) enqueue(ctx context.Context, h MessageHandler[Message], msg Message) error {
+	select {
+	case b.queue <- queued{ctx: ctx, msg: msg, h: h}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h MessageHandler[Message]) (UnsubscribeFunc, error) {

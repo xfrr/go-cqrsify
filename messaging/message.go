@@ -65,7 +65,7 @@ func (b BaseMessage) MessageSource() string              { return b.source }
 func (b BaseMessage) MessageTimestamp() time.Time        { return b.timestamp }
 func (b BaseMessage) MessageMetadata() map[string]string { return b.metadata }
 
-func NewMessage(msgType string, modifiers ...baseMessageModifier) BaseMessage {
+func NewMessage(msgType string, modifiers ...BaseMessageModifier) BaseMessage {
 	b := BaseMessage{
 		_type:     msgType,
 		id:        "",
@@ -74,7 +74,6 @@ func NewMessage(msgType string, modifiers ...baseMessageModifier) BaseMessage {
 		timestamp: time.Now().UTC(),
 		metadata:  map[string]string{},
 	}
-
 	for _, o := range modifiers {
 		o(&b)
 	}

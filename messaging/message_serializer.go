@@ -13,7 +13,7 @@ type JSONMessage[P any] struct {
 	ID        string            `json:"id"`
 	Type      string            `json:"type"`
 	Source    string            `json:"source,omitempty"`
-	SchemaURI string            `json:"schema_uri,omitempty"`
+	SchemaURI string            `json:"schemaUri,omitempty"`
 	Payload   P                 `json:"payload"`
 	Timestamp time.Time         `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata,omitempty"`

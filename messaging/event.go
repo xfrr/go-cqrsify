@@ -16,7 +16,7 @@ func (e BaseEvent) EventID() string {
 	return e.id
 }
 
-type BaseEventModifier = baseMessageModifier
+type BaseEventModifier = BaseMessageModifier
 
 // NewBaseEvent creates a new BaseEvent with the given name and payload.
 func NewBaseEvent(eventType string, modifiers ...BaseEventModifier) BaseEvent {

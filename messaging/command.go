@@ -16,7 +16,7 @@ func (c BaseCommand) CommandID() string {
 	return c.id
 }
 
-type BaseCommandModifier = baseMessageModifier
+type BaseCommandModifier = BaseMessageModifier
 
 // NewBaseCommand creates a new BaseCommand with the given name and payload.
 func NewBaseCommand(commandType string, modifiers ...BaseCommandModifier) BaseCommand {

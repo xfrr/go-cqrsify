@@ -15,7 +15,7 @@ type Query interface {
 	Reply(ctx context.Context, reply QueryReply) error
 }
 
-type BaseQueryModifier = baseMessageModifier
+type BaseQueryModifier = BaseMessageModifier
 
 func WithQueryID(queryID string) BaseQueryModifier {
 	return func(b *BaseMessage) {
@@ -92,7 +92,7 @@ type BaseQueryReply struct {
 	BaseMessage
 }
 
-type BaseQueryReplyModifier = baseMessageModifier
+type BaseQueryReplyModifier = BaseMessageModifier
 
 // NewBaseQueryReply creates a new BaseQueryReply with the given name and payload.
 func NewBaseQueryReply(query Query, modifiers ...BaseQueryReplyModifier) BaseQueryReply {
