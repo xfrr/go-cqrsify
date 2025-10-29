@@ -1,6 +1,8 @@
 package messaginghttp
 
-import "github.com/xfrr/go-cqrsify/pkg/apix"
+import (
+	"github.com/xfrr/go-cqrsify/pkg/apix"
+)
 
 type HTTPMessageServerOption func(*MessageHandler)
 
@@ -16,5 +18,10 @@ func WithMaxBodyBytes(n int64) HTTPMessageServerOption {
 
 // WithValidator sets the HTTP request validator (required).
 func WithValidator(validator apix.HTTPRequestValidator) HTTPMessageServerOption {
-	return func(s *MessageHandler) { s.validator = validator }
+	return func(s *MessageHandler) { s.messageValidator = validator }
+}
+
+// WithDecoderRegistry sets the decoder registry to use.
+func WithDecoderRegistry(registry *MessageDecoderRegistry) HTTPMessageServerOption {
+	return func(s *MessageHandler) { s.decoderRegistry = registry }
 }

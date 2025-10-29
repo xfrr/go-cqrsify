@@ -2,6 +2,7 @@ package messaginghttp
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -25,30 +26,31 @@ const (
 
 // MessageHandler is an HTTP server for receiving messages.
 type MessageHandler struct {
-	validator   apix.HTTPRequestValidator
+	// errorMapper maps handler errors to HTTP Problems.
 	errorMapper func(error) apix.Problem
 
-	// decoders: messageType -> encoding -> decode
-	decoders map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)
+	// decoderRegistry: messageType -> encoding -> decode
+	decoderRegistry *MessageDecoderRegistry
 
+	// messagePublisher is the message bus used to publish messages.
 	messagePublisher messaging.MessagePublisher
-	allowEncodings   map[HTTPMessageEncoding]struct{}
+
+	// messageValidator validates incoming HTTP requests.
+	messageValidator apix.HTTPRequestValidator
 
 	// maxBodyBytes is the maximum allowed request body size in bytes.
 	// If zero or negative, no limit is applied.
 	maxBodyBytes int64
 }
 
-// NewMessageHTTPHandler creates a new HTTPMessageServer with the given MessageBus and options.
-// If no decoders are registered, the server will return 500 Internal Server Error.
-func NewMessageHTTPHandler(msgPublisher messaging.MessagePublisher, opts ...HTTPMessageServerOption) *MessageHandler {
+// NewMessageHandler creates a new MessageHandler with the given MessagePublisher and options.
+func NewMessageHandler(msgPublisher messaging.MessagePublisher, opts ...HTTPMessageServerOption) *MessageHandler {
 	s := &MessageHandler{
 		messagePublisher: msgPublisher,
 		maxBodyBytes:     defaultMaxBodyBytes,
 		errorMapper:      nil,
-		validator:        nil,
-		decoders:         make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error)),
-		allowEncodings:   map[HTTPMessageEncoding]struct{}{HTTPMessageEncodingJSONAPI: {}},
+		messageValidator: nil,
+		decoderRegistry:  NewMessageDecoderRegistry(),
 	}
 	for _, o := range opts {
 		o(s)
@@ -68,8 +70,8 @@ func (handler *MessageHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 	defer r.Body.Close()
 
-	if handler.validator != nil {
-		if problem := handler.validator.Validate(r.Context(), r); problem != nil {
+	if handler.messageValidator != nil {
+		if problem := handler.messageValidator.Validate(r.Context(), r); problem != nil {
 			apix.WriteProblem(w, *problem)
 			return
 		}
@@ -98,7 +100,7 @@ func (handler *MessageHandler) handleDispatchError(w http.ResponseWriter, err er
 }
 
 func (handler *MessageHandler) decodeMessageFromHTTPRequest(r *http.Request) (messaging.Message, *apix.Problem) {
-	if handler.decoders == nil {
+	if handler.decoderRegistry == nil {
 		problem := apix.NewInternalServerErrorProblem("no message decoders configured")
 		return nil, &problem
 	}
@@ -148,22 +150,25 @@ func (handler *MessageHandler) decodeJSONAPIMessage(r *http.Request, encoding HT
 		return nil, &problem
 	}
 
-	msgDecoders, ok := handler.decoders[msgType]
-	if !ok {
-		problem := apix.NewBadRequestProblem(fmt.Sprintf("no decoder registered for message type: %s", msgType))
-		return nil, &problem
-	}
-
-	decodeFunc, ok := msgDecoders[encoding]
-	if !ok {
-		problem := apix.NewUnsupportedMediaTypeProblem(fmt.Sprintf("no decoder registered for message type %q and encoding %q", msgType, encoding))
-		return nil, &problem
+	decoder, err := handler.decoderRegistry.Get(msgType, encoding)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrMessageDecoderNotFoundForType):
+			problem := apix.NewBadRequestProblem(fmt.Sprintf("no decoder registered for message type: %s", msgType))
+			return nil, &problem
+		case errors.Is(err, ErrMessageDecoderNotFoundForEncoding):
+			problem := apix.NewUnsupportedMediaTypeProblem(fmt.Sprintf("no decoder registered for message type %q and encoding %q", msgType, encoding))
+			return nil, &problem
+		default:
+			problem := apix.NewInternalServerErrorProblem(fmt.Sprintf("failed to get decoder for message type %q and encoding %q: %v", msgType, encoding, err))
+			return nil, &problem
+		}
 	}
 
 	// Ensure the decoder sees the same body
 	r.Body = io.NopCloser(bytes.NewReader(body))
 
-	msg, err := decodeFunc(r)
+	msg, err := decoder(r)
 	if err != nil {
 		problem := apix.NewBadRequestProblem(fmt.Sprintf("failed to decode message %q: %v", msgType, err))
 		return nil, &problem
@@ -192,20 +197,9 @@ func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messagin
 // RegisterJSONAPIMessageDecoder registers a JSON:API message decoder for the given message type.
 // If a decoder for the same message type and encoding already exists, an error is returned.
 func RegisterJSONAPIMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Message, error)) error {
-	if handler.decoders == nil {
-		handler.decoders = make(map[string]map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
-	}
-
-	msgDecoders, ok := handler.decoders[msgType]
-	if !ok {
-		msgDecoders = make(map[HTTPMessageEncoding]func(*http.Request) (messaging.Message, error))
-		handler.decoders[msgType] = msgDecoders
-	}
-
-	if _, exists := msgDecoders[HTTPMessageEncodingJSONAPI]; exists {
-		return fmt.Errorf("message decoder for %q and encoding %q already exists", msgType, HTTPMessageEncodingJSONAPI)
-	}
-
-	msgDecoders[HTTPMessageEncodingJSONAPI] = makeMessageDecoder[A](decodeFunc)
-	return nil
+	return handler.decoderRegistry.Register(
+		msgType,
+		HTTPMessageEncodingJSONAPI,
+		makeMessageDecoder(decodeFunc),
+	)
 }

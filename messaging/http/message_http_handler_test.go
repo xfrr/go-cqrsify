@@ -47,7 +47,7 @@ func TestServeHTTPSuite(t *testing.T) {
 }
 
 func (s *ServeHTTPSuite) Test_NoPublisherConfigured_Returns500() {
-	h := messaginghttp.NewMessageHTTPHandler(nil) // publisher is nil
+	h := messaginghttp.NewMessageHandler(nil) // publisher is nil
 	rr := httptest.NewRecorder()
 	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"any"}}`))
 
@@ -59,7 +59,7 @@ func (s *ServeHTTPSuite) Test_NoPublisherConfigured_Returns500() {
 
 func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns400() {
 	pub := &messagingmock.MessagePublisher{}
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	rr := httptest.NewRecorder()
 	req := newJSONAPIRequest(s.T(), []byte(`{"data":{"type":"unknown","attributes":{}}}`))
@@ -72,7 +72,7 @@ func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns400() {
 
 func (s *ServeHTTPSuite) Test_InvalidContentTypeHeader_Returns415() {
 	pub := &messagingmock.MessagePublisher{}
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	req := httptest.NewRequest(http.MethodPost, "/x", bytes.NewReader(nil))
 	req.Header.Set(apix.ContentTypeHeaderKey, "not-a-valid-media-type")
@@ -85,7 +85,7 @@ func (s *ServeHTTPSuite) Test_InvalidContentTypeHeader_Returns415() {
 
 func (s *ServeHTTPSuite) Test_UnsupportedContentType_Returns415() {
 	pub := &messagingmock.MessagePublisher{}
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	req := httptest.NewRequest(http.MethodPost, "/x", bytes.NewReader(nil))
 	req.Header.Set(apix.ContentTypeHeaderKey, "application/xml")
@@ -103,7 +103,7 @@ func (s *ServeHTTPSuite) Test_Success_Returns202_AndPublishes() {
 		},
 	}
 
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ping",
 		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
@@ -133,7 +133,7 @@ func (s *ServeHTTPSuite) Test_PublishError_DefaultsTo500() {
 		},
 	}
 
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ok",
 		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
@@ -152,7 +152,7 @@ func (s *ServeHTTPSuite) Test_PublishError_DefaultsTo500() {
 
 func TestRegisterJSONAPIMessageDecoder_DuplicateReturnsError(t *testing.T) {
 	pub := &messagingmock.MessagePublisher{}
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	require.NoError(t, messaginghttp.RegisterJSONAPIMessageDecoder(h, "dup",
 		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) { return &mockMessage{}, nil }))
@@ -166,7 +166,7 @@ func TestRegisterJSONAPIMessageDecoder_DuplicateReturnsError(t *testing.T) {
 
 func TestServeHTTP_MissingType_Returns400(t *testing.T) {
 	pub := &messagingmock.MessagePublisher{}
-	h := messaginghttp.NewMessageHTTPHandler(pub)
+	h := messaginghttp.NewMessageHandler(pub)
 
 	rr := httptest.NewRecorder()
 	req := newJSONAPIRequest(t, []byte(`{"data":{"attributes":{"a":1}}}`)) // no data.type
