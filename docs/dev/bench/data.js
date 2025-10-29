@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1761605912926,
+  "lastUpdate": 1761780825068,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4616,6 +4616,48 @@ window.BENCHMARK_DATA = {
             "value": 133.8,
             "unit": "ns/op",
             "extra": "8950881 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "6960c729e56694f07c9498de52c5388067c9fc85",
+          "message": "chore: handle websocket server connections close gracefully",
+          "timestamp": "2025-10-30T00:33:11+01:00",
+          "tree_id": "172bdb4c3bb6b4f57e30a31f4503fb3f5b2b3859",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/6960c729e56694f07c9498de52c5388067c9fc85"
+        },
+        "date": 1761780824092,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6252,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.12,
+            "unit": "ns/op",
+            "extra": "16469031 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 133.7,
+            "unit": "ns/op",
+            "extra": "8859432 times\n4 procs"
           }
         ]
       }
