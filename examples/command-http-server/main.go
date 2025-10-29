@@ -59,9 +59,9 @@ func main() {
 	defer unsub()
 
 	// Create HTTP Command Bus HTTP Handler
-	cmdbusHandler := messaginghttp.NewCommandHandler(cmdbus)
+	cmdHandler := messaginghttp.NewCommandHandler(cmdbus)
 	messaginghttp.RegisterJSONAPICommandDecoder(
-		cmdbusHandler,
+		cmdHandler,
 		sampleCommandType,
 		func(sd apix.SingleDocument[sampleCommandAttributes]) (messaging.Command, error) {
 			cmd := sampleCommand{
@@ -77,18 +77,18 @@ func main() {
 	r.Use(gin.Recovery())
 
 	// Create HTTP Command Server
-	cmdServer := messaginghttp.NewCommandGINServer(cmdbusHandler, r)
-	wsServer := messaginghttp.NewCommandWebsocketServer(cmdbusHandler)
-	r.Any("/ws/commands", gin.WrapH(wsServer))
+	commandHTTPServer := messaginghttp.NewCommandGINServer(cmdHandler, r)
+	commandWSServer := messaginghttp.NewCommandWebsocketServer(cmdbus)
+	r.Any("/ws/commands", gin.WrapH(commandWSServer))
 
 	// Start HTTP Command Server
 	go func() {
-		_ = cmdServer.ListenAndServe(":8091")
+		_ = commandHTTPServer.ListenAndServe(":8091")
 	}()
 
 	defer func() {
-		_ = cmdServer.Close()
-		_ = wsServer.Close()
+		_ = commandHTTPServer.Close()
+		_ = commandWSServer.Close()
 	}()
 
 	fmt.Println("HTTP Command Server is running on :8091")

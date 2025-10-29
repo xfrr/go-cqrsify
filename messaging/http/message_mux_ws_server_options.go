@@ -1,10 +1,10 @@
 package messaginghttp
 
-type MessageWebsocketServerOption func(*MessageMUXWebsocketServer)
+type MessageWebsocketServerOption func(*MessageWebsocketServer)
 
 // WithWebsocketErrorHandler sets a custom error handler for websocket errors.
 func WithWebsocketErrorHandler(h func(error)) MessageWebsocketServerOption {
-	return func(s *MessageMUXWebsocketServer) {
+	return func(s *MessageWebsocketServer) {
 		s.errorHandler = h
 	}
 }
