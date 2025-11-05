@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1761780825068,
+  "lastUpdate": 1762386441589,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4658,6 +4658,48 @@ window.BENCHMARK_DATA = {
             "value": 133.7,
             "unit": "ns/op",
             "extra": "8859432 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "a72cdd8354734d44124e0b1d465c8a27ed4432f4",
+          "message": "refactor: enhance and simplify messaging components\n\n- Removed direct NATS connection usage from PubSubMessageBus and integrated PubSubMessagePublisher and PubSubMessageConsumer.\n- Introduced PubSubMessageConsumer and PubSubMessagePublisher for handling message consumption and publishing respectively.\n- Updated PubSubQueryBus to utilize the new publisher and consumer for query handling.\n- Simplified the message handling logic by removing unnecessary reply channels and integrating reply handling directly into the query handlers.\n- Removed deprecated stream configuration and subject builder files.\n- Updated tests to reflect changes in the query handling and message publishing logic.",
+          "timestamp": "2025-11-06T00:46:26+01:00",
+          "tree_id": "c6e08a6b30343b15532d4dd8863bba8d7147d261",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/a72cdd8354734d44124e0b1d465c8a27ed4432f4"
+        },
+        "date": 1762386440684,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6235,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 73.75,
+            "unit": "ns/op",
+            "extra": "16438285 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.8,
+            "unit": "ns/op",
+            "extra": "8862002 times\n4 procs"
           }
         ]
       }
