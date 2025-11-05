@@ -16,34 +16,32 @@ type JetstreamMessagePublisher struct {
 	js         jetstream.JetStream
 	streamName string
 
-	subjectBuilder SubjectBuilderFunc
-	serializer     messaging.MessageSerializer
-	deserializer   messaging.MessageDeserializer
-	cfg            JetStreamMessagePublisherConfig
+	serializer   messaging.MessageSerializer
+	deserializer messaging.MessageDeserializer
+	cfg          JetStreamMessagePublisherConfig
 }
 
 func NewJetStreamMessagePublisher(
-	_ context.Context,
 	conn *nats.Conn,
 	streamName string,
 	serializer messaging.MessageSerializer,
 	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessagePublisherOption,
+	opts ...JetstreamMessagePublisherConfiger,
 ) (*JetstreamMessagePublisher, error) {
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
 	}
 
-	options := NewJetStreamMessagePublisherConfig(opts...)
+	cfg := NewJetStreamMessagePublisherConfig(opts...)
 
 	p := &JetstreamMessagePublisher{
-		conn:           conn,
-		js:             js,
-		streamName:     streamName,
-		serializer:     serializer,
-		deserializer:   deserializer,
-		subjectBuilder: options.SubjectBuilder,
+		conn:         conn,
+		js:           js,
+		streamName:   streamName,
+		serializer:   serializer,
+		deserializer: deserializer,
+		cfg:          cfg,
 	}
 
 	return p, nil
@@ -67,7 +65,7 @@ func (p *JetstreamMessagePublisher) Publish(ctx context.Context, msg ...messagin
 			opts = append(opts, jetstream.WithMsgID(m.MessageID()))
 		}
 
-		subject := p.subjectBuilder(m)
+		subject := p.cfg.SubjectBuilder.Build(m)
 		_, err = p.js.Publish(ctx, subject, data, opts...)
 		if err != nil {
 			return err
@@ -79,13 +77,9 @@ func (p *JetstreamMessagePublisher) Publish(ctx context.Context, msg ...messagin
 
 // PublishRequest sends a request message and waits for a single reply.
 func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg messaging.Message) (messaging.Message, error) {
-	msgSubject := p.subjectBuilder(msg)
-	replySubject := fmt.Sprintf("%s.reply.%d", msgSubject, time.Now().UnixNano())
-	// If the message has a MessageID, use it to create a unique reply subject
-	// This helps in correlating replies in case of multiple requests
-	// being sent simultaneously
-	if msg.MessageID() != "" {
-		replySubject = fmt.Sprintf("%s.reply.%s", msgSubject, msg.MessageID())
+	msgSubject := p.cfg.SubjectBuilder.Build(msg)
+	if msgSubject == "" {
+		return nil, fmt.Errorf("no subject configured for message type '%s'", msg.MessageType())
 	}
 
 	// Publish the message with a header indicating the reply subject
@@ -94,12 +88,19 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 		return nil, fmt.Errorf("failed to serialize message: %w", err)
 	}
 
+	replySubject := p.cfg.ReplySubjectBuilder.Build(msg)
+	if replySubject == "" {
+		return nil, fmt.Errorf("no reply subject configured for message type '%s'", msg.MessageType())
+	}
+
+	headers := nats.Header{
+		replyHeaderKey: []string{replySubject},
+	}
+
 	jsMsg := &nats.Msg{
 		Subject: msgSubject,
 		Data:    data,
-		Header: nats.Header{
-			replyHeaderKey: []string{replySubject},
-		},
+		Header:  headers,
 	}
 
 	opts := []jetstream.PublishOpt{
@@ -122,7 +123,7 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 		Name:          consumerNameFromMessageType(msg.MessageType()) + fmt.Sprintf("_reply_%d", pubAck.Sequence),
 		DeliverPolicy: jetstream.DeliverAllPolicy,
 		AckPolicy:     jetstream.AckExplicitPolicy,
-		MaxDeliver:    3,
+		MaxDeliver:    5,
 		FilterSubject: replySubject,
 		BackOff:       []time.Duration{time.Second, 2 * time.Second, 5 * time.Second},
 	}
@@ -133,7 +134,7 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	}
 
 	// Receive the reply message
-	replyMsg, err := consumer.Next()
+	replyMsg, err := consumer.Next(jetstream.FetchMaxWait(p.cfg.MaxReplyWait))
 	if err != nil {
 		return nil, fmt.Errorf("failed to receive reply message: %w", err)
 	}
@@ -158,22 +159,30 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 
 func (p *JetstreamMessagePublisher) getRetryAttempts(_ messaging.Message) int {
 	// TODO: make it configurable per message type if needed
-	return p.cfg.RetryAttempts
+	if p.cfg.RetryAttempts > 0 {
+		return p.cfg.RetryAttempts
+	}
+
+	return defaultRetryAttempts
 }
 
 func (p *JetstreamMessagePublisher) getRetryWaitDuration(_ messaging.Message) time.Duration {
 	// TODO: make it configurable per message type if needed
-	return p.cfg.RetryDelay
+	if p.cfg.RetryDelay > 0 {
+		return p.cfg.RetryDelay
+	}
+
+	return defaultRetryDelay
 }
 
 // Determine the effective TTL for the message.
 // If both StreamTTL and MessageTTL are set, the shorter duration takes precedence.
 func (p *JetstreamMessagePublisher) getMessageTTL(m messaging.Message) time.Duration {
-	if len(p.cfg.MessageTTL) == 0 {
+	if len(p.cfg.MessageTTLMapping) == 0 {
 		return p.cfg.StreamTTL
 	}
 
-	if ttl, ok := p.cfg.MessageTTL[m.MessageType()]; ok && ttl > 0 {
+	if ttl, ok := p.cfg.MessageTTLMapping[m.MessageType()]; ok && ttl > 0 {
 		if p.cfg.StreamTTL > 0 {
 			if ttl < p.cfg.StreamTTL {
 				return ttl

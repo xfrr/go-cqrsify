@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"errors"
 	"sync"
 )
 
@@ -13,13 +14,14 @@ const (
 )
 
 var _ MessageBus = (*InMemoryMessageBus)(nil)
+var _ MessageBusReplier = (*InMemoryMessageBus)(nil)
 
 // InMemoryMessageBus is a simple, fast, process-local message bus.
 // Great for tests and single-process apps; swap for a distributed bus in prod if needed.
 type InMemoryMessageBus struct {
-	opts        MessageBusConfig
-	mu          sync.RWMutex
-	subscribers map[string][]MessageHandler[Message]
+	opts     MessageBusConfig
+	mu       sync.RWMutex
+	handlers map[string][]MessageHandler[Message]
 
 	// async pipeline (enabled if opts.AsyncWorkers > 0)
 	queue   chan queued
@@ -44,7 +46,7 @@ type worker struct {
 	id int
 }
 
-func NewInMemoryMessageBus(optFns ...MessageBusConfigModifier) *InMemoryMessageBus {
+func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageBus {
 	cfg := MessageBusConfig{
 		AsyncWorkers: 0,
 		QueueSize:    defaultQueueSize,
@@ -55,8 +57,8 @@ func NewInMemoryMessageBus(optFns ...MessageBusConfigModifier) *InMemoryMessageB
 	}
 
 	b := &InMemoryMessageBus{
-		opts:        cfg,
-		subscribers: make(map[string][]MessageHandler[Message]),
+		opts:     cfg,
+		handlers: make(map[string][]MessageHandler[Message]),
 	}
 
 	if cfg.AsyncWorkers > 0 {
@@ -72,14 +74,18 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
+	if len(msgs) == 0 {
+		return errors.New("no messages to publish")
+	}
+
 	if b.closed {
 		return ErrPublishOnClosedBus
 	}
 
 	for _, msg := range msgs {
-		handlers := b.subscribers[msg.MessageType()]
+		handlers := b.handlers[msg.MessageType()]
 		if len(handlers) == 0 {
-			return &NoSubscribersForMessageError{MessageType: msg.MessageType()}
+			return NoHandlersForMessageError{MessageType: msg.MessageType()}
 		}
 
 		// Deliver to all handlers (sync or async).
@@ -102,6 +108,47 @@ func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error
 	return nil
 }
 
+func (b *InMemoryMessageBus) PublishRequest(ctx context.Context, msg Message) (Message, error) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	if b.closed {
+		return nil, ErrPublishOnClosedBus
+	}
+
+	handlers := b.handlers[msg.MessageType()]
+	if len(handlers) == 0 {
+		return nil, NoHandlersForMessageError{MessageType: msg.MessageType()}
+	}
+
+	// For request/reply, we only support a single handler.
+	h := handlers[0]
+	if h == nil {
+		return nil, NoHandlersForMessageError{MessageType: msg.MessageType()}
+	}
+
+	// Extract reply from handler wrapper.
+	wrapper, ok := h.(*inMemoryMessageBusHandlerWithReplyWrapper)
+	if !ok {
+		return nil, &InvalidMessageTypeError{Expected: "inMemoryMessageBusHandlerWithReplyWrapper", Actual: ""}
+	}
+
+	// Compose middleware chain around handler for delivery.
+	wrappedHandler := b.wrap(wrapper)
+
+	// Deliver and get reply.
+	if err := wrappedHandler.Handle(ctx, msg); err != nil {
+		return nil, err
+	}
+
+	select {
+	case reply := <-wrapper.out:
+		return reply, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 func (b *InMemoryMessageBus) deliverSync(ctx context.Context, h MessageHandler[Message], msg Message) error {
 	if err := b.wrap(h).Handle(ctx, msg); err != nil {
 		if b.opts.ErrorHandler != nil {
@@ -122,25 +169,40 @@ func (b *InMemoryMessageBus) enqueue(ctx context.Context, h MessageHandler[Messa
 	}
 }
 
-func (b *InMemoryMessageBus) Subscribe(_ context.Context, messageName string, h MessageHandler[Message]) (UnsubscribeFunc, error) {
+func (b *InMemoryMessageBus) Subscribe(_ context.Context, h MessageHandler[Message]) (UnsubscribeFunc, error) {
 	b.mu.Lock()
-	b.subscribers[messageName] = append(b.subscribers[messageName], h)
-	idx := len(b.subscribers[messageName]) - 1
+	// register handler for all subjects
+	idxs := make([]int, 0, len(b.opts.Subjects))
+	for _, messageName := range b.opts.Subjects {
+		b.handlers[messageName] = append(b.handlers[messageName], h)
+		idxs = append(idxs, len(b.handlers[messageName])-1)
+	}
 	b.mu.Unlock()
 
-	return func() {
-		b.mu.Lock()
-		defer b.mu.Unlock()
-		hs := b.subscribers[messageName]
-		if idx < 0 || idx >= len(hs) {
-			// handler already removed
-			return
+	return UnsubscribeFunc(func() error {
+		return b.unsubscribeFunc(idxs)
+	}), nil
+}
+
+func (b *InMemoryMessageBus) SubscribeWithReply(_ context.Context, h MessageHandlerWithReply[Message, MessageReply]) (UnsubscribeFunc, error) {
+	b.mu.Lock()
+	// register handler for all subjects
+	idxs := make([]int, 0, len(b.opts.Subjects))
+	for _, subject := range b.opts.Subjects {
+		if _, exists := b.handlers[subject]; exists {
+			// only one reply handler per message type
+			b.mu.Unlock()
+			return nil, errors.New("reply handler already exists for message type: " + subject)
 		}
 
-		// Remove handler by swapping with last and truncating slice.
-		hs[idx] = hs[len(hs)-1]
-		b.subscribers[messageName] = hs[:len(hs)-1]
-	}, nil
+		b.handlers[subject] = append(b.handlers[subject], wrapMessageHandlerWithReply(h))
+		idxs = append(idxs, len(b.handlers[subject])-1)
+	}
+	b.mu.Unlock()
+
+	return UnsubscribeFunc(func() error {
+		return b.unsubscribeFunc(idxs)
+	}), nil
 }
 
 func (b *InMemoryMessageBus) Close() error {
@@ -185,4 +247,65 @@ func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Mess
 		h = b.mw[i](h)
 	}
 	return h
+}
+
+func (b *InMemoryMessageBus) unsubscribeFunc(idxs []int) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	for i, subject := range b.opts.Subjects {
+		if i >= len(idxs) {
+			continue
+		}
+
+		hs, ok := b.handlers[subject]
+		if !ok || len(hs) == 0 {
+			continue
+		}
+
+		idx := idxs[i]
+		if idx < 0 || idx >= len(hs) {
+			continue
+		}
+
+		last := len(hs) - 1
+		if idx != last {
+			hs[idx] = hs[last]
+		}
+		hs[last] = nil
+		hs = hs[:last]
+
+		if len(hs) == 0 {
+			delete(b.handlers, subject)
+		} else {
+			b.handlers[subject] = hs
+		}
+	}
+	return nil
+}
+
+type inMemoryMessageBusHandlerWithReplyWrapper struct {
+	h   MessageHandlerWithReply[Message, MessageReply]
+	out chan MessageReply
+}
+
+func wrapMessageHandlerWithReply(h MessageHandlerWithReply[Message, MessageReply]) MessageHandler[Message] {
+	return &inMemoryMessageBusHandlerWithReplyWrapper{
+		h:   h,
+		out: make(chan MessageReply, 1),
+	}
+}
+
+func (w *inMemoryMessageBusHandlerWithReplyWrapper) Handle(ctx context.Context, msg Message) error {
+	reply, err := w.h.Handle(ctx, msg)
+	if err != nil {
+		return err
+	}
+
+	select {
+	case w.out <- reply:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

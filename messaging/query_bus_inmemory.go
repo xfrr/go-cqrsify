@@ -12,39 +12,26 @@ type InMemoryQueryBus struct {
 	bus *InMemoryMessageBus
 }
 
-func NewInMemoryQueryBus(optFns ...MessageBusConfigModifier) *InMemoryQueryBus {
+func NewInMemoryQueryBus(optFns ...MessageBusConfigConfiger) *InMemoryQueryBus {
 	return &InMemoryQueryBus{
 		bus: NewInMemoryMessageBus(optFns...),
 	}
 }
 
-func (b *InMemoryQueryBus) DispatchAndWaitReply(ctx context.Context, query Query) (Message, error) {
-	if err := b.bus.Publish(ctx, query); err != nil {
-		return nil, fmt.Errorf("query_bus: failed to dispatch query: %w", err)
-	}
-
-	// Ensure the query supports replies
-	replayable, ok := query.(ReplyableMessage)
-	if !ok {
-		return nil, fmt.Errorf("query_bus: query does not support replies: %T", query)
-	}
-
-	// Get the reply message
-	replyMsg, err := replayable.GetReply(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("query_bus: failed to get reply: %w", err)
-	}
-
-	return replyMsg, nil
+func (b *InMemoryQueryBus) Request(ctx context.Context, query Query) (Message, error) {
+	return b.bus.PublishRequest(ctx, query)
 }
 
-func (b *InMemoryQueryBus) Subscribe(ctx context.Context, queryName string, h QueryHandler[Query]) (UnsubscribeFunc, error) {
-	return b.bus.Subscribe(ctx, queryName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
-		cmd, ok := msg.(Query)
+func (b *InMemoryQueryBus) Subscribe(ctx context.Context, h QueryHandler[Query, QueryReply]) (UnsubscribeFunc, error) {
+	return b.bus.SubscribeWithReply(ctx, MessageHandlerWithReplyFn[Message, MessageReply](func(ctx context.Context, msg Message) (MessageReply, error) {
+		q, ok := msg.(Query)
 		if !ok {
-			return InvalidMessageTypeError{Expected: fmt.Sprintf("%T", cmd), Actual: fmt.Sprintf("%T", msg)}
+			return nil, InvalidMessageTypeError{
+				Expected: fmt.Sprintf("%T", q),
+				Actual:   fmt.Sprintf("%T", msg),
+			}
 		}
-		return h.Handle(ctx, cmd)
+		return h.Handle(ctx, q)
 	}))
 }
 

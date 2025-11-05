@@ -70,11 +70,10 @@ func main() {
 	wg.Add(2) // We plan to dispatch 2 commands.
 
 	// Create an in-memory command bus and subscribe a handler to it.
-	bus := messaging.NewInMemoryCommandBus()
+	bus := messaging.NewInMemoryCommandBus(messaging.ConfigureInMemoryMessageBusSubjects("com.org.test_command"))
 	unsub, err := messaging.SubscribeCommand(
 		rootCtx,
 		bus,
-		"com.org.test_command",
 		PrintSpeechCommandHandler{wg: wg},
 	)
 	if err != nil {

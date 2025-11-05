@@ -70,11 +70,10 @@ func main() {
 	wg.Add(2) // We plan to publish 2 events.
 
 	// Create an in-memory event bus and subscribe a handler to it.
-	bus := messaging.NewInMemoryEventBus()
+	bus := messaging.NewInMemoryEventBus(messaging.ConfigureInMemoryMessageBusSubjects("com.org.speech_printed.v1"))
 	unsub, err := messaging.SubscribeEvent(
 		rootCtx,
 		bus,
-		"com.org.speech_printed.v1",
 		SpeechPrintedEventHandler{wg: wg},
 	)
 	if err != nil {

@@ -41,7 +41,7 @@ func main() {
 	defer cancel()
 
 	event := orderCreatedEvent{
-		BaseEvent: messaging.NewBaseEvent("com.cqrsify.events.order.created.v1"),
+		BaseEvent: messaging.NewBaseEvent("com.cqrsify.examples.events.order.created.v1"),
 		orderID:   123,
 	}
 
@@ -63,7 +63,7 @@ func main() {
 	defer closeEventBus()
 
 	// Subscribe to messages of type "OrderCreated"
-	unsub, err := messaging.SubscribeEvent(ctx, eventBus, event.MessageType(), messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, event OrderCreatedEvent) error {
+	unsub, err := messaging.SubscribeEvent(ctx, eventBus, messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, event OrderCreatedEvent) error {
 		fmt.Println("Handling event:")
 		fmt.Printf("- Event Type: %s\n", event.MessageType())
 		fmt.Printf("- Order ID: %d\n", event.OrderID())
@@ -77,7 +77,7 @@ func main() {
 	fmt.Printf("Publishing event '%s'\n", event.MessageType())
 
 	// Publish the event
-	err = messaging.PublishEvent(ctx, eventBus, event)
+	err = eventBus.Publish(ctx, event)
 	if err != nil {
 		panic(err)
 	}
@@ -100,30 +100,57 @@ func newEventBus(
 		panic(err)
 	}
 
-	eventBus, err := messagingnats.NewJetStreamEventBus(
-		ctx,
+	cleanup := func() {
+		nc.Drain()
+		nc.Close()
+	}
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		cleanup()
+		panic(err)
+	}
+
+	// Ensure the stream exists
+	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name:      streamName,
+		Subjects:  []string{"com.cqrsify.examples.events.>"},
+		Storage:   jetstream.MemoryStorage,
+		Retention: jetstream.LimitsPolicy,
+	})
+	if err != nil {
+		cleanup()
+		panic(err)
+	}
+
+	eventPublisher, err := messagingnats.NewJetStreamMessagePublisher(
 		nc,
 		streamName,
 		serializer,
 		deserializer,
-		messagingnats.WithStreamConfig(
-			jetstream.StreamConfig{
-				Name:      streamName,
-				Subjects:  []string{"com.cqrsify.events.>"},
-				MaxAge:    10 * time.Minute,
-				Storage:   jetstream.MemoryStorage,
-				Retention: jetstream.WorkQueuePolicy,
-			},
-		),
 	)
 	if err != nil {
-		nc.Close()
-		return nil, nil, err
+		cleanup()
+		panic(err)
 	}
 
-	cleanup := func() {
-		nc.Close()
+	eventConsumer, err := messagingnats.NewJetStreamMessageConsumer(
+		nc,
+		streamName,
+		serializer,
+		deserializer,
+		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+			Name:          "cqrsify_examples_event_bus_consumer",
+			AckPolicy:     jetstream.AckExplicitPolicy,
+			FilterSubject: "com.cqrsify.examples.events.>",
+		}),
+	)
+	if err != nil {
+		cleanup()
+		panic(err)
 	}
+
+	eventBus := messagingnats.NewJetStreamEventBus(eventPublisher, eventConsumer)
 	return eventBus, cleanup, nil
 }
 

@@ -64,16 +64,14 @@ func CreateBaseCommandFromSingleDocument[A any](cmdType string, sd apix.SingleDo
 		maps.Copy(resourceMetadata, documentMetadata)
 	}
 
-	return messaging.BaseCommand{
-		BaseMessage: messaging.NewMessage(
-			cmdType,
-			messaging.WithID(sd.Data.ID),
-			messaging.WithMetadata(resourceMetadata),
-			messaging.WithSchema(schema),
-			messaging.WithSource(source),
-			messaging.WithTimestamp(timestamp),
-		),
-	}
+	return messaging.NewBaseCommand(
+		cmdType,
+		messaging.WithID(sd.Data.ID),
+		messaging.WithMetadata(resourceMetadata),
+		messaging.WithSchema(schema),
+		messaging.WithSource(source),
+		messaging.WithTimestamp(timestamp),
+	)
 }
 
 func filterAndParseMetadata(sd map[string]any, excludeKeys []string) map[string]string {

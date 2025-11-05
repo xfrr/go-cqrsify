@@ -22,11 +22,11 @@ func (e InvalidMessageTypeError) Error() string {
 	return fmt.Sprintf("invalid message type: expected %q, got %q", e.Expected, e.Actual)
 }
 
-// NoSubscribersForMessageError is returned by Publish if no subscribers exist for an message.
-type NoSubscribersForMessageError struct {
+// NoHandlersForMessageError is returned when there are no handlers for a given message type.
+type NoHandlersForMessageError struct {
 	MessageType string
 }
 
-func (e NoSubscribersForMessageError) Error() string {
-	return "messagebus: no subscribers for message " + e.MessageType
+func (e NoHandlersForMessageError) Error() string {
+	return "no handlers found for message type: " + e.MessageType
 }

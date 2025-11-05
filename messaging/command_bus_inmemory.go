@@ -12,7 +12,7 @@ type InMemoryCommandBus struct {
 	bus *InMemoryMessageBus
 }
 
-func NewInMemoryCommandBus(optFns ...MessageBusConfigModifier) *InMemoryCommandBus {
+func NewInMemoryCommandBus(optFns ...MessageBusConfigConfiger) *InMemoryCommandBus {
 	return &InMemoryCommandBus{
 		bus: NewInMemoryMessageBus(optFns...),
 	}
@@ -26,8 +26,8 @@ func (b *InMemoryCommandBus) Dispatch(ctx context.Context, commands ...Command) 
 	return b.bus.Publish(ctx, msgs...)
 }
 
-func (b *InMemoryCommandBus) Subscribe(ctx context.Context, commandName string, h CommandHandler[Command]) (UnsubscribeFunc, error) {
-	return b.bus.Subscribe(ctx, commandName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
+func (b *InMemoryCommandBus) Subscribe(ctx context.Context, h CommandHandler[Command]) (UnsubscribeFunc, error) {
+	return b.bus.Subscribe(ctx, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		cmd, ok := msg.(Command)
 		if !ok {
 			return InvalidMessageTypeError{Expected: fmt.Sprintf("%T", cmd), Actual: fmt.Sprintf("%T", msg)}

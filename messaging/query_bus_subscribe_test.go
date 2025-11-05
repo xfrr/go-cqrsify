@@ -14,25 +14,25 @@ func TestSubscribeQuery_Success(t *testing.T) {
 
 	var calls int
 
-	queryBus := messaging.NewInMemoryQueryBus()
-	handler := messaging.QueryHandlerFn[messaging.Query](func(ctx context.Context, query messaging.Query) error {
+	queryBus := messaging.NewInMemoryQueryBus(
+		messaging.ConfigureInMemoryMessageBusSubjects("test.query", "test.reply"),
+	)
+
+	handler := messaging.QueryHandlerFn[messaging.Query, messaging.QueryReply](func(ctx context.Context, query messaging.Query) (messaging.QueryReply, error) {
 		calls++
-		err := query.Reply(ctx, messaging.NewBaseQuery("test.reply"))
-		require.NoError(t, err)
-		return nil
+		return messaging.NewMessage("test.reply"), nil
 	})
 
 	unsub, err := messaging.SubscribeQuery(
-		context.Background(),
+		t.Context(),
 		queryBus,
-		"test.query",
 		handler,
 	)
 	require.NoError(t, err)
 	defer unsub()
 
 	testQuery := messaging.NewBaseQuery("test.query")
-	res, err := queryBus.DispatchAndWaitReply(context.Background(), testQuery)
+	res, err := queryBus.Request(t.Context(), testQuery)
 	require.NoError(t, err)
 
 	assert.NotNil(t, res)

@@ -40,17 +40,18 @@ func main() {
 	defer cancelSignal()
 
 	// Create inmemory commandBus
-	cmdbus := messaging.NewInMemoryCommandBus(messaging.ConfigureMessageBusErrorHandler(
-		func(messageType string, err error) {
-			fmt.Printf("Error handling message of type %s: %v\n", messageType, err)
-		},
-	))
+	cmdbus := messaging.NewInMemoryCommandBus(
+		messaging.ConfigureInMemoryMessageBusSubjects(sampleCommandType),
+		messaging.ConfigureInMemoryMessageBusErrorHandler(
+			func(messageType string, err error) {
+				fmt.Printf("Error handling message of type %s: %v\n", messageType, err)
+			},
+		))
 
 	// Register command handler
 	unsub, err := messaging.SubscribeCommand(
 		ctx,
 		cmdbus,
-		sampleCommandType,
 		&sampleCommandHandler{},
 	)
 	if err != nil {

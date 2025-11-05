@@ -38,18 +38,13 @@ type GetSpeechQueryHandler struct {
 	wg *sync.WaitGroup
 }
 
-func (h GetSpeechQueryHandler) Handle(_ context.Context, query GetSpeechQuery) error {
+func (h GetSpeechQueryHandler) Handle(_ context.Context, query GetSpeechQuery) (getSpeechQueryReply, error) {
 	defer h.wg.Done()
 
-	// Reply to the query to acknowledge successful handling.
-	if err := query.Reply(context.Background(), getSpeechQueryReply{
-		BaseQueryReply: messaging.NewBaseQueryReply(query),
+	return getSpeechQueryReply{
+		BaseQueryReply: messaging.NewMessage("com.org.test_query.reply"),
 		Speech:         "Welcome to the Query Bus example!",
-	}); err != nil {
-		return fmt.Errorf("failed to reply to query: %w", err)
-	}
-
-	return nil
+	}, nil
 }
 
 func main() {
@@ -60,11 +55,10 @@ func main() {
 	wg.Add(1) // We plan to dispatch 1 query.
 
 	// Create an in-memory query bus and subscribe a handler to it.
-	bus := messaging.NewInMemoryQueryBus()
+	bus := messaging.NewInMemoryQueryBus(messaging.ConfigureInMemoryMessageBusSubjects("com.org.test_query"))
 	unsub, err := messaging.SubscribeQuery(
 		ctx,
 		bus,
-		"com.org.test_query",
 		GetSpeechQueryHandler{wg: wg},
 	)
 	if err != nil {
@@ -72,7 +66,7 @@ func main() {
 	}
 
 	// Dispatch a couple of querys.
-	res, err := dispatchQuery(ctx, bus, getSpeechQuery{
+	res, err := dispatchQuery(ctx, bus, &getSpeechQuery{
 		BaseQuery: messaging.NewBaseQuery("com.org.test_query"),
 	})
 	if err != nil {

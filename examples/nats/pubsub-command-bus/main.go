@@ -54,7 +54,7 @@ func main() {
 	defer closeCommandBus()
 
 	// Subscribe to messages of type "CreateOrder"
-	unsub, err := messaging.SubscribeCommand(ctx, commandBus, command.MessageType(), messaging.CommandHandlerFn[CreateOrderCommand](func(ctx context.Context, command CreateOrderCommand) error {
+	unsub, err := messaging.SubscribeCommand(ctx, commandBus, messaging.CommandHandlerFn[CreateOrderCommand](func(ctx context.Context, command CreateOrderCommand) error {
 		fmt.Println("Handling command:")
 		fmt.Printf("- Command Type: %s\n", command.MessageType())
 		fmt.Printf("- Order ID: %d\n", command.OrderID())
@@ -89,7 +89,28 @@ func newCommandBus(
 		panic(err)
 	}
 
-	commandBus := messagingnats.NewPubSubCommandBus(nc, serializer, deserializer)
+	publisher, err := messagingnats.NewPubSubMessagePublisher(
+		nc,
+		serializer,
+		deserializer,
+	)
+	if err != nil {
+		nc.Close()
+		return nil, nil, err
+	}
+
+	consumer, err := messagingnats.NewPubSubMessageConsumer(
+		nc,
+		serializer,
+		deserializer,
+		messagingnats.WithPubSubConsumerSubject("com.example.order.create.v1"),
+	)
+	if err != nil {
+		nc.Close()
+		return nil, nil, err
+	}
+
+	commandBus := messagingnats.NewPubSubCommandBus(publisher, consumer)
 	cleanup := func() {
 		nc.Close()
 	}

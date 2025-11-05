@@ -73,17 +73,12 @@ func main() {
 	defer closeQueryBus()
 
 	// Subscribe to messages of type "GetOrderAmount"
-	unsub, err := messaging.SubscribeQuery(ctx, queryBus, query.MessageType(), messaging.QueryHandlerFn[GetOrderAmountQuery](func(ctx context.Context, query GetOrderAmountQuery) error {
+	unsub, err := messaging.SubscribeQuery(ctx, queryBus, messaging.QueryHandlerFn[GetOrderAmountQuery, getOrderAmountQueryReply](func(ctx context.Context, query GetOrderAmountQuery) (getOrderAmountQueryReply, error) {
 		fmt.Println("Handling query:")
 		fmt.Printf("- Query Type: %s\n", query.MessageType())
 		fmt.Printf("- Order ID: %d\n", query.OrderID())
 
-		// Reply to the query
-		if err := query.Reply(ctx, queryReply); err != nil {
-			return fmt.Errorf("failed to reply to query: %w", err)
-		}
-
-		return nil
+		return queryReply, nil
 	}))
 	if err != nil {
 		panic(err)
@@ -117,7 +112,31 @@ func newQueryBus(
 		panic(err)
 	}
 
-	queryBus := messagingnats.NewPubSubQueryBus(nc, serializer, deserializer)
+	publisher, err := messagingnats.NewPubSubMessagePublisher(
+		nc,
+		serializer,
+		deserializer,
+	)
+	if err != nil {
+		nc.Close()
+		return nil, nil, err
+	}
+
+	consumer, err := messagingnats.NewPubSubMessageConsumer(
+		nc,
+		serializer,
+		deserializer,
+		messagingnats.WithPubSubConsumerSubject("com.example.order.get_amount.v1"),
+	)
+	if err != nil {
+		nc.Close()
+		return nil, nil, err
+	}
+
+	queryBus := messagingnats.NewPubSubQueryBus(
+		publisher,
+		consumer,
+	)
 	cleanup := func() {
 		nc.Close()
 	}

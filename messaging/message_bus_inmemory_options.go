@@ -7,19 +7,25 @@ type MessageBusConfig struct {
 	// ErrorHandler handles handler failures (after middleware).
 	// If nil, errors are logged (if Logger exists) and dropped.
 	ErrorHandler func(evtName string, err error)
+	// Subjects is a list of subjects the bus listens to. If empty, subscribes to all messages.
+	Subjects []string
 }
 
-// MessageBusConfigModifier is the functional option pattern.
-type MessageBusConfigModifier func(*MessageBusConfig)
+// MessageBusConfigConfiger is the functional option pattern.
+type MessageBusConfigConfiger func(*MessageBusConfig)
 
-func ConfigureMessageBusAsyncWorkers(workers int) MessageBusConfigModifier {
+func ConfigureInMemoryMessageBusAsyncWorkers(workers int) MessageBusConfigConfiger {
 	return func(o *MessageBusConfig) { o.AsyncWorkers = workers }
 }
 
-func ConfigureMessageBusQueue(size int) MessageBusConfigModifier {
+func ConfigureInMemoryMessageBusQueueBufferSize(size int) MessageBusConfigConfiger {
 	return func(o *MessageBusConfig) { o.QueueSize = size }
 }
 
-func ConfigureMessageBusErrorHandler(fn func(evtName string, err error)) MessageBusConfigModifier {
+func ConfigureInMemoryMessageBusErrorHandler(fn func(evtName string, err error)) MessageBusConfigConfiger {
 	return func(o *MessageBusConfig) { o.ErrorHandler = fn }
+}
+
+func ConfigureInMemoryMessageBusSubjects(subjects ...string) MessageBusConfigConfiger {
+	return func(o *MessageBusConfig) { o.Subjects = subjects }
 }

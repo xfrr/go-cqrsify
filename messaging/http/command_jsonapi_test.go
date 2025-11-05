@@ -50,20 +50,18 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 					Meta: map[string]any{},
 				},
 			},
-			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewMessage("createUser",
-					messaging.WithID("123e4567-e89b-12d3-a456-426614174000"),
-					messaging.WithSchema("testSchema"),
-					messaging.WithSource("testSource"),
-					messaging.WithTimestamp(func() time.Time {
-						t, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
-						return t
-					}()),
-					messaging.WithMetadata(map[string]string{
-						"extra": "metadata",
-					}),
-				),
-			},
+			want: messaging.NewBaseCommand("createUser",
+				messaging.WithID("123e4567-e89b-12d3-a456-426614174000"),
+				messaging.WithSchema("testSchema"),
+				messaging.WithSource("testSource"),
+				messaging.WithTimestamp(func() time.Time {
+					t, _ := time.Parse(time.RFC3339, "2024-01-01T12:00:00Z")
+					return t
+				}()),
+				messaging.WithMetadata(map[string]string{
+					"extra": "metadata",
+				}),
+			),
 		},
 		{
 			name: "BaseCommand with duplicated meta fields in resource and document",
@@ -88,20 +86,18 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 					},
 				},
 			},
-			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewMessage("updateUser",
-					messaging.WithID("223e4567-e89b-12d3-a456-426614174001"),
-					messaging.WithSchema("resourceSchema"),
-					messaging.WithSource("resourceSource"),
-					messaging.WithTimestamp(func() time.Time {
-						t, _ := time.Parse(time.RFC3339, "2024-02-01T12:00:00Z")
-						return t
-					}()),
-					messaging.WithMetadata(map[string]string{
-						"role": "superadmin",
-					}),
-				),
-			},
+			want: messaging.NewBaseCommand("updateUser",
+				messaging.WithID("223e4567-e89b-12d3-a456-426614174001"),
+				messaging.WithSchema("resourceSchema"),
+				messaging.WithSource("resourceSource"),
+				messaging.WithTimestamp(func() time.Time {
+					t, _ := time.Parse(time.RFC3339, "2024-02-01T12:00:00Z")
+					return t
+				}()),
+				messaging.WithMetadata(map[string]string{
+					"role": "superadmin",
+				}),
+			),
 		},
 		{
 			name: "BaseCommand with not string meta values",
@@ -133,26 +129,24 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 					Meta: map[string]any{},
 				},
 			},
-			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewMessage("deleteUser",
-					messaging.WithID("323e4567-e89b-12d3-a456-426614174002"),
-					messaging.WithTimestamp(time.Now()), // Approximate, will be checked in test
-					messaging.WithMetadata(map[string]string{
-						"int":    "42",
-						"float":  "3.140000",
-						"bool":   "false",
-						"int8":   "8",
-						"int16":  "16",
-						"int32":  "32",
-						"int64":  "64",
-						"uint":   "1",
-						"uint8":  "8",
-						"uint16": "16",
-						"uint32": "32",
-						"uint64": "64",
-					}),
-				),
-			},
+			want: messaging.NewBaseCommand("deleteUser",
+				messaging.WithID("323e4567-e89b-12d3-a456-426614174002"),
+				messaging.WithTimestamp(time.Now()), // Approximate, will be checked in test
+				messaging.WithMetadata(map[string]string{
+					"int":    "42",
+					"float":  "3.140000",
+					"bool":   "false",
+					"int8":   "8",
+					"int16":  "16",
+					"int32":  "32",
+					"int64":  "64",
+					"uint":   "1",
+					"uint8":  "8",
+					"uint16": "16",
+					"uint32": "32",
+					"uint64": "64",
+				}),
+			),
 		},
 		{
 			name: "BaseCommand with empty meta, no ID, no schema, no source, no timestamp",
@@ -167,9 +161,7 @@ func (st *CreateBaseCommandFromSingleDocumentTestSuite) Test_CreateBaseCommandFr
 					Meta: map[string]any{},
 				},
 			},
-			want: messaging.BaseCommand{
-				BaseMessage: messaging.NewMessage("simpleCommand"),
-			},
+			want: messaging.NewBaseCommand("simpleCommand"),
 		},
 	}
 	for _, tt := range tests {

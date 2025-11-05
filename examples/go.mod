@@ -49,6 +49,7 @@ require (
 )
 
 require (
+	github.com/gofrs/uuid/v5 v5.4.0
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/lib/pq v1.10.9
 	github.com/nats-io/nkeys v0.4.11 // indirect

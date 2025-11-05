@@ -12,25 +12,16 @@ import (
 func TestDispatchQuery_Success(t *testing.T) {
 	t.Parallel()
 
-	type testQueryReply struct {
-		messaging.BaseQueryReply
-	}
-
 	var calls int
-	queryBus := messaging.NewInMemoryQueryBus()
-	handler := messaging.QueryHandlerFn[messaging.Query](func(ctx context.Context, query messaging.Query) error {
+	queryBus := messaging.NewInMemoryQueryBus(messaging.ConfigureInMemoryMessageBusSubjects("test.query"))
+	handler := messaging.QueryHandlerFn[messaging.Query, messaging.QueryReply](func(ctx context.Context, query messaging.Query) (messaging.QueryReply, error) {
 		calls++
 
-		err := query.Reply(ctx, testQueryReply{
-			BaseQueryReply: messaging.NewBaseQueryReply(query),
-		})
-		require.NoError(t, err)
-		return nil
+		return messaging.NewMessage("test.query.reply"), nil
 	})
 
 	unsub, err := queryBus.Subscribe(
 		context.Background(),
-		"test.query",
 		handler,
 	)
 	require.NoError(t, err)

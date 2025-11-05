@@ -3,7 +3,6 @@ package messagingnats
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -14,27 +13,13 @@ type JetstreamEventBus struct {
 }
 
 func NewJetStreamEventBus(
-	ctx context.Context,
-	conn *nats.Conn,
-	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageBusOption,
-) (*JetstreamEventBus, error) {
-	jmb, err := NewJetstreamMessageBus(
-		ctx,
-		conn,
-		streamName,
-		serializer,
-		deserializer,
-		opts...,
-	)
-	if err != nil {
-		return nil, err
-	}
+	publisher *JetstreamMessagePublisher,
+	consumer *JetStreamMessageConsumer,
+) *JetstreamEventBus {
+	jmb := NewJetstreamMessageBus(publisher, consumer)
 	return &JetstreamEventBus{
 		JetStreamMessageBus: jmb,
-	}, nil
+	}
 }
 
 // Publish implements messaging.MessageBus.
@@ -47,7 +32,7 @@ func (p *JetstreamEventBus) Publish(ctx context.Context, events ...messaging.Eve
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *JetstreamEventBus) Subscribe(ctx context.Context, eventType string, handler messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (p *JetstreamEventBus) Subscribe(ctx context.Context, handler messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		event, ok := msg.(messaging.Event)
 		if !ok {
@@ -55,5 +40,5 @@ func (p *JetstreamEventBus) Subscribe(ctx context.Context, eventType string, han
 		}
 		return handler.Handle(ctx, event)
 	})
-	return p.JetStreamMessageBus.Subscribe(ctx, eventType, wrappedHandler)
+	return p.JetStreamMessageBus.Subscribe(ctx, wrappedHandler)
 }

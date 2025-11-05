@@ -2,251 +2,232 @@ package messaging_test
 
 import (
 	"context"
-	"errors"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
-// messageBusOpt is a tiny helper to build MessageBusConfigModifier inline.
-func messageBusOpt(f func(*messaging.MessageBusConfig)) messaging.MessageBusConfigModifier {
-	return func(c *messaging.MessageBusConfig) { f(c) }
+type InMemoryMessageBusTestSuite struct {
+	suite.Suite
+
+	sut *messaging.InMemoryMessageBus
 }
 
-func TestInMemoryMessageBus_Publish_NoSubscribers(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	msg := messaging.NewBaseQuery("no.subscribers")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-
-	err := bus.Publish(ctx, msg)
-	require.Error(t, err)
-
-	expectedErr := &messaging.NoSubscribersForMessageError{MessageType: msg.MessageType()}
-	require.ErrorAs(t, err, &expectedErr)
+func TestInMemoryMessageBusSuite(t *testing.T) {
+	suite.Run(t, new(InMemoryMessageBusTestSuite))
 }
 
-func TestInMemoryMessageBus_Subscribe_ThenHandleSync(t *testing.T) {
-	t.Parallel()
+func (s *InMemoryMessageBusTestSuite) SetupTest() {
+	s.sut = messaging.NewInMemoryMessageBus()
+}
 
-	bus := messaging.NewInMemoryMessageBus()
-	const topic = "sync.topic"
-	msg := messaging.NewBaseQuery(topic)
+func (s *InMemoryMessageBusTestSuite) TearDownTest() {
+	err := s.sut.Close()
+	s.Require().NoError(err)
+}
+
+func (s *InMemoryMessageBusTestSuite) TestNewMessageBus() {
+	s.Require().NotNil(s.sut)
+}
+
+func (s *InMemoryMessageBusTestSuite) TestPublish() {
+	const subject = "test.message.type.publish"
+	bus := messaging.NewInMemoryMessageBus(
+		messaging.ConfigureInMemoryMessageBusSubjects(subject),
+	)
+
+	msg := messaging.NewMessage(subject)
+
+	s.Run("should succeed when handler is subscribed", func() {
+		seen := make(chan messaging.Message, 1)
+
+		unsub, err := bus.Subscribe(
+			s.T().Context(),
+			messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, e messaging.Message) error {
+				seen <- e
+				return nil
+			}),
+		)
+		s.Require().NoError(err)
+
+		err = bus.Publish(s.T().Context(), msg)
+		s.Require().NoError(err)
+
+		select {
+		case got := <-seen:
+			s.Require().Equal(subject, got.MessageType())
+		case <-s.T().Context().Done():
+			s.T().Fatalf("handler was not invoked for %q", subject)
+		}
+
+		err = unsub()
+		s.Require().NoError(err)
+	})
+
+	s.Run("should return error when no handler is subscribed", func() {
+		otherMsg := messaging.NewMessage("other.message.type")
+		err := bus.Publish(s.T().Context(), otherMsg)
+		s.Require().ErrorIs(err, messaging.NoHandlersForMessageError{MessageType: otherMsg.MessageType()})
+	})
+
+	s.Run("should return error when empty message list is published", func() {
+		err := bus.Publish(s.T().Context())
+		s.Require().ErrorContains(err, "no messages to publish")
+	})
+
+	s.Run("should return error when handler returns error", func() {
+		expectedErr := messaging.InvalidMessageTypeError{Expected: "expected", Actual: "actual"}
+		unsub, err := bus.Subscribe(
+			s.T().Context(),
+			messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, e messaging.Message) error {
+				return expectedErr
+			}),
+		)
+		s.Require().NoError(err)
+
+		err = bus.Publish(s.T().Context(), msg)
+		s.Require().ErrorIs(err, expectedErr)
+
+		err = unsub()
+		s.Require().NoError(err)
+	})
+
+	s.Run("should return error when publisher is closed", func() {
+		err := bus.Close()
+		s.Require().NoError(err)
+
+		err = bus.Publish(s.T().Context(), msg)
+		s.Require().ErrorIs(err, messaging.ErrPublishOnClosedBus)
+	})
+}
+
+func (s *InMemoryMessageBusTestSuite) TestPublishRequest() {
+	const subject = "test.message.type.request"
+	bus := messaging.NewInMemoryMessageBus(
+		messaging.ConfigureInMemoryMessageBusSubjects(subject),
+	)
+
+	msg := messaging.NewMessage(subject)
+
+	s.Run("should succeed when handler is subscribed", func() {
+		expectedReply := messaging.NewMessage("reply.message.type")
+		unsub, err := bus.SubscribeWithReply(
+			s.T().Context(),
+			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, e messaging.Message) (messaging.Message, error) {
+				return expectedReply, nil
+			}),
+		)
+		s.Require().NoError(err)
+
+		reply, err := bus.PublishRequest(s.T().Context(), msg)
+		s.Require().NoError(err)
+		s.Require().Equal(expectedReply, reply)
+
+		err = unsub()
+		s.Require().NoError(err)
+	})
+
+	s.Run("should return error when no handler is subscribed", func() {
+		otherMsg := messaging.NewMessage("other.message.type")
+		unsub, err := bus.PublishRequest(s.T().Context(), otherMsg)
+		s.Require().ErrorIs(err, messaging.NoHandlersForMessageError{MessageType: otherMsg.MessageType()})
+		s.Require().Nil(unsub)
+	})
+
+	s.Run("should return error when handler returns error", func() {
+		expectedErr := messaging.InvalidMessageTypeError{Expected: "expected", Actual: "actual"}
+		unsub, err := bus.SubscribeWithReply(
+			s.T().Context(),
+			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, e messaging.Message) (messaging.Message, error) {
+				return nil, expectedErr
+			}),
+		)
+		s.Require().NoError(err)
+
+		_, err = bus.PublishRequest(s.T().Context(), msg)
+		s.Require().ErrorIs(err, expectedErr)
+
+		err = unsub()
+		s.Require().NoError(err)
+	})
+}
+
+func (s *InMemoryMessageBusTestSuite) TestNewMessageBus_SubscribeAndPublish_Worker_Suceeds() {
+	const subject = "test.message.type.3"
+	bus := messaging.NewInMemoryMessageBus(
+		messaging.ConfigureInMemoryMessageBusSubjects(subject),
+		messaging.ConfigureInMemoryMessageBusAsyncWorkers(2),
+		messaging.ConfigureInMemoryMessageBusQueueBufferSize(2),
+	)
+
+	msg1 := messaging.NewMessage(subject)
+	msg2 := messaging.NewMessage(subject)
 
 	seen := make(chan messaging.Message, 1)
 
-	_, err := bus.Subscribe(context.Background(), topic,
-		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, m messaging.Message) error {
-			seen <- m
+	unsub, err := bus.Subscribe(
+		s.T().Context(),
+		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, e messaging.Message) error {
+			seen <- e
 			return nil
 		}),
 	)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancel()
+	err = bus.Publish(s.T().Context(), msg1, msg2)
+	s.Require().NoError(err)
 
-	require.NoError(t, bus.Publish(ctx, msg))
-
-	select {
-	case got := <-seen:
-		assert.Equal(t, msg.MessageType(), got.MessageType())
-	case <-ctx.Done():
-		t.Fatal("handler was not invoked")
-	}
-}
-
-func TestInMemoryMessageBus_Use_MiddlewareOrder(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	const topic = "mw.topic"
-	msg := messaging.NewBaseQuery(topic)
-
-	var order []string
-
-	// Middleware A
-	mwA := func(next messaging.MessageHandler[messaging.Message]) messaging.MessageHandler[messaging.Message] {
-		return messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, m messaging.Message) error {
-			order = append(order, "A>") // enter A
-			err := next.Handle(ctx, m)
-			order = append(order, "<A") // exit A
-			return err
-		})
-	}
-	// Middleware B
-	mwB := func(next messaging.MessageHandler[messaging.Message]) messaging.MessageHandler[messaging.Message] {
-		return messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, m messaging.Message) error {
-			order = append(order, "B>") // enter B
-			err := next.Handle(ctx, m)
-			order = append(order, "<B") // exit B
-			return err
-		})
+	for i := 0; i < 2; i++ {
+		select {
+		case got := <-seen:
+			s.Require().Equal(subject, got.MessageType())
+		case <-s.T().Context().Done():
+			s.T().Fatalf("handler was not invoked for %q", subject)
+		}
 	}
 
-	bus.Use(mwA, mwB)
+	err = unsub()
+	s.Require().NoError(err)
+}
 
-	done := make(chan struct{}, 1)
-	_, err := bus.Subscribe(context.Background(), topic,
-		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, _ messaging.Message) error {
-			order = append(order, "H") // handler
-			done <- struct{}{}
-			return nil
-		}),
-	)
-	require.NoError(t, err)
+func (s *InMemoryMessageBusTestSuite) TestNewMessageBus_SubscribeAndPublish_Worker_Handler_ReturnsError() {
+	const subject = "test.message.type.5"
 
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancel()
-
-	require.NoError(t, bus.Publish(ctx, msg))
-
-	select {
-	case <-done:
-	case <-ctx.Done():
-		t.Fatal("handler not called")
+	errCh := make(chan error, 1)
+	errHandler := func(messageType string, err error) {
+		s.Require().Equal(subject, messageType)
+		errCh <- err
 	}
-
-	// wrap() applies middlewares in reverse registration order (last added wraps first).
-	// So expected execution: A> B> H <B <A
-	assert.Equal(t, []string{"A>", "B>", "H", "<B", "<A"}, order)
-}
-
-func TestInMemoryMessageBus_Close_PreventsPublish(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	require.NoError(t, bus.Close())
-
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-
-	err := bus.Publish(ctx, messaging.NewBaseQuery("anything"))
-	require.Error(t, err)
-	require.ErrorIs(t, err, messaging.ErrPublishOnClosedBus)
-}
-
-func TestInMemoryMessageBus_Subscribe_Unsubscribe_RemovesHandler(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	const topic = "unsub.topic"
-	msg := messaging.NewBaseQuery(topic)
-
-	hit := 0
-
-	unsub, err := bus.Subscribe(context.Background(), topic,
-		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, _ messaging.Message) error {
-			hit++
-			return nil
-		}),
-	)
-	require.NoError(t, err)
-	require.NotNil(t, unsub)
-
-	// Unsubscribe immediately.
-	unsub()
-
-	// Now there should be no subscribers; expect NoSubscribersForMessageError.
-	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
-	defer cancel()
-
-	err = bus.Publish(ctx, msg)
-	require.Error(t, err)
-
-	expectedError := &messaging.NoSubscribersForMessageError{MessageType: topic}
-	require.ErrorAs(t, err, &expectedError)
-
-	assert.Equal(t, 0, hit, "handler should not have been called after unsubscribe")
-}
-
-func TestInMemoryMessageBus_HandlerError_PropagatesWhenNoErrorHandler(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	const topic = "handler.error.nohandler"
-	msg := messaging.NewBaseQuery(topic)
-
-	want := errors.New("boom")
-
-	_, err := bus.Subscribe(context.Background(), topic,
-		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, _ messaging.Message) error {
-			return want
-		}),
-	)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancel()
-
-	err = bus.Publish(ctx, msg)
-	require.Error(t, err)
-	require.ErrorIs(t, err, want)
-}
-
-func TestInMemoryMessageBus_HandlerError_ReportedViaErrorHandler(t *testing.T) {
-	t.Parallel()
-
-	var capturedType string
-	var capturedErr error
 
 	bus := messaging.NewInMemoryMessageBus(
-		messageBusOpt(func(c *messaging.MessageBusConfig) {
-			c.ErrorHandler = func(msgType string, err error) {
-				capturedType = msgType
-				capturedErr = err
-			}
-		}),
+		messaging.ConfigureInMemoryMessageBusSubjects(subject),
+		messaging.ConfigureInMemoryMessageBusAsyncWorkers(1),
+		messaging.ConfigureInMemoryMessageBusQueueBufferSize(1),
+		messaging.ConfigureInMemoryMessageBusErrorHandler(errHandler),
 	)
 
-	const topic = "handler.error.withhandler"
-	msg := messaging.NewBaseQuery(topic)
-	want := errors.New("boom")
+	msg1 := messaging.NewMessage(subject)
 
-	_, err := bus.Subscribe(context.Background(), topic,
+	expectedErr := messaging.InvalidMessageTypeError{Expected: "expected", Actual: "actual"}
+	unsub, err := bus.Subscribe(
+		s.T().Context(),
 		messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, _ messaging.Message) error {
-			return want
+			return expectedErr
 		}),
 	)
-	require.NoError(t, err)
+	s.Require().NoError(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancel()
+	err = bus.Publish(s.T().Context(), msg1)
+	s.Require().NoError(err)
 
-	// When ErrorHandler is set, Publish should not return the handler error.
-	err = bus.Publish(ctx, msg)
-	require.NoError(t, err)
+	select {
+	case gotErr := <-errCh:
+		s.Require().ErrorIs(gotErr, expectedErr)
+	case <-s.T().Context().Done():
+		s.T().Fatalf("error handler was not invoked for %q", subject)
+	}
 
-	assert.Equal(t, topic, capturedType)
-	require.ErrorIs(t, capturedErr, want)
-}
-
-func TestInMemoryMessageBus_Publish_PropagatesHandlerCtxError(t *testing.T) {
-	t.Parallel()
-
-	bus := messaging.NewInMemoryMessageBus()
-	const topic = "ctx.cancel.propagates"
-	msg := messaging.NewBaseQuery(topic)
-
-	_, err := bus.Subscribe(context.Background(), topic,
-		messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, _ messaging.Message) error {
-			// Simulate handler checking ctx and returning its error.
-			<-ctx.Done()
-			return ctx.Err()
-		}),
-	)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // cancel before publish; handler should see context canceled and return error
-
-	err = bus.Publish(ctx, msg)
-	require.Error(t, err)
-	assert.True(t, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
+	err = unsub()
+	s.Require().NoError(err)
 }

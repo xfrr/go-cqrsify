@@ -8,19 +8,18 @@ import (
 // SubscribeEvent is a shorthand for handling events.
 func SubscribeEvent[E Event](
 	ctx context.Context,
-	subscriber EventSubscriber,
-	eventType string,
+	consumer EventConsumer,
 	handlerFn EventHandler[E],
-) (func(), error) {
-	return subscriber.Subscribe(
+) (UnsubscribeFunc, error) {
+	var zero E
+	return consumer.Subscribe(
 		ctx,
-		eventType,
 		EventHandlerFn[Event](func(ctx context.Context, evt Event) error {
 			castEvent, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{
-					Actual:   eventType,
-					Expected: fmt.Sprintf("%T", evt),
+					Actual:   fmt.Sprintf("%T", evt),
+					Expected: fmt.Sprintf("%T", zero),
 				}
 			}
 			return handlerFn.Handle(ctx, castEvent)

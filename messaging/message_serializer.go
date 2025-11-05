@@ -10,11 +10,11 @@ var _ MessageSerializer = (*JSONSerializer)(nil)
 var _ MessageDeserializer = (*JSONDeserializer)(nil)
 
 type JSONMessage[P any] struct {
-	ID        string            `json:"id"`
+	ID        string            `json:"id,omitempty"`
 	Type      string            `json:"type"`
 	Source    string            `json:"source,omitempty"`
 	SchemaURI string            `json:"schemaUri,omitempty"`
-	Payload   P                 `json:"payload"`
+	Payload   P                 `json:"payload,omitempty"`
 	Timestamp time.Time         `json:"timestamp"`
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
@@ -29,100 +29,86 @@ type MessageDeserializer interface {
 	Deserialize(msgData []byte) (Message, error)
 }
 
-// NoOpSerializer is a no-operation serializer that returns an empty byte slice.
-type NoOpSerializer struct{}
-
-// Serialize implements MessageSerializer.
-func (s *NoOpSerializer) Serialize(_ Message) ([]byte, error) {
-	return []byte{}, nil
-}
-
-// NoOpDeserializer is a no-operation deserializer that returns nil.
-type NoOpDeserializer struct{}
-
-// Deserialize implements MessageDeserializer.
-func (d *NoOpDeserializer) Deserialize(_ []byte) (Message, error) {
-	return nil, nil
-}
+type JSONMessageEncoder[T Message, P any] func(msg T) JSONMessage[P]
+type JSONMessageDecoder[T Message, P any] func(jsonMessage JSONMessage[P]) (T, error)
 
 // JSONSerializer is a JSON-based serializer.
 type JSONSerializer struct {
-	serializers map[string]func(msg Message) ([]byte, error)
+	encoders map[string]func(msg Message) ([]byte, error)
 }
 
 // NewJSONSerializer creates a new JSONSerializer with the given serializers.
 func NewJSONSerializer() *JSONSerializer {
 	return &JSONSerializer{
-		serializers: make(map[string]func(msg Message) ([]byte, error)),
+		encoders: make(map[string]func(msg Message) ([]byte, error)),
 	}
 }
 
-// RegisterSerializer registers a serializer function for the given message type.
-func (s *JSONSerializer) RegisterSerializer(msgType string, serializer func(msg Message) ([]byte, error)) {
-	s.serializers[msgType] = serializer
+// RegisterEncoder registers a serializer function for the given message type.
+func (s *JSONSerializer) RegisterEncoder(msgType string, encoder func(msg Message) ([]byte, error)) {
+	s.encoders[msgType] = encoder
 }
 
 // Serialize implements MessageSerializer.
 func (s *JSONSerializer) Serialize(msg Message) ([]byte, error) {
-	serializer, ok := s.serializers[msg.MessageType()]
+	encoder, ok := s.encoders[msg.MessageType()]
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("no encoder registered for message type %s", msg.MessageType())
 	}
-	return serializer(msg)
+	return encoder(msg)
 }
 
-// JSONDeserializer is a JSON-based deserializer.
+// JSONDeserializer holds JSON decoders for different message types.
 type JSONDeserializer struct {
-	deserializers map[string]func(jsonMessage JSONMessage[json.RawMessage]) (Message, error)
+	decoders map[string]func([]byte) (Message, error)
 }
 
 // NewJSONDeserializer creates a new JSONDeserializer with the given deserializers.
 func NewJSONDeserializer() *JSONDeserializer {
 	return &JSONDeserializer{
-		deserializers: make(map[string]func(jsonMessage JSONMessage[json.RawMessage]) (Message, error)),
+		decoders: make(map[string]func([]byte) (Message, error)),
 	}
 }
 
-// RegisterDeserializer registers a deserializer function for the given message type.
-func (d *JSONDeserializer) RegisterDeserializer(msgType string, deserializer func(jsonMessage JSONMessage[json.RawMessage]) (Message, error)) {
-	d.deserializers[msgType] = deserializer
+// RegisterDecoder registers a deserializer function for the given message type.
+func (d *JSONDeserializer) RegisterDecoder(msgType string, decoder func([]byte) (Message, error)) {
+	d.decoders[msgType] = decoder
 }
 
 // Deserialize implements MessageDeserializer.
 func (d *JSONDeserializer) Deserialize(msgData []byte) (Message, error) {
-	var jsonMessage JSONMessage[json.RawMessage]
-	if err := json.Unmarshal(msgData, &jsonMessage); err != nil {
-		return nil, err
-	}
-
-	msgType := jsonMessage.Type
-	deserializer, ok := d.deserializers[msgType]
+	decoder, ok := d.decoders[string(msgData)]
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("no decoder registered for message type in data: %s", string(msgData))
 	}
-	return deserializer(jsonMessage)
+	return decoder(msgData)
 }
 
 // RegisterJSONMessageSerializer is a helper function to register a payload serializer for a specific message type.
-func RegisterJSONMessageSerializer[T Message, P any](s *JSONSerializer, msgType string, serializer func(e T) JSONMessage[P]) *JSONSerializer {
-	s.RegisterSerializer(msgType, func(msg Message) ([]byte, error) {
+func RegisterJSONMessageSerializer[T Message, P any](s *JSONSerializer, msgType string, encoder JSONMessageEncoder[T, P]) *JSONSerializer {
+	s.RegisterEncoder(msgType, func(msg Message) ([]byte, error) {
 		castMsg, ok := msg.(T)
 		if !ok {
 			return nil, InvalidMessageTypeError{
-				Actual:   msgType,
-				Expected: fmt.Sprintf("%T", msg),
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", castMsg),
 			}
 		}
 
-		jsonMessage := serializer(castMsg)
+		jsonMessage := encoder(castMsg)
 		return json.Marshal(jsonMessage)
 	})
 	return s
 }
 
 // RegisterJSONMessageDeserializer is a helper function to register a payload deserializer for a specific message type.
-func RegisterJSONMessageDeserializer[T Message, P any](d *JSONDeserializer, msgType string, deserializer func(jsonMessage JSONMessage[P]) (T, error)) {
-	d.RegisterDeserializer(msgType, func(jsonMessage JSONMessage[json.RawMessage]) (Message, error) {
+func RegisterJSONMessageDeserializer[T Message, P any](d *JSONDeserializer, msgType string, decoder JSONMessageDecoder[T, P]) {
+	d.RegisterDecoder(msgType, func(msgData []byte) (Message, error) {
+		var jsonMessage JSONMessage[json.RawMessage]
+		if err := json.Unmarshal(msgData, &jsonMessage); err != nil {
+			return nil, err
+		}
+
 		var payload P
 		if err := json.Unmarshal(jsonMessage.Payload, &payload); err != nil {
 			return nil, err
@@ -138,7 +124,7 @@ func RegisterJSONMessageDeserializer[T Message, P any](d *JSONDeserializer, msgT
 			Metadata:  jsonMessage.Metadata,
 		}
 
-		return deserializer(typedMessage)
+		return decoder(typedMessage)
 	})
 }
 

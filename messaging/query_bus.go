@@ -1,23 +1,50 @@
 package messaging
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
-type QueryHandler[Q Query] = MessageHandler[Q]
-type QueryHandlerFn[Q Query] = MessageHandlerFn[Q]
+type QueryHandler[Q Query, R QueryReply] = MessageHandlerWithReply[Q, R]
+type QueryHandlerFn[Q Query, R QueryReply] = MessageHandlerWithReplyFn[Q, R]
 
+// NewQueryHandlerFn wraps the given QueryHandlerFn into a MessageHandlerWithReplyFn.
+func NewQueryHandlerFn[Q Query, R QueryReply](fn func(ctx context.Context, qry Q) (R, error)) MessageHandlerWithReply[Message, MessageReply] {
+	var zeroQry Q
+	return MessageHandlerWithReplyFn[Message, MessageReply](func(ctx context.Context, msg Message) (MessageReply, error) {
+		castQry, ok := msg.(Q)
+		if !ok {
+			return nil, InvalidMessageTypeError{
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", zeroQry),
+			}
+		}
+		return fn(ctx, castQry)
+	})
+}
+
+// QueryBus is an interface for dispatching querys and subscribing to query responses.
+//
+// QueryBus
+//
+//go:generate moq -pkg messagingmock -out mock/query_bus.go . QueryBus:QueryBus
 type QueryBus interface {
 	QueryDispatcher
-	QuerySubscriber
+	QueryConsumer
 }
 
 // QueryDispatcher is an interface for dispatching querys to a query bus.
+//
+//go:generate moq -pkg messagingmock -out mock/query_dispatcher.go . QueryDispatcher:QueryDispatcher
 type QueryDispatcher interface {
-	// DispatchAndWaitReply sends a query and waits for a reply.
-	DispatchAndWaitReply(ctx context.Context, qry Query) (Message, error)
+	// Request sends a query and waits for a reply.
+	Request(ctx context.Context, qry Query) (Message, error)
 }
 
-// QuerySubscriber is an interface for subscribing to querys from a query bus.
-type QuerySubscriber interface {
+// QueryConsumer is an interface for subscribing to querys from a query bus.
+//
+//go:generate moq -pkg messagingmock -out mock/query_consumer.go . QueryConsumer:QueryConsumer
+type QueryConsumer interface {
 	// Subscribe registers a handler for a given logical query name.
-	Subscribe(ctx context.Context, subject string, h QueryHandler[Query]) (UnsubscribeFunc, error)
+	Subscribe(ctx context.Context, h QueryHandler[Query, QueryReply]) (UnsubscribeFunc, error)
 }

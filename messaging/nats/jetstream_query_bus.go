@@ -3,7 +3,6 @@ package messagingnats
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -13,47 +12,27 @@ type JetstreamQueryBus struct {
 	*JetStreamMessageBus
 }
 
-func (p *JetstreamQueryBus) DispatchAndWaitReply(ctx context.Context, query messaging.Query) (messaging.Message, error) {
-	res, err := p.PublishRequest(ctx, query)
-	if err != nil {
-		return nil, err
+func NewJetstreamQueryBus(
+	publisher *JetstreamMessagePublisher,
+	consumer *JetStreamMessageConsumer,
+) *JetstreamQueryBus {
+	jmb := NewJetstreamMessageBus(publisher, consumer)
+	return &JetstreamQueryBus{
+		JetStreamMessageBus: jmb,
 	}
-
-	return res, nil
 }
 
-func (p *JetstreamQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (messaging.UnsubscribeFunc, error) {
-	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
+func (p *JetstreamQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
+	return p.PublishRequest(ctx, query)
+}
+
+func (p *JetstreamQueryBus) Subscribe(ctx context.Context, h messaging.QueryHandler[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {
-			return messaging.ErrMessageIsNotQuery
+			return nil, messaging.ErrMessageIsNotQuery
 		}
 		return h.Handle(ctx, query)
 	})
-	return p.JetStreamMessageBus.Subscribe(ctx, subject, wrappedHandler)
-}
-
-func NewJetstreamQueryBus(
-	ctx context.Context,
-	conn *nats.Conn,
-	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageBusOption,
-) (*JetstreamQueryBus, error) {
-	jmb, err := NewJetstreamMessageBus(
-		ctx,
-		conn,
-		streamName,
-		serializer,
-		deserializer,
-		opts...,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &JetstreamQueryBus{
-		JetStreamMessageBus: jmb,
-	}, nil
+	return p.JetStreamMessageBus.SubscribeWithReply(ctx, wrappedHandler)
 }

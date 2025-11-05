@@ -63,11 +63,34 @@ func main() {
 	deserializer := messaging.NewJSONDeserializer()
 	registerOrderCreatedEventJsonDeserializer(deserializer, evt.MessageType())
 
+	// Create a NATS-based PubSubMessagePublisher
+	publisher, err := messagingnats.NewPubSubMessagePublisher(
+		nc,
+		serializer,
+		deserializer,
+	)
+	if err != nil {
+		nc.Close()
+		panic(err)
+	}
+
+	// Create a NATS-based PubSubMessageConsumer
+	consumer, err := messagingnats.NewPubSubMessageConsumer(
+		nc,
+		serializer,
+		deserializer,
+		messagingnats.WithPubSubConsumerSubject("com.example.order.created.v1"),
+	)
+	if err != nil {
+		nc.Close()
+		panic(err)
+	}
+
 	// Create a NATS-based PubSubMessageBus
-	pubSubBus := messagingnats.NewPubSubEventBus(nc, serializer, deserializer)
+	pubSubBus := messagingnats.NewPubSubEventBus(publisher, consumer)
 
 	// Subscribe to messages of type "OrderCreated"
-	unsub, err := messaging.SubscribeEvent(ctx, pubSubBus, evt.MessageType(), messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, evt OrderCreatedEvent) error {
+	unsub, err := messaging.SubscribeEvent(ctx, pubSubBus, messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, evt OrderCreatedEvent) error {
 		fmt.Println("Received event:")
 		fmt.Printf("- Event Type: %s\n", evt.MessageType())
 		fmt.Printf("- Order ID: %d\n", evt.OrderID())

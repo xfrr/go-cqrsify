@@ -12,7 +12,7 @@ type InMemoryEventBus struct {
 	bus *InMemoryMessageBus
 }
 
-func NewInMemoryEventBus(optFns ...MessageBusConfigModifier) *InMemoryEventBus {
+func NewInMemoryEventBus(optFns ...MessageBusConfigConfiger) *InMemoryEventBus {
 	return &InMemoryEventBus{
 		bus: NewInMemoryMessageBus(optFns...),
 	}
@@ -26,8 +26,8 @@ func (b *InMemoryEventBus) Publish(ctx context.Context, events ...Event) error {
 	return b.bus.Publish(ctx, msgs...)
 }
 
-func (b *InMemoryEventBus) Subscribe(ctx context.Context, eventName string, h EventHandler[Event]) (UnsubscribeFunc, error) {
-	return b.bus.Subscribe(ctx, eventName, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
+func (b *InMemoryEventBus) Subscribe(ctx context.Context, h EventHandler[Event]) (UnsubscribeFunc, error) {
+	return b.bus.Subscribe(ctx, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		evt, ok := msg.(Event)
 		if !ok {
 			return InvalidMessageTypeError{Expected: fmt.Sprintf("%T", evt), Actual: fmt.Sprintf("%T", msg)}

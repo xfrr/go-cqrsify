@@ -3,7 +3,6 @@ package messagingnats
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -17,13 +16,11 @@ type PubSubEventBus struct {
 }
 
 func NewPubSubEventBus(
-	conn *nats.Conn,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...PubSubMessageBusOption,
+	pubSubPublisher *PubSubMessagePublisher,
+	pubSubConsumer *PubSubMessageConsumer,
 ) *PubSubEventBus {
 	return &PubSubEventBus{
-		PubSubMessageBus: NewPubSubMessageBus(conn, serializer, deserializer, opts...),
+		PubSubMessageBus: NewPubSubMessageBus(pubSubPublisher, pubSubConsumer),
 	}
 }
 
@@ -37,7 +34,7 @@ func (p *PubSubEventBus) Publish(ctx context.Context, events ...messaging.Event)
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *PubSubEventBus) Subscribe(ctx context.Context, eventType string, handler messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (p *PubSubEventBus) Subscribe(ctx context.Context, handler messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		event, ok := msg.(messaging.Event)
 		if !ok {
@@ -45,5 +42,5 @@ func (p *PubSubEventBus) Subscribe(ctx context.Context, eventType string, handle
 		}
 		return handler.Handle(ctx, event)
 	})
-	return p.PubSubMessageBus.Subscribe(ctx, eventType, wrappedHandler)
+	return p.PubSubMessageBus.Subscribe(ctx, wrappedHandler)
 }

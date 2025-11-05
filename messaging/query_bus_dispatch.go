@@ -14,7 +14,7 @@ func DispatchQuery[Q Query, R any](
 	var zero R
 
 	// send the query and wait for a reply
-	replyMsg, err := dispatcher.DispatchAndWaitReply(ctx, query)
+	replyMsg, err := dispatcher.Request(ctx, query)
 	if err != nil {
 		return zero, err
 	}

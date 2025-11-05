@@ -3,41 +3,28 @@ package messagingnats
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
 var _ messaging.CommandBus = (*JetStreamCommandBus)(nil)
+var _ messaging.CommandBusReplier = (*JetStreamCommandBus)(nil)
+var _ messaging.CommandConsumerReplier = (*JetStreamCommandBus)(nil)
 
 type JetStreamCommandBus struct {
 	*JetStreamMessageBus
 }
 
 func NewJetStreamCommandBus(
-	ctx context.Context,
-	conn *nats.Conn,
-	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageBusOption,
-) (*JetStreamCommandBus, error) {
-	jmb, err := NewJetstreamMessageBus(
-		ctx,
-		conn,
-		streamName,
-		serializer,
-		deserializer,
-		opts...,
-	)
-	if err != nil {
-		return nil, err
-	}
+	publisher *JetstreamMessagePublisher,
+	consumer *JetStreamMessageConsumer,
+) *JetStreamCommandBus {
+	jmb := NewJetstreamMessageBus(publisher, consumer)
 	return &JetStreamCommandBus{
 		JetStreamMessageBus: jmb,
-	}, nil
+	}
 }
 
-// Publish implements messaging.MessageBus.
+// Dispatch implements messaging.CommandDispatcher.
 func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
 	msgs := make([]messaging.Message, len(commands))
 	for i, e := range commands {
@@ -46,8 +33,16 @@ func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messagin
 	return p.Publish(ctx, msgs...)
 }
 
-// Subscribe implements messaging.MessageBus.
-func (p *JetStreamCommandBus) Subscribe(ctx context.Context, commandType string, handler messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+// PublishRequest implements messaging.CommandBusRequester.
+func (p *JetStreamCommandBus) PublishRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
+	return p.JetStreamMessageBus.PublishRequest(ctx, cmd)
+}
+
+// Subscribe implements messaging.CommandConsumer.
+func (p *JetStreamCommandBus) Subscribe(
+	ctx context.Context,
+	handler messaging.CommandHandler[messaging.Command],
+) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		command, ok := msg.(messaging.Command)
 		if !ok {
@@ -55,5 +50,20 @@ func (p *JetStreamCommandBus) Subscribe(ctx context.Context, commandType string,
 		}
 		return handler.Handle(ctx, command)
 	})
-	return p.JetStreamMessageBus.Subscribe(ctx, commandType, wrappedHandler)
+	return p.JetStreamMessageBus.Subscribe(ctx, wrappedHandler)
+}
+
+// SubscribeWithReply implements messaging.CommandConsumerWithReply.
+func (p *JetStreamCommandBus) SubscribeWithReply(
+	ctx context.Context,
+	handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply],
+) (messaging.UnsubscribeFunc, error) {
+	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.MessageReply](func(ctx context.Context, cmd messaging.Message) (messaging.MessageReply, error) {
+		command, ok := cmd.(messaging.Command)
+		if !ok {
+			return nil, messaging.ErrMessageIsNotCommand
+		}
+		return handler.Handle(ctx, command)
+	})
+	return p.JetStreamMessageBus.SubscribeWithReply(ctx, wrappedHandler)
 }

@@ -3,7 +3,6 @@ package messagingnats
 import (
 	"context"
 
-	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -16,7 +15,16 @@ type PubSubQueryBus struct {
 	*PubSubMessageBus
 }
 
-func (p *PubSubQueryBus) DispatchAndWaitReply(ctx context.Context, query messaging.Query) (messaging.Message, error) {
+func NewPubSubQueryBus(
+	pubSubPublisher *PubSubMessagePublisher,
+	pubSubConsumer *PubSubMessageConsumer,
+) *PubSubQueryBus {
+	return &PubSubQueryBus{
+		PubSubMessageBus: NewPubSubMessageBus(pubSubPublisher, pubSubConsumer),
+	}
+}
+
+func (p *PubSubQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
 	res, err := p.PublishRequest(ctx, query)
 	if err != nil {
 		return nil, err
@@ -25,24 +33,13 @@ func (p *PubSubQueryBus) DispatchAndWaitReply(ctx context.Context, query messagi
 	return res, nil
 }
 
-func (p *PubSubQueryBus) Subscribe(ctx context.Context, subject string, h messaging.QueryHandler[messaging.Query]) (messaging.UnsubscribeFunc, error) {
-	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
+func (p *PubSubQueryBus) Subscribe(ctx context.Context, h messaging.QueryHandler[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {
-			return messaging.ErrMessageIsNotQuery
+			return nil, messaging.ErrMessageIsNotQuery
 		}
 		return h.Handle(ctx, query)
 	})
-	return p.PubSubMessageBus.Subscribe(ctx, subject, wrappedHandler)
-}
-
-func NewPubSubQueryBus(
-	conn *nats.Conn,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...PubSubMessageBusOption,
-) *PubSubQueryBus {
-	return &PubSubQueryBus{
-		PubSubMessageBus: NewPubSubMessageBus(conn, serializer, deserializer, opts...),
-	}
+	return p.PubSubMessageBus.SubscribeWithReply(ctx, wrappedHandler)
 }

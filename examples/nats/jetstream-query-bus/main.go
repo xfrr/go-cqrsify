@@ -50,7 +50,7 @@ func main() {
 	defer cancel()
 
 	query := getOrderAmountQuery{
-		BaseQuery: messaging.NewBaseQuery("com.cqrsify.queries.order.get_amount.v1"),
+		BaseQuery: messaging.NewBaseQuery("com.cqrsify.examples.js_query_bus.order.get_amount.v1"),
 		orderID:   123,
 	}
 
@@ -81,17 +81,11 @@ func main() {
 	defer closeQueryBus()
 
 	// Subscribe to messages of type "GetOrderAmount"
-	unsub, err := messaging.SubscribeQuery(ctx, queryBus, query.MessageType(), messaging.QueryHandlerFn[GetOrderAmountQuery](func(ctx context.Context, query GetOrderAmountQuery) error {
+	unsub, err := messaging.SubscribeQuery(ctx, queryBus, messaging.QueryHandlerFn[GetOrderAmountQuery, getOrderAmountQueryReply](func(ctx context.Context, query GetOrderAmountQuery) (getOrderAmountQueryReply, error) {
 		fmt.Println("Handling query:")
 		fmt.Printf("- Query Type: %s\n", query.MessageType())
 		fmt.Printf("- Order ID: %d\n", query.OrderID())
-
-		// Reply to the query
-		if err = query.Reply(ctx, queryReply); err != nil {
-			return fmt.Errorf("failed to reply to query: %w", err)
-		}
-
-		return nil
+		return queryReply, nil
 	}))
 	if err != nil {
 		panic(err)
@@ -102,7 +96,7 @@ func main() {
 	// Publish a query of type "GetOrderAmount"
 	reply, err := messaging.DispatchQuery[GetOrderAmountQuery, getOrderAmountQueryReply](ctx, queryBus, query)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to dispatch query: %w", err))
 	}
 
 	fmt.Println("Received reply:")
@@ -127,30 +121,57 @@ func newQueryBus(
 		panic(err)
 	}
 
-	queryBus, err := messagingnats.NewJetstreamQueryBus(
-		ctx,
+	cleanup := func() {
+		nc.Drain()
+		nc.Close()
+	}
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		cleanup()
+		panic(err)
+	}
+
+	_, err = js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
+		Name:      streamName,
+		Subjects:  []string{"com.cqrsify.examples.js_query_bus.>"},
+		MaxAge:    10 * time.Minute,
+		Storage:   jetstream.MemoryStorage,
+		Retention: jetstream.WorkQueuePolicy,
+	})
+	if err != nil {
+		cleanup()
+		panic(err)
+	}
+
+	publisher, err := messagingnats.NewJetStreamMessagePublisher(
 		nc,
 		streamName,
 		serializer,
 		deserializer,
-		messagingnats.WithStreamConfig(
-			jetstream.StreamConfig{
-				Name:      streamName,
-				Subjects:  []string{"com.cqrsify.queries.>"},
-				MaxAge:    10 * time.Minute,
-				Storage:   jetstream.MemoryStorage,
-				Retention: jetstream.WorkQueuePolicy,
-			},
-		),
 	)
 	if err != nil {
-		nc.Close()
-		return nil, nil, err
+		cleanup()
+		panic(err)
 	}
 
-	cleanup := func() {
-		nc.Close()
+	consumer, err := messagingnats.NewJetStreamMessageConsumer(
+		nc,
+		streamName,
+		serializer,
+		deserializer,
+		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+			Name:          "cqrsify_examples_js_query_bus_consumer",
+			AckPolicy:     jetstream.AckExplicitPolicy,
+			FilterSubject: "com.cqrsify.examples.js_query_bus.order.get_amount.v1",
+		}),
+	)
+	if err != nil {
+		cleanup()
+		panic(err)
 	}
+
+	queryBus := messagingnats.NewJetstreamQueryBus(publisher, consumer)
 	return queryBus, cleanup, nil
 }
 
