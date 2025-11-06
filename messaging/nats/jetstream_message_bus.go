@@ -33,10 +33,5 @@ func consumerNameFromMessageType(msgType string) string {
 	// normalize the message type to be used as a consumer name
 	// replace dots with underscores
 	consumerName := strings.ReplaceAll(msgType, ".", "_")
-	// truncate to 30 characters to avoid exceeding NATS limits
-	// const maxConsumerNameLength = 30
-	// if len(consumerName) > maxConsumerNameLength {
-	// 	consumerName = consumerName[:maxConsumerNameLength]
-	// }
 	return consumerName
 }

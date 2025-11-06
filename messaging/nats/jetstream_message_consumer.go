@@ -27,6 +27,7 @@ type JetStreamMessageConsumer struct {
 	errorHandler messaging.ErrorHandler
 }
 
+// NewJetStreamMessageConsumer creates a standard JetStream consumer.
 func NewJetStreamMessageConsumer(
 	ctx context.Context,
 	conn *nats.Conn,
@@ -35,6 +36,10 @@ func NewJetStreamMessageConsumer(
 	deserializer messaging.MessageDeserializer,
 	opts ...JetStreamMessageConsumerConfiger,
 ) (*JetStreamMessageConsumer, error) {
+	if err := validateInputs(conn, streamName, serializer, deserializer); err != nil {
+		return nil, err
+	}
+
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
@@ -46,20 +51,10 @@ func NewJetStreamMessageConsumer(
 		return nil, fmt.Errorf("failed to create consumer: %w", err)
 	}
 
-	p := &JetStreamMessageConsumer{
-		conn:         conn,
-		js:           js,
-		consumer:     consumer,
-		streamName:   streamName,
-		serializer:   serializer,
-		deserializer: deserializer,
-		errorHandler: config.ErrorHandler,
-		cfg:          config,
-	}
-
-	return p, nil
+	return newConsumer(conn, js, consumer, streamName, serializer, deserializer, config), nil
 }
 
+// NewJetStreamOrderedMessageConsumer creates an ordered JetStream consumer.
 func NewJetStreamOrderedMessageConsumer(
 	ctx context.Context,
 	conn *nats.Conn,
@@ -68,6 +63,10 @@ func NewJetStreamOrderedMessageConsumer(
 	deserializer messaging.MessageDeserializer,
 	opts ...JetStreamMessageConsumerConfiger,
 ) (*JetStreamMessageConsumer, error) {
+	if err := validateInputs(conn, streamName, serializer, deserializer); err != nil {
+		return nil, err
+	}
+
 	js, err := jetstream.New(conn)
 	if err != nil {
 		return nil, err
@@ -79,18 +78,7 @@ func NewJetStreamOrderedMessageConsumer(
 		return nil, fmt.Errorf("failed to create ordered consumer: %w", err)
 	}
 
-	p := &JetStreamMessageConsumer{
-		conn:         conn,
-		js:           js,
-		consumer:     consumer,
-		streamName:   streamName,
-		serializer:   serializer,
-		deserializer: deserializer,
-		errorHandler: config.ErrorHandler,
-		cfg:          config,
-	}
-
-	return p, nil
+	return newConsumer(conn, js, consumer, streamName, serializer, deserializer, config), nil
 }
 
 // Subscribe implements messaging.MessageConsumer.
@@ -101,43 +89,26 @@ func (p *JetStreamMessageConsumer) Subscribe(
 	if handler == nil {
 		return nil, errors.New("handler cannot be nil")
 	}
-
 	if p.consumer == nil {
 		return nil, errors.New("consumer is not initialized")
 	}
 
-	sub, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
-		m, deserializeErr := p.deserializer.Deserialize(jmsg.Data())
-		if deserializeErr != nil {
-			p.errorHandler.Handle(nil, fmt.Errorf("failed to deserialize message: %w", deserializeErr))
-			termErr := jmsg.TermWithReason("deserialization_failed")
-			if termErr != nil {
-				p.errorHandler.Handle(nil, fmt.Errorf("failed to term message: %w", termErr))
-			}
-			return
-		}
-
+	cc, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
+		m := p.deserializeOrTerm(jmsg)
 		if m == nil {
-			p.errorHandler.Handle(m, errors.New("nil message after deserialization"))
-			termErr := jmsg.TermWithReason("deserialization_failed")
-			if termErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to term message: %w", termErr))
-			}
 			return
 		}
 
 		if err := handler.Handle(ctx, m); err != nil {
-			p.errorHandler.Handle(m, fmt.Errorf("failed to handle message: %w", err))
-			// TODO: check if its temporary or permanent error to decide ack/nack
-			nakErr := jmsg.Nak()
-			if nakErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to nack message: %w", nakErr))
+			p.handleErr(m, fmt.Errorf("failed to handle message: %w", err))
+			if nakErr := jmsg.Nak(); nakErr != nil {
+				p.handleErr(m, fmt.Errorf("failed to nak message: %w", nakErr))
 			}
 			return
 		}
 
 		if err := jmsg.Ack(); err != nil {
-			p.errorHandler.Handle(m, fmt.Errorf("failed to ack message: %w", err))
+			p.handleErr(m, fmt.Errorf("failed to ack message: %w", err))
 			return
 		}
 	})
@@ -145,7 +116,7 @@ func (p *JetStreamMessageConsumer) Subscribe(
 		return nil, fmt.Errorf("failed to subscribe: %w", err)
 	}
 
-	return p.unsubscribeFn(sub), nil
+	return p.unsubscribeFn(cc), nil
 }
 
 // SubscribeWithReply implements messaging.MessageConsumerWithReply.
@@ -156,82 +127,54 @@ func (p *JetStreamMessageConsumer) SubscribeWithReply(
 	if handler == nil {
 		return nil, errors.New("handler cannot be nil")
 	}
-
 	if p.consumer == nil {
 		return nil, errors.New("consumer is not initialized")
 	}
 
-	consumerCtx, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
-		m, deserializeErr := p.deserializer.Deserialize(jmsg.Data())
-		if deserializeErr != nil {
-			p.errorHandler.Handle(nil, fmt.Errorf("failed to deserialize message: %w", deserializeErr))
-			termErr := jmsg.TermWithReason("deserialization_failed")
-			if termErr != nil {
-				p.errorHandler.Handle(nil, fmt.Errorf("failed to term message: %w", termErr))
-			}
-			return
-		}
-
+	cc, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
+		m := p.deserializeOrTerm(jmsg)
 		if m == nil {
-			p.errorHandler.Handle(nil, errors.New("no deserializer found for message"))
-			termErr := jmsg.TermWithReason("deserialization_failed")
-			if termErr != nil {
-				p.errorHandler.Handle(nil, fmt.Errorf("failed to term message: %w", termErr))
-			}
 			return
 		}
 
 		replyMsg, handleErr := handler.Handle(ctx, m)
 		if handleErr != nil {
-			p.errorHandler.Handle(m, fmt.Errorf("failed to handle message: %w", handleErr))
-			// TODO: check if its temporary or permanent error to decide ack/nack
-			nakErr := jmsg.Term()
-			if nakErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to nack message: %w", nakErr))
+			p.handleErr(m, fmt.Errorf("failed to handle message: %w", handleErr))
+			if termErr := jmsg.Term(); termErr != nil {
+				p.handleErr(m, fmt.Errorf("failed to term message: %w", termErr))
 			}
 			return
 		}
-
 		if replyMsg == nil {
-			p.errorHandler.Handle(m, errors.New("handler returned nil reply message"))
-			termErr := jmsg.TermWithReason("nil_reply")
-			if termErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to term message after nil reply: %w", termErr))
-			}
+			p.handleErr(m, errors.New("handler returned nil reply message"))
+			p.termWithReason(jmsg, "nil_reply", m)
 			return
 		}
 
 		replyData, serializeErr := p.serializer.Serialize(replyMsg)
 		if serializeErr != nil {
-			p.errorHandler.Handle(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
-			termErr := jmsg.TermWithReason("serialization_failed")
-			if termErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to term message after serialization failure: %w", termErr))
-			}
+			p.handleErr(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
+			p.termWithReason(jmsg, "serialization_failed", m)
 			return
 		}
 
 		replySubject := jmsg.Headers().Get(replyHeaderKey)
 		if replySubject == "" {
-			p.errorHandler.Handle(replyMsg, errors.New("no reply subject found in message headers"))
-			termErr := jmsg.TermWithReason("no_reply_subject")
-			if termErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to term message: %w", termErr))
-			}
+			p.handleErr(replyMsg, errors.New("no reply subject found in message headers"))
+			p.termWithReason(jmsg, "no_reply_subject", m)
 			return
 		}
 
 		if err := p.conn.Publish(replySubject, replyData); err != nil {
-			p.errorHandler.Handle(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
-			nakErr := jmsg.Nak()
-			if nakErr != nil {
-				p.errorHandler.Handle(m, fmt.Errorf("failed to nack message: %w", nakErr))
+			p.handleErr(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
+			if nakErr := jmsg.Nak(); nakErr != nil {
+				p.handleErr(m, fmt.Errorf("failed to nak message: %w", nakErr))
 			}
 			return
 		}
 
 		if err := jmsg.Ack(); err != nil {
-			p.errorHandler.Handle(m, fmt.Errorf("failed to ack message: %w", err))
+			p.handleErr(m, fmt.Errorf("failed to ack message: %w", err))
 			return
 		}
 	})
@@ -239,14 +182,87 @@ func (p *JetStreamMessageConsumer) SubscribeWithReply(
 		return nil, fmt.Errorf("failed to subscribe with reply: %w", err)
 	}
 
-	return p.unsubscribeFn(consumerCtx), nil
+	return p.unsubscribeFn(cc), nil
 }
 
-func (p *JetStreamMessageConsumer) unsubscribeFn(
-	sub jetstream.ConsumeContext,
-) messaging.UnsubscribeFunc {
+func (p *JetStreamMessageConsumer) unsubscribeFn(sub jetstream.ConsumeContext) messaging.UnsubscribeFunc {
 	return func() error {
 		sub.Drain()
 		return nil
 	}
+}
+
+/*** internal helpers ***/
+
+func newConsumer(
+	conn *nats.Conn,
+	js jetstream.JetStream,
+	consumer jetstream.Consumer,
+	streamName string,
+	serializer messaging.MessageSerializer,
+	deserializer messaging.MessageDeserializer,
+	cfg JetStreamMessageConsumerConfig,
+) *JetStreamMessageConsumer {
+	p := &JetStreamMessageConsumer{
+		conn:         conn,
+		js:           js,
+		consumer:     consumer,
+		streamName:   streamName,
+		serializer:   serializer,
+		deserializer: deserializer,
+		errorHandler: cfg.ErrorHandler,
+		cfg:          cfg,
+	}
+	if p.errorHandler == nil {
+		p.errorHandler = messaging.DefaultErrorHandler
+	}
+	return p
+}
+
+func validateInputs(
+	conn *nats.Conn,
+	streamName string,
+	serializer messaging.MessageSerializer,
+	deserializer messaging.MessageDeserializer,
+) error {
+	if conn == nil {
+		return errors.New("nats connection cannot be nil")
+	}
+	if streamName == "" {
+		return errors.New("stream name cannot be empty")
+	}
+	if serializer == nil {
+		return errors.New("serializer cannot be nil")
+	}
+	if deserializer == nil {
+		return errors.New("deserializer cannot be nil")
+	}
+	return nil
+}
+
+func (p *JetStreamMessageConsumer) handleErr(msg messaging.Message, err error) {
+	if p.errorHandler != nil {
+		p.errorHandler.Handle(msg, err)
+	}
+}
+
+func (p *JetStreamMessageConsumer) termWithReason(jmsg jetstream.Msg, reason string, msg messaging.Message) {
+	if err := jmsg.TermWithReason(reason); err != nil {
+		p.handleErr(msg, fmt.Errorf("failed to term message (%s): %w", reason, err))
+	}
+}
+
+func (p *JetStreamMessageConsumer) deserializeOrTerm(jmsg jetstream.Msg) messaging.Message {
+	m, err := p.deserializer.Deserialize(jmsg.Data())
+	if err != nil {
+		p.handleErr(nil, fmt.Errorf("failed to deserialize message: %w", err))
+		p.termWithReason(jmsg, "deserialization_failed", nil)
+		return nil
+	}
+	if m == nil {
+		p.handleErr(nil, errors.New("nil message after deserialization"))
+		p.termWithReason(jmsg, "deserialization_failed", nil)
+		return nil
+	}
+	return m
 }
