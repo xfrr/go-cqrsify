@@ -3,13 +3,13 @@ package messaging
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 const (
 	// defaultQueueSize is the default size of the async delivery queue.
-	// Increase if you expect bursts of messages or slow handlers.
-	// Decrease to limit memory usage.
 	defaultQueueSize = 100
 )
 
@@ -17,11 +17,12 @@ var _ MessageBus = (*InMemoryMessageBus)(nil)
 var _ MessageBusReplier = (*InMemoryMessageBus)(nil)
 
 // InMemoryMessageBus is a simple, fast, process-local message bus.
-// Great for tests and single-process apps; swap for a distributed bus in prod if needed.
 type InMemoryMessageBus struct {
-	opts     MessageBusConfig
+	opts MessageBusConfig
+
 	mu       sync.RWMutex
-	handlers map[string][]MessageHandler[Message]
+	handlers map[string][]handlerEntry // subject -> handlers
+	nextID   uint64                    // atomic incremental id for handlers
 
 	// async pipeline (enabled if opts.AsyncWorkers > 0)
 	queue   chan queued
@@ -36,8 +37,14 @@ type InMemoryMessageBus struct {
 	wg      sync.WaitGroup
 }
 
+type handlerEntry struct {
+	id uint64
+	h  MessageHandler[Message]
+}
+
 type queued struct {
-	ctx context.Context //nolint:containedctx // required for async delivery
+	//nolint:containedctx // context is passed from publisher to worker
+	ctx context.Context
 	msg Message
 	h   MessageHandler[Message]
 }
@@ -58,12 +65,16 @@ func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageB
 
 	b := &InMemoryMessageBus{
 		opts:     cfg,
-		handlers: make(map[string][]MessageHandler[Message]),
+		handlers: make(map[string][]handlerEntry),
 	}
 
 	if cfg.AsyncWorkers > 0 {
-		b.queue = make(chan queued, max(1, cfg.QueueSize))
-		for i := range cfg.AsyncWorkers {
+		qSize := cfg.QueueSize
+		if qSize < 1 {
+			qSize = 1
+		}
+		b.queue = make(chan queued, qSize)
+		for i := 0; i < cfg.AsyncWorkers; i++ {
 			b.addWorker(i)
 		}
 	}
@@ -71,72 +82,73 @@ func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageB
 }
 
 func (b *InMemoryMessageBus) Publish(ctx context.Context, msgs ...Message) error {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
 	if len(msgs) == 0 {
 		return errors.New("no messages to publish")
 	}
 
+	// Snapshot handlers outside of lock to avoid running user code while locked.
+	b.mu.RLock()
 	if b.closed {
+		b.mu.RUnlock()
 		return ErrPublishOnClosedBus
 	}
+	snap := make(map[string][]MessageHandler[Message], len(b.handlers))
+	for mt, entries := range b.handlers {
+		cp := make([]MessageHandler[Message], len(entries))
+		for i := range entries {
+			cp[i] = entries[i].h
+		}
+		snap[mt] = cp
+	}
+	b.mu.RUnlock()
 
 	for _, msg := range msgs {
-		handlers := b.handlers[msg.MessageType()]
+		handlers := snap[msg.MessageType()]
 		if len(handlers) == 0 {
 			return NoHandlersForMessageError{MessageType: msg.MessageType()}
 		}
-
-		// Deliver to all handlers (sync or async).
 		for _, h := range handlers {
 			if b.queue == nil {
-				// Synchronous inline dispatch
 				if err := b.deliverSync(ctx, h, msg); err != nil {
 					return err
 				}
 				continue
 			}
-
-			// Async: enqueue delivery (non-blocking if buffered; otherwise may block).
 			if err := b.enqueue(ctx, h, msg); err != nil {
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 
 func (b *InMemoryMessageBus) PublishRequest(ctx context.Context, msg Message) (Message, error) {
 	b.mu.RLock()
-	defer b.mu.RUnlock()
-
 	if b.closed {
+		b.mu.RUnlock()
 		return nil, ErrPublishOnClosedBus
 	}
-
-	handlers := b.handlers[msg.MessageType()]
-	if len(handlers) == 0 {
+	entries := b.handlers[msg.MessageType()]
+	if len(entries) == 0 {
+		b.mu.RUnlock()
 		return nil, NoHandlersForMessageError{MessageType: msg.MessageType()}
 	}
+	h := entries[0].h
+	b.mu.RUnlock()
 
-	// For request/reply, we only support a single handler.
-	h := handlers[0]
 	if h == nil {
 		return nil, NoHandlersForMessageError{MessageType: msg.MessageType()}
 	}
 
-	// Extract reply from handler wrapper.
 	wrapper, ok := h.(*inMemoryMessageBusHandlerWithReplyWrapper)
 	if !ok {
-		return nil, &InvalidMessageTypeError{Expected: "inMemoryMessageBusHandlerWithReplyWrapper", Actual: ""}
+		return nil, &InvalidMessageTypeError{
+			Expected: "inMemoryMessageBusHandlerWithReplyWrapper",
+			Actual:   fmt.Sprintf("%T", h),
+		}
 	}
 
-	// Compose middleware chain around handler for delivery.
 	wrappedHandler := b.wrap(wrapper)
-
-	// Deliver and get reply.
 	if err := wrappedHandler.Handle(ctx, msg); err != nil {
 		return nil, err
 	}
@@ -170,39 +182,38 @@ func (b *InMemoryMessageBus) enqueue(ctx context.Context, h MessageHandler[Messa
 }
 
 func (b *InMemoryMessageBus) Subscribe(_ context.Context, h MessageHandler[Message]) (UnsubscribeFunc, error) {
+	refs := make([]subRef, 0, len(b.opts.Subjects))
+
 	b.mu.Lock()
-	// register handler for all subjects
-	idxs := make([]int, 0, len(b.opts.Subjects))
-	for _, messageName := range b.opts.Subjects {
-		b.handlers[messageName] = append(b.handlers[messageName], h)
-		idxs = append(idxs, len(b.handlers[messageName])-1)
+	for _, subject := range b.opts.Subjects {
+		id := b.addHandlerLocked(subject, h)
+		refs = append(refs, subRef{subject: subject, id: id})
 	}
 	b.mu.Unlock()
 
-	return UnsubscribeFunc(func() error {
-		return b.unsubscribeFunc(idxs)
-	}), nil
+	return func() error {
+		return b.unsubscribeByRefs(refs)
+	}, nil
 }
 
 func (b *InMemoryMessageBus) SubscribeWithReply(_ context.Context, h MessageHandlerWithReply[Message, MessageReply]) (UnsubscribeFunc, error) {
+	wrapped := wrapMessageHandlerWithReply(h)
+	refs := make([]subRef, 0, len(b.opts.Subjects))
+
 	b.mu.Lock()
-	// register handler for all subjects
-	idxs := make([]int, 0, len(b.opts.Subjects))
 	for _, subject := range b.opts.Subjects {
-		if _, exists := b.handlers[subject]; exists {
-			// only one reply handler per message type
+		if hs := b.handlers[subject]; len(hs) > 0 {
 			b.mu.Unlock()
 			return nil, errors.New("reply handler already exists for message type: " + subject)
 		}
-
-		b.handlers[subject] = append(b.handlers[subject], wrapMessageHandlerWithReply(h))
-		idxs = append(idxs, len(b.handlers[subject])-1)
+		id := b.addHandlerLocked(subject, wrapped)
+		refs = append(refs, subRef{subject: subject, id: id})
 	}
 	b.mu.Unlock()
 
-	return UnsubscribeFunc(func() error {
-		return b.unsubscribeFunc(idxs)
-	}), nil
+	return func() error {
+		return b.unsubscribeByRefs(refs)
+	}, nil
 }
 
 func (b *InMemoryMessageBus) Close() error {
@@ -226,20 +237,18 @@ func (b *InMemoryMessageBus) Use(mw ...MessageHandlerMiddleware) {
 }
 
 func (b *InMemoryMessageBus) addWorker(id int) {
-	// Each worker consumes queued deliveries; failures go to ErrorHandler.
 	b.workers = append(b.workers, worker{id: id})
-	b.wg.Go(func() {
+
+	b.wg.Add(1)
+	go func() {
 		defer b.wg.Done()
 		for q := range b.queue {
-			// Compose middleware chain around handler for each delivery.
 			h := b.wrap(q.h)
-			if err := h.Handle(q.ctx, q.msg); err != nil {
-				if b.opts.ErrorHandler != nil {
-					b.opts.ErrorHandler(q.msg.MessageType(), err)
-				}
+			if err := h.Handle(q.ctx, q.msg); err != nil && b.opts.ErrorHandler != nil {
+				b.opts.ErrorHandler(q.msg.MessageType(), err)
 			}
 		}
-	})
+	}()
 }
 
 func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Message] {
@@ -249,36 +258,42 @@ func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Mess
 	return h
 }
 
-func (b *InMemoryMessageBus) unsubscribeFunc(idxs []int) error {
+// internal subscription reference
+type subRef struct {
+	subject string
+	id      uint64
+}
+
+func (b *InMemoryMessageBus) addHandlerLocked(subject string, h MessageHandler[Message]) uint64 {
+	id := atomic.AddUint64(&b.nextID, 1)
+	b.handlers[subject] = append(b.handlers[subject], handlerEntry{id: id, h: h})
+	return id
+}
+
+func (b *InMemoryMessageBus) unsubscribeByRefs(refs []subRef) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	for i, subject := range b.opts.Subjects {
-		if i >= len(idxs) {
-			continue
-		}
-
-		hs, ok := b.handlers[subject]
+	for _, ref := range refs {
+		hs, ok := b.handlers[ref.subject]
 		if !ok || len(hs) == 0 {
 			continue
 		}
-
-		idx := idxs[i]
-		if idx < 0 || idx >= len(hs) {
-			continue
-		}
-
-		last := len(hs) - 1
-		if idx != last {
-			hs[idx] = hs[last]
-		}
-		hs[last] = nil
-		hs = hs[:last]
-
-		if len(hs) == 0 {
-			delete(b.handlers, subject)
-		} else {
-			b.handlers[subject] = hs
+		for i := range hs {
+			if hs[i].id == ref.id {
+				last := len(hs) - 1
+				if i != last {
+					hs[i] = hs[last]
+				}
+				hs[last] = handlerEntry{}
+				hs = hs[:last]
+				if len(hs) == 0 {
+					delete(b.handlers, ref.subject)
+				} else {
+					b.handlers[ref.subject] = hs
+				}
+				break
+			}
 		}
 	}
 	return nil

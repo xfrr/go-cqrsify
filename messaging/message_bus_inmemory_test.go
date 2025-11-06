@@ -80,7 +80,7 @@ func (s *InMemoryMessageBusTestSuite) TestPublish() {
 		expectedErr := messaging.InvalidMessageTypeError{Expected: "expected", Actual: "actual"}
 		unsub, err := bus.Subscribe(
 			s.T().Context(),
-			messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, e messaging.Message) error {
+			messaging.MessageHandlerFn[messaging.Message](func(_ context.Context, _ messaging.Message) error {
 				return expectedErr
 			}),
 		)
@@ -114,7 +114,7 @@ func (s *InMemoryMessageBusTestSuite) TestPublishRequest() {
 		expectedReply := messaging.NewMessage("reply.message.type")
 		unsub, err := bus.SubscribeWithReply(
 			s.T().Context(),
-			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, e messaging.Message) (messaging.Message, error) {
+			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, _ messaging.Message) (messaging.Message, error) {
 				return expectedReply, nil
 			}),
 		)
@@ -139,7 +139,7 @@ func (s *InMemoryMessageBusTestSuite) TestPublishRequest() {
 		expectedErr := messaging.InvalidMessageTypeError{Expected: "expected", Actual: "actual"}
 		unsub, err := bus.SubscribeWithReply(
 			s.T().Context(),
-			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, e messaging.Message) (messaging.Message, error) {
+			messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.Message](func(_ context.Context, _ messaging.Message) (messaging.Message, error) {
 				return nil, expectedErr
 			}),
 		)
