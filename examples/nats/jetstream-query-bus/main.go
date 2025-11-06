@@ -156,11 +156,12 @@ func newQueryBus(
 	}
 
 	consumer, err := messagingnats.NewJetStreamMessageConsumer(
+		ctx,
 		nc,
 		streamName,
 		serializer,
 		deserializer,
-		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:          "cqrsify_examples_js_query_bus_consumer",
 			AckPolicy:     jetstream.AckExplicitPolicy,
 			FilterSubject: "com.cqrsify.examples.js_query_bus.order.get_amount.v1",

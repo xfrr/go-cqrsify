@@ -135,11 +135,12 @@ func newEventBus(
 	}
 
 	eventConsumer, err := messagingnats.NewJetStreamMessageConsumer(
+		ctx,
 		nc,
 		streamName,
 		serializer,
 		deserializer,
-		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:          "cqrsify_examples_event_bus_consumer",
 			AckPolicy:     jetstream.AckExplicitPolicy,
 			FilterSubject: "com.cqrsify.examples.events.>",

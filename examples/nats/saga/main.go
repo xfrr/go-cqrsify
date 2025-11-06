@@ -70,11 +70,12 @@ func main() {
 	}
 
 	cmdConsumer, err := messagingnats.NewJetStreamMessageConsumer(
+		ctx,
 		nc,
 		streamName,
 		jsonSerializer,
 		jsonDeserializer,
-		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:      "cqrsify_examples_sagas_consumer",
 			AckPolicy: jetstream.AckExplicitPolicy,
 			FilterSubjects: []string{

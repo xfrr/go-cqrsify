@@ -125,11 +125,12 @@ func newCommandBus(
 	}
 
 	consumer, err := messagingnats.NewJetStreamMessageConsumer(
+		ctx,
 		nc,
 		streamName,
 		serializer,
 		deserializer,
-		messagingnats.WithConsumerConfig(jetstream.ConsumerConfig{
+		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:          "cqrsify_examples_command_bus_consumer",
 			AckPolicy:     jetstream.AckExplicitPolicy,
 			FilterSubject: "com.cqrsify.examples.commands.>",

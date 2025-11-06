@@ -77,9 +77,14 @@ func (d *JSONDeserializer) RegisterDecoder(msgType string, decoder func([]byte) 
 
 // Deserialize implements MessageDeserializer.
 func (d *JSONDeserializer) Deserialize(msgData []byte) (Message, error) {
-	decoder, ok := d.decoders[string(msgData)]
+	jsonMessage := JSONMessage[json.RawMessage]{}
+	if err := json.Unmarshal(msgData, &jsonMessage); err != nil {
+		return nil, err
+	}
+
+	decoder, ok := d.decoders[jsonMessage.Type]
 	if !ok {
-		return nil, fmt.Errorf("no decoder registered for message type in data: %s", string(msgData))
+		return nil, fmt.Errorf("no decoder registered for message type %s", jsonMessage.Type)
 	}
 	return decoder(msgData)
 }
