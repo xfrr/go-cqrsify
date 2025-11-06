@@ -16,6 +16,12 @@ type PubSubMessageConsumerConfig struct {
 	SubjectBuilder SubjectBuilder
 	// ErrorHandler is a custom error handler subscribe for errors occurring during message consumption.
 	ErrorHandler messaging.ErrorHandler
+	// Serializer is the message serializer to use for receiving messages.
+	// If nil, a default JSON serializer is used.
+	Serializer messaging.MessageSerializer
+	// Deserializer is the message deserializer to use for receiving messages.
+	// If nil, a default JSON deserializer is used.
+	Deserializer messaging.MessageDeserializer
 }
 
 func NewPubSubMessageConsumerConfig(opts ...PubSubMessageConsumerConfiger) PubSubMessageConsumerConfig {
@@ -31,6 +37,8 @@ func defaultPubSubMessageConsumerConfig() *PubSubMessageConsumerConfig {
 		MaxReplyWait:   defaultMaxReplyWait,
 		SubjectBuilder: defaultSubjectBuilder,
 		ErrorHandler:   messaging.DefaultErrorHandler,
+		Serializer:     messaging.DefaultJSONSerializer,
+		Deserializer:   messaging.DefaultJSONDeserializer,
 	}
 }
 
@@ -60,5 +68,19 @@ func WithPubSubConsumerErrorHandler(eh messaging.ErrorHandler) PubSubMessageCons
 func WithPubSubConsumerSubject(subject string) PubSubMessageConsumerConfiger {
 	return func(cfg *PubSubMessageConsumerConfig) {
 		cfg.Subject = subject
+	}
+}
+
+// WithPubSubConsumerMessageSerializer sets a custom Serializer for the PubSubMessageConsumer.
+func WithPubSubConsumerMessageSerializer(serializer messaging.MessageSerializer) PubSubMessageConsumerConfiger {
+	return func(cfg *PubSubMessageConsumerConfig) {
+		cfg.Serializer = serializer
+	}
+}
+
+// WithPubSubConsumerMessageDeserializer sets a custom Deserializer for the PubSubMessageConsumer.
+func WithPubSubConsumerMessageDeserializer(deserializer messaging.MessageDeserializer) PubSubMessageConsumerConfiger {
+	return func(cfg *PubSubMessageConsumerConfig) {
+		cfg.Deserializer = deserializer
 	}
 }

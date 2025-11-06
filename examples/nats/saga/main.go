@@ -13,6 +13,7 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 	messagingnats "github.com/xfrr/go-cqrsify/messaging/nats"
 	"github.com/xfrr/go-cqrsify/pkg/lock"
+	"github.com/xfrr/go-cqrsify/pkg/retry"
 	"github.com/xfrr/go-cqrsify/saga"
 )
 
@@ -59,10 +60,10 @@ func main() {
 	jsonDeserializer := createJsonDeserializer()
 
 	publisher, err := messagingnats.NewJetStreamMessagePublisher(
-		nc,
+		js,
 		streamName,
-		jsonSerializer,
-		jsonDeserializer,
+		messagingnats.WithJetStreamPublishMessageSerializer(jsonSerializer),
+		messagingnats.WithJetStreamPublishMessageDeserializer(jsonDeserializer),
 	)
 	if err != nil {
 		cleanup()
@@ -71,10 +72,10 @@ func main() {
 
 	cmdConsumer, err := messagingnats.NewJetStreamMessageConsumer(
 		ctx,
-		nc,
+		js,
 		streamName,
-		jsonSerializer,
-		jsonDeserializer,
+		messagingnats.WithJetStreamConsumerMessageSerializer[jetstream.ConsumerConfig](jsonSerializer),
+		messagingnats.WithJetStreamConsumerMessageDeserializer[jetstream.ConsumerConfig](jsonDeserializer),
 		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:      "cqrsify_examples_sagas_consumer",
 			AckPolicy: jetstream.AckExplicitPolicy,
@@ -112,42 +113,46 @@ func main() {
 		Name: "checkout",
 		Steps: []saga.Step{
 			{
-				Name:          "create_order",
-				Action:        saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.order.reserve.cmd", Compensate: "cqrsify.examples.sagas.order.reserve.compensate.cmd", Timeout: 5 * time.Second}),
-				Compensate:    saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.order.reserve.cmd", Compensate: "cqrsify.examples.sagas.order.reserve.compensate.cmd", Timeout: 5 * time.Second}),
-				Retry:         saga.RetryPolicy{MaxAttempts: 5, Backoff: 500 * time.Millisecond, MaxBackoff: 5 * time.Second},
-				Timeout:       10 * time.Second,
-				IdempotencyFn: func(ex *saga.Execution) string { return "order:" + ex.SagaID },
+				Name:                     "create_order",
+				Action:                   saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.order.reserve.cmd", Compensate: "cqrsify.examples.sagas.order.reserve.compensate.cmd", Timeout: 5 * time.Second}),
+				Compensate:               saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.order.reserve.cmd", Compensate: "cqrsify.examples.sagas.order.reserve.compensate.cmd", Timeout: 5 * time.Second}),
+				RetryOptions:             retry.Options{MaxAttempts: 5, Strategy: retry.ExponentialStrategy{Base: 500 * time.Millisecond, Factor: 2.0, Cap: 5 * time.Second}},
+				CompensationRetryOptions: retry.Options{MaxAttempts: 3, Strategy: retry.ExponentialStrategy{Base: 500 * time.Millisecond, Factor: 2.0, Cap: 5 * time.Second}},
+				Timeout:                  5 * time.Second,
+				IdempotencyFn:            func(ex *saga.Execution) string { return "order:" + ex.SagaID },
 			},
 			{
-				Name:          "process_payment",
-				Action:        saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.payment.charge.cmd", Compensate: "cqrsify.examples.sagas.payment.refund.cmd", Timeout: 15 * time.Second}),
-				Compensate:    saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.payment.charge.cmd", Compensate: "cqrsify.examples.sagas.payment.refund.cmd", Timeout: 15 * time.Second}),
-				Retry:         saga.RetryPolicy{MaxAttempts: 3, Backoff: time.Second, MaxBackoff: 8 * time.Second},
-				Timeout:       20 * time.Second,
-				IdempotencyFn: func(ex *saga.Execution) string { return "payment:" + ex.SagaID },
+				Name:                     "process_payment",
+				Action:                   saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.payment.charge.cmd", Compensate: "cqrsify.examples.sagas.payment.refund.cmd", Timeout: 15 * time.Second}),
+				Compensate:               saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.payment.charge.cmd", Compensate: "cqrsify.examples.sagas.payment.refund.cmd", Timeout: 15 * time.Second}),
+				RetryOptions:             retry.Options{MaxAttempts: 3, Strategy: retry.ExponentialStrategy{Base: time.Second, Factor: 2.0, Cap: 8 * time.Second}},
+				CompensationRetryOptions: retry.Options{MaxAttempts: 2, Strategy: retry.ExponentialStrategy{Base: 2 * time.Second, Factor: 2.0, Cap: 10 * time.Second}},
+				Timeout:                  5 * time.Second,
+				IdempotencyFn:            func(ex *saga.Execution) string { return "payment:" + ex.SagaID },
 			},
 			{
-				Name:          "update_inventory",
-				Action:        saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.inventory.reduce.cmd", Compensate: "cqrsify.examples.sagas.inventory.restore.cmd"}),
-				Compensate:    saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.inventory.reduce.cmd", Compensate: "cqrsify.examples.sagas.inventory.restore.cmd"}),
-				Retry:         saga.RetryPolicy{MaxAttempts: 4, Backoff: 400 * time.Millisecond, MaxBackoff: 6 * time.Second},
-				IdempotencyFn: func(ex *saga.Execution) string { return "inventory:" + ex.SagaID },
+				Name:                     "update_inventory",
+				Action:                   saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.inventory.reduce.cmd", Compensate: "cqrsify.examples.sagas.inventory.restore.cmd"}),
+				Compensate:               saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.inventory.reduce.cmd", Compensate: "cqrsify.examples.sagas.inventory.restore.cmd"}),
+				RetryOptions:             retry.Options{MaxAttempts: 4, Strategy: retry.ExponentialStrategy{Base: 400 * time.Millisecond, Factor: 2.0, Cap: 6 * time.Second}},
+				CompensationRetryOptions: retry.Options{MaxAttempts: 3, Strategy: retry.ExponentialStrategy{Base: 500 * time.Millisecond, Factor: 2.0, Cap: 5 * time.Second}},
+				Timeout:                  5 * time.Second,
+				IdempotencyFn:            func(ex *saga.Execution) string { return "inventory:" + ex.SagaID },
 			},
 			{
 				Name:          "deliver_order",
 				Action:        saga.RemoteAction(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.delivery.ship.cmd", Compensate: "cqrsify.examples.sagas.delivery.cancel.cmd"}),
 				Compensate:    saga.RemoteCompensation(cmdBus, saga.RemoteSubjects{Action: "cqrsify.examples.sagas.delivery.ship.cmd", Compensate: "cqrsify.examples.sagas.delivery.cancel.cmd"}),
-				Retry:         saga.RetryPolicy{MaxAttempts: 2, Backoff: time.Second, MaxBackoff: 5 * time.Second},
+				RetryOptions:  retry.Options{MaxAttempts: 2, Strategy: retry.ExponentialStrategy{Base: time.Second, Factor: 2.0, Cap: 5 * time.Second}},
+				Timeout:       5 * time.Second,
 				IdempotencyFn: func(ex *saga.Execution) string { return "delivery:" + ex.SagaID },
 			},
 		},
 	}
 
 	coord := saga.NewCoordinator(def, saga.NewInMemoryStore(), lock.NewInMemoryLocker(), saga.CoordinatorConfig{
-		LockTTL:      10 * time.Second,
-		DefaultRetry: saga.RetryPolicy{MaxAttempts: 1, Backoff: 500 * time.Millisecond},
-		UUID:         saga.DefaultUUIDProvider,
+		LockTTL: 10 * time.Second,
+		UUID:    saga.DefaultUUIDProvider,
 		Hooks: saga.Hooks{
 			OnStepStart: func(ctx context.Context, si *saga.Instance, s saga.StepState) {
 				fmt.Printf("→ start %q attempt %d\n", s.Name, s.Attempt)
@@ -401,7 +406,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	cmdRouter := messaging.NewMessageHandlerWithReplyTypedRouter()
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.order.reserve.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"order_id": "order-12345",
 			})
@@ -410,7 +415,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	)
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.order.reserve.compensate.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"compensated": true,
 			})
@@ -421,7 +426,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	// Payment
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.payment.charge.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"payment_id": "payment-67890",
 			})
@@ -430,7 +435,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	)
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.payment.refund.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"refunded": true,
 			})
@@ -439,7 +444,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	)
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.inventory.reduce.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"inventory_updated": true,
 			})
@@ -448,7 +453,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	)
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.inventory.restore.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"inventory_restored": true,
 			})
@@ -467,7 +472,7 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 	// )
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.delivery.cancel.cmd",
-		messaging.NewCommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
 			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
 				"delivery_canceled": true,
 			})

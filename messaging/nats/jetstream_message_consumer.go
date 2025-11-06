@@ -10,38 +10,29 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
-var _ messaging.MessageConsumer = (*JetStreamMessageConsumer)(nil)
-var _ messaging.MessageConsumerReplier = (*JetStreamMessageConsumer)(nil)
+var _ messaging.MessageConsumer = (*JetStreamMessageConsumer[jetstream.ConsumerConfig])(nil)
+var _ messaging.MessageConsumerReplier = (*JetStreamMessageConsumer[jetstream.ConsumerConfig])(nil)
+var _ messaging.MessageConsumer = (*JetStreamMessageConsumer[jetstream.OrderedConsumerConfig])(nil)
 
 // JetStreamMessageConsumer is a consumer that uses NATS JetStream.
-type JetStreamMessageConsumer struct {
+type JetStreamMessageConsumer[T jetStreamConsumerConfig] struct {
 	conn     *nats.Conn
 	js       jetstream.JetStream
 	consumer jetstream.Consumer
 
-	streamName string
-	cfg        JetStreamMessageConsumerConfig
-
-	serializer   messaging.MessageSerializer
-	deserializer messaging.MessageDeserializer
+	streamName   string
+	cfg          JetStreamMessageConsumerConfig[T]
 	errorHandler messaging.ErrorHandler
 }
 
 // NewJetStreamMessageConsumer creates a standard JetStream consumer.
 func NewJetStreamMessageConsumer(
 	ctx context.Context,
-	conn *nats.Conn,
+	js jetstream.JetStream,
 	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageConsumerConfiger,
-) (*JetStreamMessageConsumer, error) {
-	if err := validateInputs(conn, streamName, serializer, deserializer); err != nil {
-		return nil, err
-	}
-
-	js, err := jetstream.New(conn)
-	if err != nil {
+	opts ...JetStreamMessageConsumerConfiger[jetstream.ConsumerConfig],
+) (*JetStreamMessageConsumer[jetstream.ConsumerConfig], error) {
+	if err := validateInputs(js, streamName); err != nil {
 		return nil, err
 	}
 
@@ -51,38 +42,31 @@ func NewJetStreamMessageConsumer(
 		return nil, fmt.Errorf("failed to create consumer: %w", err)
 	}
 
-	return newConsumer(conn, js, consumer, streamName, serializer, deserializer, config), nil
+	return newConsumer(js, consumer, streamName, config), nil
 }
 
 // NewJetStreamOrderedMessageConsumer creates an ordered JetStream consumer.
 func NewJetStreamOrderedMessageConsumer(
 	ctx context.Context,
-	conn *nats.Conn,
+	js jetstream.JetStream,
 	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetStreamMessageConsumerConfiger,
-) (*JetStreamMessageConsumer, error) {
-	if err := validateInputs(conn, streamName, serializer, deserializer); err != nil {
-		return nil, err
-	}
-
-	js, err := jetstream.New(conn)
-	if err != nil {
+	opts ...JetStreamMessageConsumerConfiger[jetstream.OrderedConsumerConfig],
+) (*JetStreamMessageConsumer[jetstream.OrderedConsumerConfig], error) {
+	if err := validateInputs(js, streamName); err != nil {
 		return nil, err
 	}
 
 	config := NewJetStreamOrderedMessageConsumerConfig(opts...)
-	consumer, err := js.OrderedConsumer(ctx, streamName, config.OrderedConsumerConfig)
+	consumer, err := js.OrderedConsumer(ctx, streamName, config.ConsumerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ordered consumer: %w", err)
 	}
 
-	return newConsumer(conn, js, consumer, streamName, serializer, deserializer, config), nil
+	return newConsumer(js, consumer, streamName, config), nil
 }
 
 // Subscribe implements messaging.MessageConsumer.
-func (p *JetStreamMessageConsumer) Subscribe(
+func (p *JetStreamMessageConsumer[T]) Subscribe(
 	ctx context.Context,
 	handler messaging.MessageHandler[messaging.Message],
 ) (messaging.UnsubscribeFunc, error) {
@@ -120,7 +104,7 @@ func (p *JetStreamMessageConsumer) Subscribe(
 }
 
 // SubscribeWithReply implements messaging.MessageConsumerWithReply.
-func (p *JetStreamMessageConsumer) SubscribeWithReply(
+func (p *JetStreamMessageConsumer[T]) SubscribeWithReply(
 	ctx context.Context,
 	handler messaging.MessageHandlerWithReply[messaging.Message, messaging.MessageReply],
 ) (messaging.UnsubscribeFunc, error) {
@@ -151,7 +135,7 @@ func (p *JetStreamMessageConsumer) SubscribeWithReply(
 			return
 		}
 
-		replyData, serializeErr := p.serializer.Serialize(replyMsg)
+		replyData, serializeErr := p.cfg.serializer.Serialize(replyMsg)
 		if serializeErr != nil {
 			p.handleErr(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
 			p.termWithReason(jmsg, "serialization_failed", m)
@@ -185,7 +169,7 @@ func (p *JetStreamMessageConsumer) SubscribeWithReply(
 	return p.unsubscribeFn(cc), nil
 }
 
-func (p *JetStreamMessageConsumer) unsubscribeFn(sub jetstream.ConsumeContext) messaging.UnsubscribeFunc {
+func (p *JetStreamMessageConsumer[T]) unsubscribeFn(sub jetstream.ConsumeContext) messaging.UnsubscribeFunc {
 	return func() error {
 		sub.Drain()
 		return nil
@@ -194,22 +178,16 @@ func (p *JetStreamMessageConsumer) unsubscribeFn(sub jetstream.ConsumeContext) m
 
 /*** internal helpers ***/
 
-func newConsumer(
-	conn *nats.Conn,
+func newConsumer[T jetStreamConsumerConfig](
 	js jetstream.JetStream,
 	consumer jetstream.Consumer,
 	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	cfg JetStreamMessageConsumerConfig,
-) *JetStreamMessageConsumer {
-	p := &JetStreamMessageConsumer{
-		conn:         conn,
+	cfg JetStreamMessageConsumerConfig[T],
+) *JetStreamMessageConsumer[T] {
+	p := &JetStreamMessageConsumer[T]{
 		js:           js,
 		consumer:     consumer,
 		streamName:   streamName,
-		serializer:   serializer,
-		deserializer: deserializer,
 		errorHandler: cfg.ErrorHandler,
 		cfg:          cfg,
 	}
@@ -220,40 +198,32 @@ func newConsumer(
 }
 
 func validateInputs(
-	conn *nats.Conn,
+	js jetstream.JetStream,
 	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
 ) error {
-	if conn == nil {
-		return errors.New("nats connection cannot be nil")
+	if js == nil {
+		return errors.New("jetstream instance cannot be nil")
 	}
 	if streamName == "" {
 		return errors.New("stream name cannot be empty")
 	}
-	if serializer == nil {
-		return errors.New("serializer cannot be nil")
-	}
-	if deserializer == nil {
-		return errors.New("deserializer cannot be nil")
-	}
 	return nil
 }
 
-func (p *JetStreamMessageConsumer) handleErr(msg messaging.Message, err error) {
+func (p *JetStreamMessageConsumer[T]) handleErr(msg messaging.Message, err error) {
 	if p.errorHandler != nil {
 		p.errorHandler.Handle(msg, err)
 	}
 }
 
-func (p *JetStreamMessageConsumer) termWithReason(jmsg jetstream.Msg, reason string, msg messaging.Message) {
+func (p *JetStreamMessageConsumer[T]) termWithReason(jmsg jetstream.Msg, reason string, msg messaging.Message) {
 	if err := jmsg.TermWithReason(reason); err != nil {
 		p.handleErr(msg, fmt.Errorf("failed to term message (%s): %w", reason, err))
 	}
 }
 
-func (p *JetStreamMessageConsumer) deserializeOrTerm(jmsg jetstream.Msg) messaging.Message {
-	m, err := p.deserializer.Deserialize(jmsg.Data())
+func (p *JetStreamMessageConsumer[T]) deserializeOrTerm(jmsg jetstream.Msg) messaging.Message {
+	m, err := p.cfg.deserializer.Deserialize(jmsg.Data())
 	if err != nil {
 		p.handleErr(nil, fmt.Errorf("failed to deserialize message: %w", err))
 		p.termWithReason(jmsg, "deserialization_failed", nil)

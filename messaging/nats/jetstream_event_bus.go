@@ -3,6 +3,7 @@ package messagingnats
 import (
 	"context"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -14,7 +15,7 @@ type JetstreamEventBus struct {
 
 func NewJetStreamEventBus(
 	publisher *JetstreamMessagePublisher,
-	consumer *JetStreamMessageConsumer,
+	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
 ) *JetstreamEventBus {
 	jmb := NewJetstreamMessageBus(publisher, consumer)
 	return &JetstreamEventBus{

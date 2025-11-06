@@ -3,6 +3,7 @@ package messagingnats
 import (
 	"strings"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
@@ -15,12 +16,12 @@ var _ messaging.MessageBus = (*JetStreamMessageBus)(nil)
 // It provides methods for publishing and subscribing to messages using NATS JetStream as the underlying message bus.
 type JetStreamMessageBus struct {
 	*JetstreamMessagePublisher
-	*JetStreamMessageConsumer
+	*JetStreamMessageConsumer[jetstream.ConsumerConfig]
 }
 
 func NewJetstreamMessageBus(
 	publisher *JetstreamMessagePublisher,
-	consumer *JetStreamMessageConsumer,
+	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
 ) *JetStreamMessageBus {
 	return &JetStreamMessageBus{
 		JetstreamMessagePublisher: publisher,

@@ -11,25 +11,18 @@ import (
 // PubSubMessagePublisher is a publisher that uses NATS JetStream.
 type PubSubMessagePublisher struct {
 	conn *nats.Conn
-
-	serializer   messaging.MessageSerializer
-	deserializer messaging.MessageDeserializer
-	cfg          PubSubMessagePublisherConfig
+	cfg  PubSubMessagePublisherConfig
 }
 
 func NewPubSubMessagePublisher(
 	conn *nats.Conn,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
 	opts ...PubSubMessagePublisherConfiger,
 ) (*PubSubMessagePublisher, error) {
 	cfg := NewPubSubMessagePublisherConfig(opts...)
 
 	p := &PubSubMessagePublisher{
-		conn:         conn,
-		serializer:   serializer,
-		deserializer: deserializer,
-		cfg:          cfg,
+		conn: conn,
+		cfg:  cfg,
 	}
 
 	return p, nil
@@ -38,7 +31,7 @@ func NewPubSubMessagePublisher(
 // Publish implements messaging.MessageBus.
 func (p *PubSubMessagePublisher) Publish(ctx context.Context, messages ...messaging.Message) error {
 	for _, msg := range messages {
-		data, err := p.serializer.Serialize(msg)
+		data, err := p.cfg.Serializer.Serialize(msg)
 		if err != nil {
 			p.cfg.ErrorHandler.Handle(msg, fmt.Errorf("failed to serialize message: %w", err))
 			continue
@@ -75,7 +68,7 @@ func (p *PubSubMessagePublisher) PublishRequest(ctx context.Context, msg messagi
 	}
 
 	// Publish the message with a header indicating the reply subject
-	data, err := p.serializer.Serialize(msg)
+	data, err := p.cfg.Serializer.Serialize(msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize message: %w", err)
 	}
@@ -113,7 +106,7 @@ func (p *PubSubMessagePublisher) PublishRequest(ctx context.Context, msg messagi
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 
-	replyMsg, err := p.deserializer.Deserialize(natsMsg.Data)
+	replyMsg, err := p.cfg.Deserializer.Deserialize(natsMsg.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize reply message: %w", err)
 	}

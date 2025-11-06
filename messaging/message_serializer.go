@@ -32,6 +32,50 @@ type MessageDeserializer interface {
 type JSONMessageEncoder[T Message, P any] func(msg T) JSONMessage[P]
 type JSONMessageDecoder[T Message, P any] func(jsonMessage JSONMessage[P]) (T, error)
 
+// DefaultJSONSerializer is the default JSON-based message serializer.
+var DefaultJSONSerializer = defaultJSONSerializer{}
+var DefaultJSONDeserializer = defaultJSONDeserializer{}
+
+// defaultJSONSerializer is the default implementation of MessageSerializer.
+// It serializes messages into JSON format without payload.
+type defaultJSONSerializer struct{}
+
+// Serialize implements MessageSerializer.
+func (s defaultJSONSerializer) Serialize(msg Message) ([]byte, error) {
+	jsonMessage := JSONMessage[any]{
+		ID:        msg.MessageID(),
+		Type:      msg.MessageType(),
+		Source:    msg.MessageSource(),
+		SchemaURI: msg.MessageSchemaURI(),
+		Timestamp: msg.MessageTimestamp(),
+		Metadata:  msg.MessageMetadata(),
+	}
+
+	return json.Marshal(jsonMessage)
+}
+
+type defaultJSONDeserializer struct{}
+
+// Deserialize implements MessageDeserializer.
+// It deserializes messages from JSON format without payload.
+func (s defaultJSONDeserializer) Deserialize(msgData []byte) (Message, error) {
+	jsonMessage := JSONMessage[any]{}
+	if err := json.Unmarshal(msgData, &jsonMessage); err != nil {
+		return nil, err
+	}
+
+	baseMsg := BaseMessage{
+		id:        jsonMessage.ID,
+		_type:     jsonMessage.Type,
+		schema:    jsonMessage.SchemaURI,
+		source:    jsonMessage.Source,
+		timestamp: jsonMessage.Timestamp,
+		metadata:  jsonMessage.Metadata,
+	}
+
+	return baseMsg, nil
+}
+
 // JSONSerializer is a JSON-based serializer.
 type JSONSerializer struct {
 	encoders map[string]func(msg Message) ([]byte, error)

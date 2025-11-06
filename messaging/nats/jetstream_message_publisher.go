@@ -10,47 +10,34 @@ import (
 	"github.com/xfrr/go-cqrsify/messaging"
 )
 
+var _ messaging.MessagePublisher = (*JetstreamMessagePublisher)(nil)
+
 // JetstreamMessagePublisher is a publisher that uses NATS JetStream.
 type JetstreamMessagePublisher struct {
-	conn       *nats.Conn
-	js         jetstream.JetStream
 	streamName string
-
-	serializer   messaging.MessageSerializer
-	deserializer messaging.MessageDeserializer
-	cfg          JetStreamMessagePublisherConfig
+	js         jetstream.JetStream
+	cfg        JetStreamMessagePublisherConfig
 }
 
 func NewJetStreamMessagePublisher(
-	conn *nats.Conn,
+	js jetstream.JetStream,
 	streamName string,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
-	opts ...JetstreamMessagePublisherConfiger,
+	opts ...JetStreamMessagePublisherConfiger,
 ) (*JetstreamMessagePublisher, error) {
-	js, err := jetstream.New(conn)
-	if err != nil {
-		return nil, err
-	}
-
 	cfg := NewJetStreamMessagePublisherConfig(opts...)
 
 	p := &JetstreamMessagePublisher{
-		conn:         conn,
-		js:           js,
-		streamName:   streamName,
-		serializer:   serializer,
-		deserializer: deserializer,
-		cfg:          cfg,
+		streamName: streamName,
+		js:         js,
+		cfg:        cfg,
 	}
-
 	return p, nil
 }
 
 // Publish implements messaging.MessageBus.
 func (p *JetstreamMessagePublisher) Publish(ctx context.Context, msg ...messaging.Message) error {
 	for _, m := range msg {
-		data, err := p.serializer.Serialize(m)
+		data, err := p.cfg.Serializer.Serialize(m)
 		if err != nil {
 			return err
 		}
@@ -83,7 +70,7 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	}
 
 	// Publish the message with a header indicating the reply subject
-	data, err := p.serializer.Serialize(msg)
+	data, err := p.cfg.Serializer.Serialize(msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize message: %w", err)
 	}
@@ -140,7 +127,7 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	}
 
 	// Deserialize the reply message
-	reply, err := p.deserializer.Deserialize(replyMsg.Data())
+	reply, err := p.cfg.Deserializer.Deserialize(replyMsg.Data())
 	if err != nil {
 		termErr := replyMsg.TermWithReason("deserialization_failed")
 		if termErr != nil {
@@ -163,7 +150,7 @@ func (p *JetstreamMessagePublisher) getRetryAttempts(_ messaging.Message) int {
 		return p.cfg.RetryAttempts
 	}
 
-	return defaultRetryAttempts
+	return defaultPublishRetryAttempts
 }
 
 func (p *JetstreamMessagePublisher) getRetryWaitDuration(_ messaging.Message) time.Duration {
@@ -172,7 +159,7 @@ func (p *JetstreamMessagePublisher) getRetryWaitDuration(_ messaging.Message) ti
 		return p.cfg.RetryDelay
 	}
 
-	return defaultRetryDelay
+	return defaultPublishRetryDelay
 }
 
 // Determine the effective TTL for the message.

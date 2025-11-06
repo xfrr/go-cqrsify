@@ -18,6 +18,12 @@ type PubSubMessagePublisherConfig struct {
 	// ErrorHandler is a custom error handler for the PubSubMessagePublisher.	ErrorHandler messaging.ErrorHandler
 	// RetryAttempts is the number of retry attempts for publishing a message.
 	ErrorHandler messaging.ErrorHandler
+	// Serializer is the message serializer to use for publishing messages.
+	// If nil, a default JSON serializer is used.
+	Serializer messaging.MessageSerializer
+	// Deserializer is the message deserializer to use for receiving messages.
+	// If nil, a default JSON deserializer is used.
+	Deserializer messaging.MessageDeserializer
 }
 
 func NewPubSubMessagePublisherConfig(opts ...PubSubMessagePublisherConfiger) PubSubMessagePublisherConfig {
@@ -34,6 +40,8 @@ func defaultPubSubMessagePublisherConfig() *PubSubMessagePublisherConfig {
 		SubjectBuilder:      defaultSubjectBuilder,
 		ReplySubjectBuilder: defaultReplySubjectBuilder,
 		ErrorHandler:        messaging.DefaultErrorHandler,
+		Serializer:          messaging.DefaultJSONSerializer,
+		Deserializer:        messaging.DefaultJSONDeserializer,
 	}
 }
 
@@ -63,5 +71,19 @@ func WithPubSubPublisherReplySubjectBuilder(rsb SubjectBuilder) PubSubMessagePub
 func WithPubSubPublisherErrorHandler(eh messaging.ErrorHandler) PubSubMessagePublisherConfiger {
 	return func(cfg *PubSubMessagePublisherConfig) {
 		cfg.ErrorHandler = eh
+	}
+}
+
+// WithPubSubPublisherSerializer sets a custom MessageSerializer for the PubSubMessagePublisher.
+func WithPubSubPublisherSerializer(serializer messaging.MessageSerializer) PubSubMessagePublisherConfiger {
+	return func(cfg *PubSubMessagePublisherConfig) {
+		cfg.Serializer = serializer
+	}
+}
+
+// WithPubSubPublisherDeserializer sets a custom MessageDeserializer for the PubSubMessagePublisher.
+func WithPubSubPublisherDeserializer(deserializer messaging.MessageDeserializer) PubSubMessagePublisherConfiger {
+	return func(cfg *PubSubMessagePublisherConfig) {
+		cfg.Deserializer = deserializer
 	}
 }

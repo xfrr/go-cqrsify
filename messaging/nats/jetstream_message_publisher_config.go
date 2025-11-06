@@ -1,12 +1,16 @@
 package messagingnats
 
-import "time"
+import (
+	"time"
+
+	"github.com/xfrr/go-cqrsify/messaging"
+)
 
 const (
-	defaultRetryAttempts = 3
-	defaultRetryDelay    = 100 * time.Millisecond
-	defaultStreamTTL     = 0 * time.Second
-	defaultMaxReplyWait  = 10 * time.Second
+	defaultPublishRetryAttempts = 3
+	defaultPublishRetryDelay    = 100 * time.Millisecond
+	defaultStreamTTL            = 0 * time.Second
+	defaultMaxReplyWait         = 10 * time.Second
 )
 
 type JetStreamMessagePublisherConfig struct {
@@ -31,9 +35,15 @@ type JetStreamMessagePublisherConfig struct {
 	// ReplySubjectBuilder is a function that builds the reply subject for a given message.
 	// If nil, DefaultSubjectBuilder is used.
 	ReplySubjectBuilder SubjectBuilder
+	// Serializer is the message serializer to use for publishing messages.
+	// If nil, a default JSON serializer is used.
+	Serializer messaging.MessageSerializer
+	// Deserializer is the message deserializer to use for receiving messages.
+	// If nil, a default JSON deserializer is used.
+	Deserializer messaging.MessageDeserializer
 }
 
-func NewJetStreamMessagePublisherConfig(opts ...JetstreamMessagePublisherConfiger) JetStreamMessagePublisherConfig {
+func NewJetStreamMessagePublisherConfig(opts ...JetStreamMessagePublisherConfiger) JetStreamMessagePublisherConfig {
 	cfg := defaultJetStreamMessagePublisherConfig()
 	for _, opt := range opts {
 		opt(cfg)
@@ -43,48 +53,50 @@ func NewJetStreamMessagePublisherConfig(opts ...JetstreamMessagePublisherConfige
 
 func defaultJetStreamMessagePublisherConfig() *JetStreamMessagePublisherConfig {
 	return &JetStreamMessagePublisherConfig{
-		RetryAttempts:       defaultRetryAttempts,
-		RetryDelay:          defaultRetryDelay,
+		RetryAttempts:       defaultPublishRetryAttempts,
+		RetryDelay:          defaultPublishRetryDelay,
 		StreamTTL:           defaultStreamTTL,
 		MaxReplyWait:        defaultMaxReplyWait,
 		SubjectBuilder:      defaultSubjectBuilder,
 		ReplySubjectBuilder: defaultReplySubjectBuilder,
+		Serializer:          messaging.DefaultJSONSerializer,
+		Deserializer:        messaging.DefaultJSONDeserializer,
 		MessageTTLMapping:   make(map[string]time.Duration),
 	}
 }
 
-type JetstreamMessagePublisherConfiger func(*JetStreamMessagePublisherConfig)
+type JetStreamMessagePublisherConfiger func(*JetStreamMessagePublisherConfig)
 
-// WithJSPublishRetryAttempts sets the number of retry attempts for publishing a message.
-func WithJSPublishRetryAttempts(attempts int) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishRetryAttempts sets the number of retry attempts for publishing a message.
+func WithJetStreamPublishRetryAttempts(attempts int) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.RetryAttempts = attempts
 	}
 }
 
-// WithJSPublishRetryDelay sets the delay between retry attempts.
-func WithJSPublishRetryDelay(delay time.Duration) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishRetryDelay sets the delay between retry attempts.
+func WithJetStreamPublishRetryDelay(delay time.Duration) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.RetryDelay = delay
 	}
 }
 
-// WithJSPublishStreamTTL sets the global time-to-live for all messages.
-func WithJSPublishStreamTTL(ttl time.Duration) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishStreamTTL sets the global time-to-live for all messages.
+func WithJetStreamPublishStreamTTL(ttl time.Duration) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.StreamTTL = ttl
 	}
 }
 
-// WithJSPublishMaxReplyWait sets the maximum time to wait for a reply.
-func WithJSPublishMaxReplyWait(maxWait time.Duration) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishMaxReplyWait sets the maximum time to wait for a reply.
+func WithJetStreamPublishMaxReplyWait(maxWait time.Duration) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.MaxReplyWait = maxWait
 	}
 }
 
-// WithJSPublishMessageTTL sets the time-to-live for a specific message type.
-func WithJSPublishMessageTTL(messageType string, ttl time.Duration) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishMessageTTL sets the time-to-live for a specific message type.
+func WithJetStreamPublishMessageTTL(messageType string, ttl time.Duration) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		if cfg.MessageTTLMapping == nil {
 			cfg.MessageTTLMapping = make(map[string]time.Duration)
@@ -93,16 +105,30 @@ func WithJSPublishMessageTTL(messageType string, ttl time.Duration) JetstreamMes
 	}
 }
 
-// WithJSPublishSubjectBuilder sets the subject builder function for the publisher.
-func WithJSPublishSubjectBuilder(builder SubjectBuilderFunc) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishSubjectBuilder sets the subject builder function for the publisher.
+func WithJetStreamPublishSubjectBuilder(builder SubjectBuilderFunc) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.SubjectBuilder = builder
 	}
 }
 
-// WithJSPublishReplySubjectBuilder sets the reply subject builder function for the publisher.
-func WithJSPublishReplySubjectBuilder(builder SubjectBuilderFunc) JetstreamMessagePublisherConfiger {
+// WithJetStreamPublishReplySubjectBuilder sets the reply subject builder function for the publisher.
+func WithJetStreamPublishReplySubjectBuilder(builder SubjectBuilderFunc) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.ReplySubjectBuilder = builder
+	}
+}
+
+// WithJetStreamPublishMessageSerializer sets the message serializer for the publisher.
+func WithJetStreamPublishMessageSerializer(serializer messaging.MessageSerializer) JetStreamMessagePublisherConfiger {
+	return func(cfg *JetStreamMessagePublisherConfig) {
+		cfg.Serializer = serializer
+	}
+}
+
+// WithJetStreamPublishMessageDeserializer sets the message deserializer for the publisher.
+func WithJetStreamPublishMessageDeserializer(deserializer messaging.MessageDeserializer) JetStreamMessagePublisherConfiger {
+	return func(cfg *JetStreamMessagePublisherConfig) {
+		cfg.Deserializer = deserializer
 	}
 }

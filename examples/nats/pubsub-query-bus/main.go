@@ -114,8 +114,8 @@ func newQueryBus(
 
 	publisher, err := messagingnats.NewPubSubMessagePublisher(
 		nc,
-		serializer,
-		deserializer,
+		messagingnats.WithPubSubPublisherSerializer(serializer),
+		messagingnats.WithPubSubPublisherDeserializer(deserializer),
 	)
 	if err != nil {
 		nc.Close()
@@ -124,8 +124,8 @@ func newQueryBus(
 
 	consumer, err := messagingnats.NewPubSubMessageConsumer(
 		nc,
-		serializer,
-		deserializer,
+		messagingnats.WithPubSubConsumerMessageSerializer(serializer),
+		messagingnats.WithPubSubConsumerMessageDeserializer(deserializer),
 		messagingnats.WithPubSubConsumerSubject("com.example.order.get_amount.v1"),
 	)
 	if err != nil {

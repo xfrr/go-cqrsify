@@ -66,8 +66,8 @@ func main() {
 	// Create a NATS-based PubSubMessagePublisher
 	publisher, err := messagingnats.NewPubSubMessagePublisher(
 		nc,
-		serializer,
-		deserializer,
+		messagingnats.WithPubSubPublisherSerializer(serializer),
+		messagingnats.WithPubSubPublisherDeserializer(deserializer),
 	)
 	if err != nil {
 		nc.Close()
@@ -77,8 +77,8 @@ func main() {
 	// Create a NATS-based PubSubMessageConsumer
 	consumer, err := messagingnats.NewPubSubMessageConsumer(
 		nc,
-		serializer,
-		deserializer,
+		messagingnats.WithPubSubConsumerMessageSerializer(serializer),
+		messagingnats.WithPubSubConsumerMessageDeserializer(deserializer),
 		messagingnats.WithPubSubConsumerSubject("com.example.order.created.v1"),
 	)
 	if err != nil {

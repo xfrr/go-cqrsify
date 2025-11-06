@@ -13,25 +13,18 @@ var _ messaging.MessageConsumer = (*PubSubMessageConsumer)(nil)
 // PubSubMessageConsumer is a consumer that uses NATS JetStream.
 type PubSubMessageConsumer struct {
 	conn *nats.Conn
-
-	serializer   messaging.MessageSerializer
-	deserializer messaging.MessageDeserializer
-	cfg          PubSubMessageConsumerConfig
+	cfg  PubSubMessageConsumerConfig
 }
 
 func NewPubSubMessageConsumer(
 	conn *nats.Conn,
-	serializer messaging.MessageSerializer,
-	deserializer messaging.MessageDeserializer,
 	opts ...PubSubMessageConsumerConfiger,
 ) (*PubSubMessageConsumer, error) {
 	cfg := NewPubSubMessageConsumerConfig(opts...)
 
 	p := &PubSubMessageConsumer{
-		conn:         conn,
-		serializer:   serializer,
-		deserializer: deserializer,
-		cfg:          cfg,
+		conn: conn,
+		cfg:  cfg,
 	}
 
 	return p, nil
@@ -68,7 +61,7 @@ func (p *PubSubMessageConsumer) natsMsgHandler(
 	handler messaging.MessageHandler[messaging.Message],
 ) nats.MsgHandler {
 	return func(natsMsg *nats.Msg) {
-		m, err := p.deserializer.Deserialize(natsMsg.Data)
+		m, err := p.cfg.Deserializer.Deserialize(natsMsg.Data)
 		if err != nil {
 			p.cfg.ErrorHandler.Handle(nil, fmt.Errorf("failed to deserialize message: %w", err))
 			return
@@ -87,7 +80,7 @@ func (p *PubSubMessageConsumer) natsMsgHandlerWithReply(
 	handler messaging.MessageHandlerWithReply[messaging.Message, messaging.Message],
 ) nats.MsgHandler {
 	return func(natsMsg *nats.Msg) {
-		m, err := p.deserializer.Deserialize(natsMsg.Data)
+		m, err := p.cfg.Deserializer.Deserialize(natsMsg.Data)
 		if err != nil {
 			p.cfg.ErrorHandler.Handle(nil, fmt.Errorf("failed to deserialize message: %w", err))
 			return
@@ -99,7 +92,7 @@ func (p *PubSubMessageConsumer) natsMsgHandlerWithReply(
 			return
 		}
 
-		replyData, serializeErr := p.serializer.Serialize(replyMsg)
+		replyData, serializeErr := p.cfg.Serializer.Serialize(replyMsg)
 		if serializeErr != nil {
 			p.cfg.ErrorHandler.Handle(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
 			return

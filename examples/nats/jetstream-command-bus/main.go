@@ -114,10 +114,10 @@ func newCommandBus(
 	}
 
 	publisher, err := messagingnats.NewJetStreamMessagePublisher(
-		nc,
+		js,
 		streamName,
-		serializer,
-		deserializer,
+		messagingnats.WithJetStreamPublishMessageSerializer(serializer),
+		messagingnats.WithJetStreamPublishMessageDeserializer(deserializer),
 	)
 	if err != nil {
 		cleanup()
@@ -126,10 +126,10 @@ func newCommandBus(
 
 	consumer, err := messagingnats.NewJetStreamMessageConsumer(
 		ctx,
-		nc,
+		js,
 		streamName,
-		serializer,
-		deserializer,
+		messagingnats.WithJetStreamConsumerMessageSerializer[jetstream.ConsumerConfig](serializer),
+		messagingnats.WithJetStreamConsumerMessageDeserializer[jetstream.ConsumerConfig](deserializer),
 		messagingnats.WithJetStreamConsumerConfig(jetstream.ConsumerConfig{
 			Name:          "cqrsify_examples_command_bus_consumer",
 			AckPolicy:     jetstream.AckExplicitPolicy,
