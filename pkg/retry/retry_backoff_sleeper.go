@@ -25,3 +25,10 @@ func (RealSleeper) Sleep(ctx context.Context, d time.Duration) error {
 	}
 }
 func (RealSleeper) Now() time.Time { return time.Now() }
+
+func defaultSleeper(sleeper Sleeper) Sleeper {
+	if sleeper != nil {
+		return sleeper
+	}
+	return RealSleeper{}
+}

@@ -19,6 +19,11 @@ import (
 	"time"
 )
 
+const (
+	defaultMaxAttempts = 10
+	defaultMaxElapsed  = 0 // no limit
+)
+
 var (
 	// ErrGiveUp is returned when retries exhausted (max attempts or elapsed).
 	ErrGiveUp = errors.New("retry: give up")
@@ -57,6 +62,19 @@ type Retrier struct {
 	sleeper     Sleeper
 	stopper     Stopper
 	hooks       Hooks
+}
+
+func DefaultOptions() Options {
+	return Options{
+		Strategy:    defaultStrategy(nil),
+		Jitter:      defaultJitter(nil),
+		Classifier:  defaultClassifier(nil),
+		Sleeper:     defaultSleeper(nil),
+		Hooks:       Hooks{},
+		Stopper:     defaultStopper(nil),
+		MaxAttempts: defaultMaxAttempts,
+		MaxElapsed:  defaultMaxElapsed,
+	}
 }
 
 // New creates a new Retrier with validated defaults.

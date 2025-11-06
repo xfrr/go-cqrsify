@@ -12,6 +12,15 @@ type Stopper interface {
 	ShouldStop(ctx context.Context, attempt int, lastErr error, elapsed time.Duration) (stop bool, cause error)
 }
 
+func defaultStopper(s Stopper) Stopper {
+	if s != nil {
+		return s
+	}
+	return StopperFunc(func(ctx context.Context, attempt int, lastErr error, elapsed time.Duration) (bool, error) {
+		return false, nil
+	})
+}
+
 type StopperFunc func(ctx context.Context, attempt int, lastErr error, elapsed time.Duration) (stop bool, cause error)
 
 func (f StopperFunc) ShouldStop(ctx context.Context, attempt int, lastErr error, elapsed time.Duration) (bool, error) {
