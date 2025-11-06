@@ -26,7 +26,7 @@ func (b *InMemoryCommandBus) Dispatch(ctx context.Context, commands ...Command) 
 	return b.bus.Publish(ctx, msgs...)
 }
 
-func (b *InMemoryCommandBus) Subscribe(ctx context.Context, h CommandHandler[Command]) (UnsubscribeFunc, error) {
+func (b *InMemoryCommandBus) Subscribe(ctx context.Context, h MessageHandler[Command]) (UnsubscribeFunc, error) {
 	return b.bus.Subscribe(ctx, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		cmd, ok := msg.(Command)
 		if !ok {

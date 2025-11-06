@@ -34,7 +34,7 @@ func (p *PubSubCommandBus) Dispatch(ctx context.Context, commands ...messaging.C
 	return p.Publish(ctx, msgs...)
 }
 
-func (p *PubSubCommandBus) PublishRequest(ctx context.Context, command messaging.Command) (messaging.Message, error) {
+func (p *PubSubCommandBus) DispatchRequest(ctx context.Context, command messaging.Command) (messaging.Message, error) {
 	reply, err := p.PubSubMessageBus.PublishRequest(ctx, command)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (p *PubSubCommandBus) PublishRequest(ctx context.Context, command messaging
 	return reply, nil
 }
 
-func (p *PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+func (p *PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		command, ok := msg.(messaging.Command)
 		if !ok {
@@ -55,7 +55,7 @@ func (p *PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.Comm
 
 func (p *PubSubCommandBus) SubscribeWithReply(
 	ctx context.Context,
-	handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply],
+	handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply],
 ) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.MessageReply](func(ctx context.Context, msg messaging.Message) (messaging.MessageReply, error) {
 		command, ok := msg.(messaging.Command)

@@ -28,7 +28,7 @@ type commandConsumerWrapper struct {
 }
 
 func (w *commandConsumerWrapper) Subscribe(ctx context.Context, h messaging.MessageHandler[messaging.Message]) (messaging.UnsubscribeFunc, error) {
-	return w.consumer.Subscribe(ctx, messaging.CommandHandlerFn[messaging.Command](func(ctx context.Context, cmd messaging.Command) error {
+	return w.consumer.Subscribe(ctx, messaging.MessageHandlerFn[messaging.Command](func(ctx context.Context, cmd messaging.Command) error {
 		return h.Handle(ctx, cmd)
 	}))
 }

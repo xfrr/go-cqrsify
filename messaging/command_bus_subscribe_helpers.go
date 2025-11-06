@@ -9,12 +9,12 @@ import (
 func SubscribeCommand[E Command](
 	ctx context.Context,
 	consumer CommandConsumer,
-	handler CommandHandler[E],
+	handler MessageHandler[E],
 ) (UnsubscribeFunc, error) {
 	var zero E
 	return consumer.Subscribe(
 		ctx,
-		CommandHandlerFn[Command](func(ctx context.Context, evt Command) error {
+		MessageHandlerFn[Command](func(ctx context.Context, evt Command) error {
 			castCommand, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{
@@ -31,12 +31,12 @@ func SubscribeCommand[E Command](
 func SubscribeCommandWithReply[E Command, R CommandReply](
 	ctx context.Context,
 	consumer CommandConsumerReplier,
-	handler CommandHandlerWithReply[E, R],
+	handler MessageHandlerWithReply[E, R],
 ) (UnsubscribeFunc, error) {
 	var zero E
 	return consumer.SubscribeWithReply(
 		ctx,
-		CommandHandlerWithReplyFn[Command, CommandReply](func(ctx context.Context, cmd Command) (CommandReply, error) {
+		MessageHandlerWithReplyFn[Command, CommandReply](func(ctx context.Context, cmd Command) (CommandReply, error) {
 			castCmd, ok := cmd.(E)
 			if !ok {
 				return nil, InvalidMessageTypeError{

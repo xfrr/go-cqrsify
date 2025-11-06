@@ -22,7 +22,7 @@ func (b *InMemoryQueryBus) Request(ctx context.Context, query Query) (Message, e
 	return b.bus.PublishRequest(ctx, query)
 }
 
-func (b *InMemoryQueryBus) Subscribe(ctx context.Context, h QueryHandler[Query, QueryReply]) (UnsubscribeFunc, error) {
+func (b *InMemoryQueryBus) Subscribe(ctx context.Context, h MessageHandlerWithReply[Query, QueryReply]) (UnsubscribeFunc, error) {
 	return b.bus.SubscribeWithReply(ctx, MessageHandlerWithReplyFn[Message, MessageReply](func(ctx context.Context, msg Message) (MessageReply, error) {
 		q, ok := msg.(Query)
 		if !ok {

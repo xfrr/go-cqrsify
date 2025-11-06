@@ -20,7 +20,7 @@ func TestInMemoryQueryBus_Subscribe_ThenHandleSync(t *testing.T) {
 	seen := make(chan messaging.Query, 1)
 
 	_, err := bus.Subscribe(context.Background(),
-		messaging.QueryHandlerFn[messaging.Query, messaging.QueryReply](func(_ context.Context, query messaging.Query) (messaging.QueryReply, error) {
+		messaging.MessageHandlerWithReplyFn[messaging.Query, messaging.QueryReply](func(_ context.Context, query messaging.Query) (messaging.QueryReply, error) {
 			seen <- query
 			return queryReplyMsg, nil
 		}),

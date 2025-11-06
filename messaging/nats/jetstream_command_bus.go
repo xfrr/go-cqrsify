@@ -33,15 +33,15 @@ func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messagin
 	return p.Publish(ctx, msgs...)
 }
 
-// PublishRequest implements messaging.CommandBusRequester.
-func (p *JetStreamCommandBus) PublishRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
+// DispatchRequest implements messaging.CommandBusRequester.
+func (p *JetStreamCommandBus) DispatchRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
 	return p.JetStreamMessageBus.PublishRequest(ctx, cmd)
 }
 
 // Subscribe implements messaging.CommandConsumer.
 func (p *JetStreamCommandBus) Subscribe(
 	ctx context.Context,
-	handler messaging.CommandHandler[messaging.Command],
+	handler messaging.MessageHandler[messaging.Command],
 ) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		command, ok := msg.(messaging.Command)
@@ -56,7 +56,7 @@ func (p *JetStreamCommandBus) Subscribe(
 // SubscribeWithReply implements messaging.CommandConsumerWithReply.
 func (p *JetStreamCommandBus) SubscribeWithReply(
 	ctx context.Context,
-	handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply],
+	handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply],
 ) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.MessageReply](func(ctx context.Context, cmd messaging.Message) (messaging.MessageReply, error) {
 		command, ok := cmd.(messaging.Command)

@@ -73,7 +73,7 @@ func main() {
 	defer closeQueryBus()
 
 	// Subscribe to messages of type "GetOrderAmount"
-	unsub, err := messaging.SubscribeQuery(ctx, queryBus, messaging.QueryHandlerFn[GetOrderAmountQuery, getOrderAmountQueryReply](func(ctx context.Context, query GetOrderAmountQuery) (getOrderAmountQueryReply, error) {
+	unsub, err := messaging.SubscribeQuery(ctx, queryBus, messaging.MessageHandlerWithReplyFn[GetOrderAmountQuery, getOrderAmountQueryReply](func(ctx context.Context, query GetOrderAmountQuery) (getOrderAmountQueryReply, error) {
 		fmt.Println("Handling query:")
 		fmt.Printf("- Query Type: %s\n", query.MessageType())
 		fmt.Printf("- Order ID: %d\n", query.OrderID())

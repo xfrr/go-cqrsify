@@ -14,7 +14,7 @@ func TestDispatchQuery_Success(t *testing.T) {
 
 	var calls int
 	queryBus := messaging.NewInMemoryQueryBus(messaging.ConfigureInMemoryMessageBusSubjects("test.query"))
-	handler := messaging.QueryHandlerFn[messaging.Query, messaging.QueryReply](func(ctx context.Context, query messaging.Query) (messaging.QueryReply, error) {
+	handler := messaging.MessageHandlerWithReplyFn[messaging.Query, messaging.QueryReply](func(_ context.Context, _ messaging.Query) (messaging.QueryReply, error) {
 		calls++
 
 		return messaging.NewMessage("test.query.reply"), nil
@@ -25,7 +25,10 @@ func TestDispatchQuery_Success(t *testing.T) {
 		handler,
 	)
 	require.NoError(t, err)
-	defer unsub()
+	defer func() {
+		unsubErr := unsub()
+		require.NoError(t, unsubErr)
+	}()
 
 	testQuery := messaging.NewBaseQuery("test.query")
 	res, err := messaging.DispatchQuery[messaging.Query, messaging.Message](context.Background(), queryBus, testQuery)

@@ -19,8 +19,9 @@ func TestInMemoryCommandBus_Subscribe_ThenHandleSync(t *testing.T) {
 
 	seen := make(chan messaging.Command, 1)
 
-	_, err := bus.Subscribe(context.Background(),
-		messaging.CommandHandlerFn[messaging.Command](func(_ context.Context, e messaging.Command) error {
+	_, err := bus.Subscribe(
+		context.Background(),
+		messaging.MessageHandlerFn[messaging.Command](func(_ context.Context, e messaging.Command) error {
 			seen <- e
 			return nil
 		}),

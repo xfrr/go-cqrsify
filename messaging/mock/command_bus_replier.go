@@ -5,8 +5,9 @@ package messagingmock
 
 import (
 	"context"
-	"github.com/xfrr/go-cqrsify/messaging"
 	"sync"
+
+	"github.com/xfrr/go-cqrsify/messaging"
 )
 
 // Ensure, that CommandBusReplier does implement messaging.CommandBusReplier.
@@ -22,7 +23,7 @@ var _ messaging.CommandBusReplier = &CommandBusReplier{}
 //			PublishRequestFunc: func(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
 //				panic("mock out the PublishRequest method")
 //			},
-//			SubscribeWithReplyFunc: func(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
+//			SubscribeWithReplyFunc: func(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
 //				panic("mock out the SubscribeWithReply method")
 //			},
 //		}
@@ -36,7 +37,7 @@ type CommandBusReplier struct {
 	PublishRequestFunc func(ctx context.Context, cmd messaging.Command) (messaging.Message, error)
 
 	// SubscribeWithReplyFunc mocks the SubscribeWithReply method.
-	SubscribeWithReplyFunc func(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error)
+	SubscribeWithReplyFunc func(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -52,15 +53,15 @@ type CommandBusReplier struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Handler is the handler argument value.
-			Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+			Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 		}
 	}
 	lockPublishRequest     sync.RWMutex
 	lockSubscribeWithReply sync.RWMutex
 }
 
-// PublishRequest calls PublishRequestFunc.
-func (mock *CommandBusReplier) PublishRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
+// DispatchRequest calls PublishRequestFunc.
+func (mock *CommandBusReplier) DispatchRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
 	if mock.PublishRequestFunc == nil {
 		panic("CommandBusReplier.PublishRequestFunc: method is nil but CommandBusReplier.PublishRequest was just called")
 	}
@@ -96,13 +97,13 @@ func (mock *CommandBusReplier) PublishRequestCalls() []struct {
 }
 
 // SubscribeWithReply calls SubscribeWithReplyFunc.
-func (mock *CommandBusReplier) SubscribeWithReply(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
+func (mock *CommandBusReplier) SubscribeWithReply(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
 	if mock.SubscribeWithReplyFunc == nil {
 		panic("CommandBusReplier.SubscribeWithReplyFunc: method is nil but CommandBusReplier.SubscribeWithReply was just called")
 	}
 	callInfo := struct {
 		Ctx     context.Context
-		Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+		Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 	}{
 		Ctx:     ctx,
 		Handler: handler,
@@ -119,11 +120,11 @@ func (mock *CommandBusReplier) SubscribeWithReply(ctx context.Context, handler m
 //	len(mockedCommandBusReplier.SubscribeWithReplyCalls())
 func (mock *CommandBusReplier) SubscribeWithReplyCalls() []struct {
 	Ctx     context.Context
-	Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+	Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 } {
 	var calls []struct {
 		Ctx     context.Context
-		Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+		Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 	}
 	mock.lockSubscribeWithReply.RLock()
 	calls = mock.calls.SubscribeWithReply

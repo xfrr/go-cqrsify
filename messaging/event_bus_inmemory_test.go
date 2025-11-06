@@ -20,7 +20,7 @@ func TestInMemoryEventBus_Subscribe_ThenHandleSync(t *testing.T) {
 	seen := make(chan messaging.Event, 1)
 
 	_, err := bus.Subscribe(context.Background(),
-		messaging.EventHandlerFn[messaging.Event](func(ctx context.Context, e messaging.Event) error {
+		messaging.MessageHandlerFn[messaging.Event](func(_ context.Context, e messaging.Event) error {
 			seen <- e
 			return nil
 		}),

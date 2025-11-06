@@ -19,7 +19,7 @@ var _ messaging.CommandConsumerReplier = &CommandConsumerReplier{}
 //
 //		// make and configure a mocked messaging.CommandConsumerReplier
 //		mockedCommandConsumerReplier := &CommandConsumerReplier{
-//			SubscribeWithReplyFunc: func(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
+//			SubscribeWithReplyFunc: func(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
 //				panic("mock out the SubscribeWithReply method")
 //			},
 //		}
@@ -30,7 +30,7 @@ var _ messaging.CommandConsumerReplier = &CommandConsumerReplier{}
 //	}
 type CommandConsumerReplier struct {
 	// SubscribeWithReplyFunc mocks the SubscribeWithReply method.
-	SubscribeWithReplyFunc func(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error)
+	SubscribeWithReplyFunc func(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -39,20 +39,20 @@ type CommandConsumerReplier struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// Handler is the handler argument value.
-			Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+			Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 		}
 	}
 	lockSubscribeWithReply sync.RWMutex
 }
 
 // SubscribeWithReply calls SubscribeWithReplyFunc.
-func (mock *CommandConsumerReplier) SubscribeWithReply(ctx context.Context, handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
+func (mock *CommandConsumerReplier) SubscribeWithReply(ctx context.Context, handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]) (messaging.UnsubscribeFunc, error) {
 	if mock.SubscribeWithReplyFunc == nil {
 		panic("CommandConsumerReplier.SubscribeWithReplyFunc: method is nil but CommandConsumerReplier.SubscribeWithReply was just called")
 	}
 	callInfo := struct {
 		Ctx     context.Context
-		Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+		Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 	}{
 		Ctx:     ctx,
 		Handler: handler,
@@ -69,11 +69,11 @@ func (mock *CommandConsumerReplier) SubscribeWithReply(ctx context.Context, hand
 //	len(mockedCommandConsumerReplier.SubscribeWithReplyCalls())
 func (mock *CommandConsumerReplier) SubscribeWithReplyCalls() []struct {
 	Ctx     context.Context
-	Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+	Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 } {
 	var calls []struct {
 		Ctx     context.Context
-		Handler messaging.CommandHandlerWithReply[messaging.Command, messaging.CommandReply]
+		Handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply]
 	}
 	mock.lockSubscribeWithReply.RLock()
 	calls = mock.calls.SubscribeWithReply

@@ -22,7 +22,7 @@ var _ messaging.EventBus = &EventBus{}
 //			PublishFunc: func(ctx context.Context, events ...messaging.Event) error {
 //				panic("mock out the Publish method")
 //			},
-//			SubscribeFunc: func(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+//			SubscribeFunc: func(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 //				panic("mock out the Subscribe method")
 //			},
 //		}
@@ -36,7 +36,7 @@ type EventBus struct {
 	PublishFunc func(ctx context.Context, events ...messaging.Event) error
 
 	// SubscribeFunc mocks the Subscribe method.
-	SubscribeFunc func(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error)
+	SubscribeFunc func(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -52,7 +52,7 @@ type EventBus struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// H is the h argument value.
-			H messaging.EventHandler[messaging.Event]
+			H messaging.MessageHandler[messaging.Event]
 		}
 	}
 	lockPublish   sync.RWMutex
@@ -96,13 +96,13 @@ func (mock *EventBus) PublishCalls() []struct {
 }
 
 // Subscribe calls SubscribeFunc.
-func (mock *EventBus) Subscribe(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (mock *EventBus) Subscribe(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	if mock.SubscribeFunc == nil {
 		panic("EventBus.SubscribeFunc: method is nil but EventBus.Subscribe was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		H   messaging.EventHandler[messaging.Event]
+		H   messaging.MessageHandler[messaging.Event]
 	}{
 		Ctx: ctx,
 		H:   h,
@@ -119,11 +119,11 @@ func (mock *EventBus) Subscribe(ctx context.Context, h messaging.EventHandler[me
 //	len(mockedEventBus.SubscribeCalls())
 func (mock *EventBus) SubscribeCalls() []struct {
 	Ctx context.Context
-	H   messaging.EventHandler[messaging.Event]
+	H   messaging.MessageHandler[messaging.Event]
 } {
 	var calls []struct {
 		Ctx context.Context
-		H   messaging.EventHandler[messaging.Event]
+		H   messaging.MessageHandler[messaging.Event]
 	}
 	mock.lockSubscribe.RLock()
 	calls = mock.calls.Subscribe

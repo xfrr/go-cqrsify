@@ -19,7 +19,7 @@ var _ messaging.EventConsumer = &EventConsumer{}
 //
 //		// make and configure a mocked messaging.EventConsumer
 //		mockedEventConsumer := &EventConsumer{
-//			SubscribeFunc: func(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+//			SubscribeFunc: func(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 //				panic("mock out the Subscribe method")
 //			},
 //		}
@@ -30,7 +30,7 @@ var _ messaging.EventConsumer = &EventConsumer{}
 //	}
 type EventConsumer struct {
 	// SubscribeFunc mocks the Subscribe method.
-	SubscribeFunc func(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error)
+	SubscribeFunc func(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -39,20 +39,20 @@ type EventConsumer struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// H is the h argument value.
-			H messaging.EventHandler[messaging.Event]
+			H messaging.MessageHandler[messaging.Event]
 		}
 	}
 	lockSubscribe sync.RWMutex
 }
 
 // Subscribe calls SubscribeFunc.
-func (mock *EventConsumer) Subscribe(ctx context.Context, h messaging.EventHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (mock *EventConsumer) Subscribe(ctx context.Context, h messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	if mock.SubscribeFunc == nil {
 		panic("EventConsumer.SubscribeFunc: method is nil but EventConsumer.Subscribe was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		H   messaging.EventHandler[messaging.Event]
+		H   messaging.MessageHandler[messaging.Event]
 	}{
 		Ctx: ctx,
 		H:   h,
@@ -69,11 +69,11 @@ func (mock *EventConsumer) Subscribe(ctx context.Context, h messaging.EventHandl
 //	len(mockedEventConsumer.SubscribeCalls())
 func (mock *EventConsumer) SubscribeCalls() []struct {
 	Ctx context.Context
-	H   messaging.EventHandler[messaging.Event]
+	H   messaging.MessageHandler[messaging.Event]
 } {
 	var calls []struct {
 		Ctx context.Context
-		H   messaging.EventHandler[messaging.Event]
+		H   messaging.MessageHandler[messaging.Event]
 	}
 	mock.lockSubscribe.RLock()
 	calls = mock.calls.Subscribe

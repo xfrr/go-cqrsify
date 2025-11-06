@@ -33,7 +33,7 @@ func (p *PubSubQueryBus) Request(ctx context.Context, query messaging.Query) (me
 	return res, nil
 }
 
-func (p *PubSubQueryBus) Subscribe(ctx context.Context, h messaging.QueryHandler[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+func (p *PubSubQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {

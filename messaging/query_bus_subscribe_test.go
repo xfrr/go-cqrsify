@@ -18,9 +18,9 @@ func TestSubscribeQuery_Success(t *testing.T) {
 		messaging.ConfigureInMemoryMessageBusSubjects("test.query", "test.reply"),
 	)
 
-	handler := messaging.QueryHandlerFn[messaging.Query, messaging.QueryReply](func(ctx context.Context, query messaging.Query) (messaging.QueryReply, error) {
+	handler := messaging.MessageHandlerWithReplyFn[messaging.Query, messaging.QueryReply](func(_ context.Context, query messaging.Query) (messaging.QueryReply, error) {
 		calls++
-		return messaging.NewMessage("test.reply"), nil
+		return messaging.NewMessage(query.MessageType() + ".reply"), nil
 	})
 
 	unsub, err := messaging.SubscribeQuery(
@@ -37,5 +37,5 @@ func TestSubscribeQuery_Success(t *testing.T) {
 
 	assert.NotNil(t, res)
 	assert.Equal(t, 1, calls)
-	assert.Equal(t, "test.reply", res.MessageType())
+	assert.Equal(t, "test.query.reply", res.MessageType())
 }

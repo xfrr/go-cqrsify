@@ -5,15 +5,15 @@ import (
 	"fmt"
 )
 
-// SubscribeQuery is a shorthand for handling querys.
+// SubscribeQuery is a shorthand for handling queries of a specific type.
 func SubscribeQuery[Q Query, R QueryReply](
 	ctx context.Context,
 	consumer QueryConsumer,
-	handler QueryHandler[Q, R],
+	handler MessageHandlerWithReply[Q, R],
 ) (UnsubscribeFunc, error) {
 	return consumer.Subscribe(
 		ctx,
-		QueryHandlerFn[Query, QueryReply](func(ctx context.Context, query Query) (QueryReply, error) {
+		MessageHandlerWithReplyFn[Query, QueryReply](func(ctx context.Context, query Query) (QueryReply, error) {
 			q, ok := query.(Q)
 			if !ok {
 				return nil, InvalidMessageTypeError{

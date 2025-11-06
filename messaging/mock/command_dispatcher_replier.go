@@ -5,8 +5,9 @@ package messagingmock
 
 import (
 	"context"
-	"github.com/xfrr/go-cqrsify/messaging"
 	"sync"
+
+	"github.com/xfrr/go-cqrsify/messaging"
 )
 
 // Ensure, that CommandDispatcherReplier does implement messaging.CommandDispatcherReplier.
@@ -45,8 +46,8 @@ type CommandDispatcherReplier struct {
 	lockPublishRequest sync.RWMutex
 }
 
-// PublishRequest calls PublishRequestFunc.
-func (mock *CommandDispatcherReplier) PublishRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
+// DispatchRequest calls PublishRequestFunc.
+func (mock *CommandDispatcherReplier) DispatchRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
 	if mock.PublishRequestFunc == nil {
 		panic("CommandDispatcherReplier.PublishRequestFunc: method is nil but CommandDispatcherReplier.PublishRequest was just called")
 	}

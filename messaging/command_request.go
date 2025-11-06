@@ -7,7 +7,7 @@ import (
 
 // Request is a short-hand function to send a command and wait for a reply.
 func Request[R Message](ctx context.Context, bus CommandBusReplier, cmd Command) (R, error) {
-	res, err := bus.PublishRequest(ctx, cmd)
+	res, err := bus.DispatchRequest(ctx, cmd)
 	if err != nil {
 		var zero R
 		return zero, err

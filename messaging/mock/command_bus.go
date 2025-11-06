@@ -22,7 +22,7 @@ var _ messaging.CommandBus = &CommandBus{}
 //			DispatchFunc: func(ctx context.Context, commands ...messaging.Command) error {
 //				panic("mock out the Dispatch method")
 //			},
-//			SubscribeFunc: func(ctx context.Context, h messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+//			SubscribeFunc: func(ctx context.Context, h messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
 //				panic("mock out the Subscribe method")
 //			},
 //		}
@@ -36,7 +36,7 @@ type CommandBus struct {
 	DispatchFunc func(ctx context.Context, commands ...messaging.Command) error
 
 	// SubscribeFunc mocks the Subscribe method.
-	SubscribeFunc func(ctx context.Context, h messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error)
+	SubscribeFunc func(ctx context.Context, h messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -52,7 +52,7 @@ type CommandBus struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
 			// H is the h argument value.
-			H messaging.CommandHandler[messaging.Command]
+			H messaging.MessageHandler[messaging.Command]
 		}
 	}
 	lockDispatch  sync.RWMutex
@@ -96,13 +96,13 @@ func (mock *CommandBus) DispatchCalls() []struct {
 }
 
 // Subscribe calls SubscribeFunc.
-func (mock *CommandBus) Subscribe(ctx context.Context, h messaging.CommandHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+func (mock *CommandBus) Subscribe(ctx context.Context, h messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
 	if mock.SubscribeFunc == nil {
 		panic("CommandBus.SubscribeFunc: method is nil but CommandBus.Subscribe was just called")
 	}
 	callInfo := struct {
 		Ctx context.Context
-		H   messaging.CommandHandler[messaging.Command]
+		H   messaging.MessageHandler[messaging.Command]
 	}{
 		Ctx: ctx,
 		H:   h,
@@ -119,11 +119,11 @@ func (mock *CommandBus) Subscribe(ctx context.Context, h messaging.CommandHandle
 //	len(mockedCommandBus.SubscribeCalls())
 func (mock *CommandBus) SubscribeCalls() []struct {
 	Ctx context.Context
-	H   messaging.CommandHandler[messaging.Command]
+	H   messaging.MessageHandler[messaging.Command]
 } {
 	var calls []struct {
 		Ctx context.Context
-		H   messaging.CommandHandler[messaging.Command]
+		H   messaging.MessageHandler[messaging.Command]
 	}
 	mock.lockSubscribe.RLock()
 	calls = mock.calls.Subscribe

@@ -63,12 +63,15 @@ func main() {
 	defer closeEventBus()
 
 	// Subscribe to messages of type "OrderCreated"
-	unsub, err := messaging.SubscribeEvent(ctx, eventBus, messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, event OrderCreatedEvent) error {
-		fmt.Println("Handling event:")
-		fmt.Printf("- Event Type: %s\n", event.MessageType())
-		fmt.Printf("- Order ID: %d\n", event.OrderID())
-		return nil
-	}))
+	unsub, err := messaging.SubscribeEvent(
+		ctx,
+		eventBus,
+		messaging.MessageHandlerFn[OrderCreatedEvent](func(ctx context.Context, event OrderCreatedEvent) error {
+			fmt.Println("Handling event:")
+			fmt.Printf("- Event Type: %s\n", event.MessageType())
+			fmt.Printf("- Order ID: %d\n", event.OrderID())
+			return nil
+		}))
 	if err != nil {
 		panic(err)
 	}

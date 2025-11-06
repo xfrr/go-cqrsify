@@ -90,13 +90,16 @@ func main() {
 	pubSubBus := messagingnats.NewPubSubEventBus(publisher, consumer)
 
 	// Subscribe to messages of type "OrderCreated"
-	unsub, err := messaging.SubscribeEvent(ctx, pubSubBus, messaging.EventHandlerFn[OrderCreatedEvent](func(ctx context.Context, evt OrderCreatedEvent) error {
-		fmt.Println("Received event:")
-		fmt.Printf("- Event Type: %s\n", evt.MessageType())
-		fmt.Printf("- Order ID: %d\n", evt.OrderID())
-		fmt.Printf("- Order Amount: %.2f\n", evt.OrderAmount())
-		return nil
-	}))
+	unsub, err := messaging.SubscribeEvent(
+		ctx,
+		pubSubBus,
+		messaging.MessageHandlerFn[OrderCreatedEvent](func(ctx context.Context, evt OrderCreatedEvent) error {
+			fmt.Println("Received event:")
+			fmt.Printf("- Event Type: %s\n", evt.MessageType())
+			fmt.Printf("- Order ID: %d\n", evt.OrderID())
+			fmt.Printf("- Order Amount: %.2f\n", evt.OrderAmount())
+			return nil
+		}))
 	if err != nil {
 		panic(err)
 	}

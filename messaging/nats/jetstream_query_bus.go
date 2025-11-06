@@ -26,7 +26,7 @@ func (p *JetstreamQueryBus) Request(ctx context.Context, query messaging.Query) 
 	return p.PublishRequest(ctx, query)
 }
 
-func (p *JetstreamQueryBus) Subscribe(ctx context.Context, h messaging.QueryHandler[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+func (p *JetstreamQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {

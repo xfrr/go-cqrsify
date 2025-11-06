@@ -26,7 +26,7 @@ func (b *InMemoryEventBus) Publish(ctx context.Context, events ...Event) error {
 	return b.bus.Publish(ctx, msgs...)
 }
 
-func (b *InMemoryEventBus) Subscribe(ctx context.Context, h EventHandler[Event]) (UnsubscribeFunc, error) {
+func (b *InMemoryEventBus) Subscribe(ctx context.Context, h MessageHandler[Event]) (UnsubscribeFunc, error) {
 	return b.bus.Subscribe(ctx, MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
 		evt, ok := msg.(Event)
 		if !ok {

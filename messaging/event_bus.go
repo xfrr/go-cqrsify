@@ -5,24 +5,6 @@ import (
 	"fmt"
 )
 
-type EventHandler[E Event] = MessageHandler[E]
-type EventHandlerFn[E Event] = MessageHandlerFn[E]
-
-// NewEventHandlerFn wraps the given EventHandlerFn into a MessageHandlerFn.
-func NewEventHandlerFn[E Event](fn func(ctx context.Context, evt E) error) MessageHandler[Message] {
-	var zero E
-	return MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
-		castEvent, ok := msg.(E)
-		if !ok {
-			return InvalidMessageTypeError{
-				Actual:   fmt.Sprintf("%T", msg),
-				Expected: fmt.Sprintf("%T", zero),
-			}
-		}
-		return fn(ctx, castEvent)
-	})
-}
-
 // EventBus is an interface for publishing and subscribing to events.
 //
 //go:generate moq -pkg messagingmock -out mock/event_bus.go . EventBus:EventBus
@@ -46,5 +28,20 @@ type EventPublisher interface {
 type EventConsumer interface {
 	// Subscribe registers a handler for a given logical event name.
 	// It returns an unsubscribe function that can be called to remove the subscription.
-	Subscribe(ctx context.Context, h EventHandler[Event]) (UnsubscribeFunc, error)
+	Subscribe(ctx context.Context, h MessageHandler[Event]) (UnsubscribeFunc, error)
+}
+
+// EventHandlerFn wraps the given EventHandlerFn into a MessageHandlerFn.
+func EventHandlerFn[E Event](fn func(ctx context.Context, evt E) error) MessageHandler[Message] {
+	var zero E
+	return MessageHandlerFn[Message](func(ctx context.Context, msg Message) error {
+		castEvent, ok := msg.(E)
+		if !ok {
+			return InvalidMessageTypeError{
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", zero),
+			}
+		}
+		return fn(ctx, castEvent)
+	})
 }

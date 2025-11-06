@@ -9,12 +9,12 @@ import (
 func SubscribeEvent[E Event](
 	ctx context.Context,
 	consumer EventConsumer,
-	handlerFn EventHandler[E],
+	handlerFn MessageHandler[E],
 ) (UnsubscribeFunc, error) {
 	var zero E
 	return consumer.Subscribe(
 		ctx,
-		EventHandlerFn[Event](func(ctx context.Context, evt Event) error {
+		MessageHandlerFn[Event](func(ctx context.Context, evt Event) error {
 			castEvent, ok := evt.(E)
 			if !ok {
 				return InvalidMessageTypeError{
