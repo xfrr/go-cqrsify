@@ -17,8 +17,8 @@ type PubSubMessageBus struct {
 func NewPubSubMessageBus(
 	pubSubPublisher *PubSubMessagePublisher,
 	pubSubConsumer *PubSubMessageConsumer,
-) *PubSubMessageBus {
-	return &PubSubMessageBus{
+) PubSubMessageBus {
+	return PubSubMessageBus{
 		PubSubMessagePublisher: pubSubPublisher,
 		PubSubMessageConsumer:  pubSubConsumer,
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type jetStreamConsumerConfig interface {
@@ -18,10 +19,13 @@ type JetStreamMessageConsumerConfig[T jetstream.ConsumerConfig | jetstream.Order
 	MaxReplyWait time.Duration
 	// ConsumerConfig is the JetStream consumer configuration.
 	ConsumerConfig T
-	// Serializer is the message serializer.
-	serializer messaging.MessageSerializer
-	// Deserializer is the message deserializer.
-	deserializer messaging.MessageDeserializer
+	// Serializer is the message Serializer.
+	Serializer messaging.MessageSerializer
+	// Deserializer is the message Deserializer.
+	Deserializer messaging.MessageDeserializer
+	// OTELPropagator is the OpenTelemetry propagator for trace
+	// propagation using message headers and context.
+	OTELPropagator propagation.TextMapPropagator
 }
 
 func NewJetStreamMessageConsumerConfig(opts ...JetStreamMessageConsumerConfiger[jetstream.ConsumerConfig]) JetStreamMessageConsumerConfig[jetstream.ConsumerConfig] {
@@ -29,8 +33,9 @@ func NewJetStreamMessageConsumerConfig(opts ...JetStreamMessageConsumerConfiger[
 		ErrorHandler:   messaging.DefaultErrorHandler,
 		MaxReplyWait:   defaultMaxReplyWait,
 		ConsumerConfig: jetstream.ConsumerConfig{},
-		serializer:     messaging.DefaultJSONSerializer,
-		deserializer:   messaging.DefaultJSONDeserializer,
+		Serializer:     messaging.DefaultJSONSerializer,
+		Deserializer:   messaging.DefaultJSONDeserializer,
+		OTELPropagator: propagation.NewCompositeTextMapPropagator(),
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
@@ -43,8 +48,9 @@ func NewJetStreamOrderedMessageConsumerConfig(opts ...JetStreamMessageConsumerCo
 		ErrorHandler:   messaging.DefaultErrorHandler,
 		MaxReplyWait:   defaultMaxReplyWait,
 		ConsumerConfig: jetstream.OrderedConsumerConfig{},
-		serializer:     messaging.DefaultJSONSerializer,
-		deserializer:   messaging.DefaultJSONDeserializer,
+		Serializer:     messaging.DefaultJSONSerializer,
+		Deserializer:   messaging.DefaultJSONDeserializer,
+		OTELPropagator: propagation.NewCompositeTextMapPropagator(),
 	}
 	for _, opt := range opts {
 		opt.apply(cfg)
@@ -87,13 +93,20 @@ func WithJetStreamConsumerConfig[T jetStreamConsumerConfig](consumerConfig T) Je
 // WithJetStreamConsumerMessageSerializer sets a custom message serializer for the consumer.
 func WithJetStreamConsumerMessageSerializer[T jetStreamConsumerConfig](serializer messaging.MessageSerializer) JetStreamMessageConsumerConfiger[T] {
 	return jetStreamMessageConsumerConfigFunc[T](func(cfg *JetStreamMessageConsumerConfig[T]) {
-		cfg.serializer = serializer
+		cfg.Serializer = serializer
 	})
 }
 
 // WithJetStreamConsumerMessageDeserializer sets a custom message deserializer for the consumer.
 func WithJetStreamConsumerMessageDeserializer[T jetStreamConsumerConfig](deserializer messaging.MessageDeserializer) JetStreamMessageConsumerConfiger[T] {
 	return jetStreamMessageConsumerConfigFunc[T](func(cfg *JetStreamMessageConsumerConfig[T]) {
-		cfg.deserializer = deserializer
+		cfg.Deserializer = deserializer
+	})
+}
+
+// WithJetStreamConsumerOTELPropagator sets a custom OpenTelemetry propagator for the consumer.
+func WithJetStreamConsumerOTELPropagator[T jetStreamConsumerConfig](propagator propagation.TextMapPropagator) JetStreamMessageConsumerConfiger[T] {
+	return jetStreamMessageConsumerConfigFunc[T](func(cfg *JetStreamMessageConsumerConfig[T]) {
+		cfg.OTELPropagator = propagator
 	})
 }

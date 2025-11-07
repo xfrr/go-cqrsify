@@ -6,6 +6,7 @@ import (
 
 	"github.com/nats-io/nats.go"
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // PubSubMessagePublisher is a publisher that uses NATS JetStream.
@@ -42,8 +43,9 @@ func (p *PubSubMessagePublisher) Publish(ctx context.Context, messages ...messag
 			return fmt.Errorf("no subject configured for message type '%s'", msg.MessageType())
 		}
 
+		// Inject tracing context into message headers
 		headers := nats.Header{}
-		// TODO: inject trace headers
+		p.cfg.OTELPropagator.Inject(ctx, propagation.HeaderCarrier(headers))
 
 		msg := &nats.Msg{
 			Subject: subject,
@@ -81,6 +83,8 @@ func (p *PubSubMessagePublisher) PublishRequest(ctx context.Context, msg messagi
 	headers := nats.Header{
 		replyHeaderKey: []string{replySubject},
 	}
+	// Inject tracing headers
+	p.cfg.OTELPropagator.Inject(ctx, propagation.HeaderCarrier(headers))
 
 	nmsg := &nats.Msg{
 		Subject: msgSubject,

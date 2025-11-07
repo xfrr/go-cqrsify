@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 type PubSubMessagePublisherConfig struct {
@@ -24,6 +25,9 @@ type PubSubMessagePublisherConfig struct {
 	// Deserializer is the message deserializer to use for receiving messages.
 	// If nil, a default JSON deserializer is used.
 	Deserializer messaging.MessageDeserializer
+	// OTELPropagator is the OpenTelemetry propagator for trace
+	// propagation using message headers and context.
+	OTELPropagator propagation.TextMapPropagator
 }
 
 func NewPubSubMessagePublisherConfig(opts ...PubSubMessagePublisherConfiger) PubSubMessagePublisherConfig {
@@ -42,6 +46,7 @@ func defaultPubSubMessagePublisherConfig() *PubSubMessagePublisherConfig {
 		ErrorHandler:        messaging.DefaultErrorHandler,
 		Serializer:          messaging.DefaultJSONSerializer,
 		Deserializer:        messaging.DefaultJSONDeserializer,
+		OTELPropagator:      propagation.NewCompositeTextMapPropagator(),
 	}
 }
 
@@ -85,5 +90,12 @@ func WithPubSubPublisherSerializer(serializer messaging.MessageSerializer) PubSu
 func WithPubSubPublisherDeserializer(deserializer messaging.MessageDeserializer) PubSubMessagePublisherConfiger {
 	return func(cfg *PubSubMessagePublisherConfig) {
 		cfg.Deserializer = deserializer
+	}
+}
+
+// WithPubSubPublisherOTELPropagator sets a custom OpenTelemetry propagator for the PubSubMessagePublisher.
+func WithPubSubPublisherOTELPropagator(propagator propagation.TextMapPropagator) PubSubMessagePublisherConfiger {
+	return func(cfg *PubSubMessagePublisherConfig) {
+		cfg.OTELPropagator = propagator
 	}
 }

@@ -22,8 +22,8 @@ type JetStreamMessageBus struct {
 func NewJetstreamMessageBus(
 	publisher *JetstreamMessagePublisher,
 	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
-) *JetStreamMessageBus {
-	return &JetStreamMessageBus{
+) JetStreamMessageBus {
+	return JetStreamMessageBus{
 		JetstreamMessagePublisher: publisher,
 		JetStreamMessageConsumer:  consumer,
 	}

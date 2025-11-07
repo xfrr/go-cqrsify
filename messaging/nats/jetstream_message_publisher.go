@@ -8,6 +8,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var _ messaging.MessagePublisher = (*JetstreamMessagePublisher)(nil)
@@ -53,7 +54,23 @@ func (p *JetstreamMessagePublisher) Publish(ctx context.Context, msg ...messagin
 		}
 
 		subject := p.cfg.SubjectBuilder.Build(m)
-		_, err = p.js.Publish(ctx, subject, data, opts...)
+		if subject == "" {
+			return fmt.Errorf("no subject configured for message type '%s'", m.MessageType())
+		}
+
+		headers := nats.Header{}
+		// Inject tracing headers
+		if p.cfg.OTELPropagator != nil {
+			p.cfg.OTELPropagator.Inject(ctx, propagation.HeaderCarrier(headers))
+		}
+
+		natsMsg := &nats.Msg{
+			Subject: subject,
+			Data:    data,
+			Header:  headers,
+		}
+
+		_, err = p.js.PublishMsg(ctx, natsMsg, opts...)
 		if err != nil {
 			return err
 		}
@@ -69,7 +86,6 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 		return nil, fmt.Errorf("no subject configured for message type '%s'", msg.MessageType())
 	}
 
-	// Publish the message with a header indicating the reply subject
 	data, err := p.cfg.Serializer.Serialize(msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize message: %w", err)
@@ -83,6 +99,8 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	headers := nats.Header{
 		replyHeaderKey: []string{replySubject},
 	}
+	// Inject tracing headers
+	p.cfg.OTELPropagator.Inject(ctx, propagation.HeaderCarrier(headers))
 
 	jsMsg := &nats.Msg{
 		Subject: msgSubject,
@@ -106,6 +124,7 @@ func (p *JetstreamMessagePublisher) PublishRequest(ctx context.Context, msg mess
 	}
 
 	// Create a temporary consumer to receive the reply
+	// TODO: make consumer configuration customizable
 	consumerCfg := jetstream.ConsumerConfig{
 		Name:          consumerNameFromMessageType(msg.MessageType()) + fmt.Sprintf("_reply_%d", pubAck.Sequence),
 		DeliverPolicy: jetstream.DeliverAllPolicy,

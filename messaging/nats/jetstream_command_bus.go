@@ -12,21 +12,21 @@ var _ messaging.CommandBusReplier = (*JetStreamCommandBus)(nil)
 var _ messaging.CommandConsumerReplier = (*JetStreamCommandBus)(nil)
 
 type JetStreamCommandBus struct {
-	*JetStreamMessageBus
+	JetStreamMessageBus
 }
 
 func NewJetStreamCommandBus(
 	publisher *JetstreamMessagePublisher,
 	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
-) *JetStreamCommandBus {
+) JetStreamCommandBus {
 	jmb := NewJetstreamMessageBus(publisher, consumer)
-	return &JetStreamCommandBus{
+	return JetStreamCommandBus{
 		JetStreamMessageBus: jmb,
 	}
 }
 
 // Dispatch implements messaging.CommandDispatcher.
-func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
+func (p JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
 	msgs := make([]messaging.Message, len(commands))
 	for i, e := range commands {
 		msgs[i] = e
@@ -35,12 +35,12 @@ func (p *JetStreamCommandBus) Dispatch(ctx context.Context, commands ...messagin
 }
 
 // DispatchRequest implements messaging.CommandBusRequester.
-func (p *JetStreamCommandBus) DispatchRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
+func (p JetStreamCommandBus) DispatchRequest(ctx context.Context, cmd messaging.Command) (messaging.Message, error) {
 	return p.PublishRequest(ctx, cmd)
 }
 
 // Subscribe implements messaging.CommandConsumer.
-func (p *JetStreamCommandBus) Subscribe(
+func (p JetStreamCommandBus) Subscribe(
 	ctx context.Context,
 	handler messaging.MessageHandler[messaging.Command],
 ) (messaging.UnsubscribeFunc, error) {
@@ -55,7 +55,7 @@ func (p *JetStreamCommandBus) Subscribe(
 }
 
 // SubscribeWithReply implements messaging.CommandConsumerWithReply.
-func (p *JetStreamCommandBus) SubscribeWithReply(
+func (p JetStreamCommandBus) SubscribeWithReply(
 	ctx context.Context,
 	handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply],
 ) (messaging.UnsubscribeFunc, error) {

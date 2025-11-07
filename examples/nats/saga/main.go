@@ -152,7 +152,6 @@ func main() {
 
 	coord := saga.NewCoordinator(def, saga.NewInMemoryStore(), lock.NewInMemoryLocker(), saga.CoordinatorConfig{
 		LockTTL: 10 * time.Second,
-		UUID:    saga.DefaultUUIDProvider,
 		Hooks: saga.Hooks{
 			OnStepStart: func(ctx context.Context, si *saga.Instance, s saga.StepState) {
 				fmt.Printf("→ start %q attempt %d\n", s.Name, s.Attempt)

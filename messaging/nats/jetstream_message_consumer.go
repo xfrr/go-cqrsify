@@ -8,6 +8,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var _ messaging.MessageConsumer = (*JetStreamMessageConsumer[jetstream.ConsumerConfig])(nil)
@@ -16,7 +17,6 @@ var _ messaging.MessageConsumer = (*JetStreamMessageConsumer[jetstream.OrderedCo
 
 // JetStreamMessageConsumer is a consumer that uses NATS JetStream.
 type JetStreamMessageConsumer[T jetStreamConsumerConfig] struct {
-	conn     *nats.Conn
 	js       jetstream.JetStream
 	consumer jetstream.Consumer
 
@@ -78,16 +78,18 @@ func (p *JetStreamMessageConsumer[T]) Subscribe(
 	}
 
 	cc, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
-		m := p.deserializeOrTerm(jmsg)
+		m := p.deserializeMessage(jmsg)
 		if m == nil {
 			return
 		}
 
-		if err := handler.Handle(ctx, m); err != nil {
-			p.handleErr(m, fmt.Errorf("failed to handle message: %w", err))
-			if nakErr := jmsg.Nak(); nakErr != nil {
-				p.handleErr(m, fmt.Errorf("failed to nak message: %w", nakErr))
-			}
+		// Extract tracing context from message headers
+		// and create a new context for handling the message
+		msgCtx := p.propagateTracingContext(ctx, jmsg)
+
+		if err := handler.Handle(msgCtx, m); err != nil {
+			// TODO: decide whether to Nak or Term based on error type
+			p.errAndNak(jmsg, m, fmt.Errorf("failed to handle message: %w", err))
 			return
 		}
 
@@ -116,44 +118,51 @@ func (p *JetStreamMessageConsumer[T]) SubscribeWithReply(
 	}
 
 	cc, err := p.consumer.Consume(func(jmsg jetstream.Msg) {
-		m := p.deserializeOrTerm(jmsg)
+		m := p.deserializeMessage(jmsg)
 		if m == nil {
 			return
 		}
 
-		replyMsg, handleErr := handler.Handle(ctx, m)
+		// Extract tracing context from message headers
+		// and create a new context for handling the message
+		msgCtx := p.propagateTracingContext(ctx, jmsg)
+
+		replyMsg, handleErr := handler.Handle(msgCtx, m)
 		if handleErr != nil {
-			p.handleErr(m, fmt.Errorf("failed to handle message: %w", handleErr))
-			if termErr := jmsg.Term(); termErr != nil {
-				p.handleErr(m, fmt.Errorf("failed to term message: %w", termErr))
-			}
+			// TODO: decide whether to Term or Nak based on error type
+			p.errAndTerm(jmsg, m, "message_handling_failed", fmt.Errorf("failed to handle message: %w", handleErr))
 			return
 		}
 		if replyMsg == nil {
-			p.handleErr(m, errors.New("handler returned nil reply message"))
-			p.termWithReason(jmsg, "nil_reply", m)
+			p.errAndTerm(jmsg, m, "nil_reply", errors.New("handler returned nil reply"))
 			return
 		}
 
-		replyData, serializeErr := p.cfg.serializer.Serialize(replyMsg)
+		replyData, serializeErr := p.cfg.Serializer.Serialize(replyMsg)
 		if serializeErr != nil {
-			p.handleErr(replyMsg, fmt.Errorf("failed to serialize reply message: %w", serializeErr))
-			p.termWithReason(jmsg, "serialization_failed", m)
+			p.errAndTerm(jmsg, m, "reply_serialization_failed", fmt.Errorf("failed to serialize reply message: %w", serializeErr))
 			return
 		}
 
 		replySubject := jmsg.Headers().Get(replyHeaderKey)
 		if replySubject == "" {
-			p.handleErr(replyMsg, errors.New("no reply subject found in message headers"))
-			p.termWithReason(jmsg, "no_reply_subject", m)
+			p.errAndTerm(jmsg, m, "missing_reply_subject", errors.New("missing reply subject in message headers"))
 			return
 		}
 
-		if err := p.conn.Publish(replySubject, replyData); err != nil {
-			p.handleErr(replyMsg, fmt.Errorf("failed to send reply message: %w", err))
-			if nakErr := jmsg.Nak(); nakErr != nil {
-				p.handleErr(m, fmt.Errorf("failed to nak message: %w", nakErr))
-			}
+		headers := nats.Header{}
+		// Inject tracing context into reply message headers
+		p.cfg.OTELPropagator.Inject(msgCtx, propagation.HeaderCarrier(headers))
+
+		// Create the reply message
+		natsReplyMsg := &nats.Msg{
+			Subject: replySubject,
+			Data:    replyData,
+			Header:  headers,
+		}
+
+		if _, err := p.js.PublishMsg(msgCtx, natsReplyMsg); err != nil {
+			p.errAndTerm(jmsg, m, "reply_publication_failed", fmt.Errorf("failed to publish reply message: %w", err))
 			return
 		}
 
@@ -176,7 +185,52 @@ func (p *JetStreamMessageConsumer[T]) unsubscribeFn(sub jetstream.ConsumeContext
 	}
 }
 
-/*** internal helpers ***/
+func (p *JetStreamMessageConsumer[T]) deserializeMessage(jmsg jetstream.Msg) messaging.Message {
+	m, err := p.cfg.Deserializer.Deserialize(jmsg.Data())
+	if err != nil {
+		p.errAndTerm(
+			jmsg,
+			nil,
+			"deserialization_failed",
+			fmt.Errorf("failed to deserialize message: %w", err),
+		)
+		return nil
+	}
+	if m == nil {
+		p.errAndTerm(
+			jmsg,
+			nil,
+			"nil_message",
+			errors.New("nil message after deserialization"),
+		)
+		return nil
+	}
+	return m
+}
+
+func (p *JetStreamMessageConsumer[T]) propagateTracingContext(parent context.Context, jmsg jetstream.Msg) context.Context {
+	return p.cfg.OTELPropagator.Extract(parent, propagation.HeaderCarrier(jmsg.Headers()))
+}
+
+func (p *JetStreamMessageConsumer[T]) errAndNak(jmsg jetstream.Msg, msg messaging.Message, err error) {
+	p.handleErr(msg, err)
+	if nakErr := jmsg.Nak(); nakErr != nil {
+		p.handleErr(msg, fmt.Errorf("failed to nak message: %w", nakErr))
+	}
+}
+
+func (p *JetStreamMessageConsumer[T]) errAndTerm(jmsg jetstream.Msg, msg messaging.Message, reason string, err error) {
+	p.handleErr(msg, err)
+	if termErr := jmsg.TermWithReason(reason); termErr != nil {
+		p.handleErr(msg, fmt.Errorf("failed to term message: %w", termErr))
+	}
+}
+
+func (p *JetStreamMessageConsumer[T]) handleErr(msg messaging.Message, err error) {
+	if p.errorHandler != nil {
+		p.errorHandler.Handle(msg, err)
+	}
+}
 
 func newConsumer[T jetStreamConsumerConfig](
 	js jetstream.JetStream,
@@ -197,42 +251,12 @@ func newConsumer[T jetStreamConsumerConfig](
 	return p
 }
 
-func validateInputs(
-	js jetstream.JetStream,
-	streamName string,
-) error {
+func validateInputs(js jetstream.JetStream, streamName string) error {
 	if js == nil {
-		return errors.New("jetstream instance cannot be nil")
+		return errors.New("jetstream context cannot be nil")
 	}
 	if streamName == "" {
 		return errors.New("stream name cannot be empty")
 	}
 	return nil
-}
-
-func (p *JetStreamMessageConsumer[T]) handleErr(msg messaging.Message, err error) {
-	if p.errorHandler != nil {
-		p.errorHandler.Handle(msg, err)
-	}
-}
-
-func (p *JetStreamMessageConsumer[T]) termWithReason(jmsg jetstream.Msg, reason string, msg messaging.Message) {
-	if err := jmsg.TermWithReason(reason); err != nil {
-		p.handleErr(msg, fmt.Errorf("failed to term message (%s): %w", reason, err))
-	}
-}
-
-func (p *JetStreamMessageConsumer[T]) deserializeOrTerm(jmsg jetstream.Msg) messaging.Message {
-	m, err := p.cfg.deserializer.Deserialize(jmsg.Data())
-	if err != nil {
-		p.handleErr(nil, fmt.Errorf("failed to deserialize message: %w", err))
-		p.termWithReason(jmsg, "deserialization_failed", nil)
-		return nil
-	}
-	if m == nil {
-		p.handleErr(nil, errors.New("nil message after deserialization"))
-		p.termWithReason(jmsg, "deserialization_failed", nil)
-		return nil
-	}
-	return m
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/xfrr/go-cqrsify/messaging"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 const (
@@ -41,6 +42,9 @@ type JetStreamMessagePublisherConfig struct {
 	// Deserializer is the message deserializer to use for receiving messages.
 	// If nil, a default JSON deserializer is used.
 	Deserializer messaging.MessageDeserializer
+	// OTELPropagator is the OpenTelemetry propagator for trace
+	// propagation using message headers and context.
+	OTELPropagator propagation.TextMapPropagator
 }
 
 func NewJetStreamMessagePublisherConfig(opts ...JetStreamMessagePublisherConfiger) JetStreamMessagePublisherConfig {
@@ -62,6 +66,7 @@ func defaultJetStreamMessagePublisherConfig() *JetStreamMessagePublisherConfig {
 		Serializer:          messaging.DefaultJSONSerializer,
 		Deserializer:        messaging.DefaultJSONDeserializer,
 		MessageTTLMapping:   make(map[string]time.Duration),
+		OTELPropagator:      propagation.NewCompositeTextMapPropagator(),
 	}
 }
 
@@ -130,5 +135,12 @@ func WithJetStreamPublishMessageSerializer(serializer messaging.MessageSerialize
 func WithJetStreamPublishMessageDeserializer(deserializer messaging.MessageDeserializer) JetStreamMessagePublisherConfiger {
 	return func(cfg *JetStreamMessagePublisherConfig) {
 		cfg.Deserializer = deserializer
+	}
+}
+
+// WithJetStreamPublishOTELPropagator sets the OpenTelemetry propagator for the publisher.
+func WithJetStreamPublishOTELPropagator(propagator propagation.TextMapPropagator) JetStreamMessagePublisherConfiger {
+	return func(cfg *JetStreamMessagePublisherConfig) {
+		cfg.OTELPropagator = propagator
 	}
 }

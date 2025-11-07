@@ -12,19 +12,19 @@ var _ messaging.QueryBus = (*PubSubQueryBus)(nil)
 // PubSubMessageBus is a NATS-based implementation of the MessageBus interface.
 // It provides methods for publishing and subscribing to messages using NATS as the underlying message bus.
 type PubSubQueryBus struct {
-	*PubSubMessageBus
+	PubSubMessageBus
 }
 
 func NewPubSubQueryBus(
 	pubSubPublisher *PubSubMessagePublisher,
 	pubSubConsumer *PubSubMessageConsumer,
-) *PubSubQueryBus {
-	return &PubSubQueryBus{
+) PubSubQueryBus {
+	return PubSubQueryBus{
 		PubSubMessageBus: NewPubSubMessageBus(pubSubPublisher, pubSubConsumer),
 	}
 }
 
-func (p *PubSubQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
+func (p PubSubQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
 	res, err := p.PublishRequest(ctx, query)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (p *PubSubQueryBus) Request(ctx context.Context, query messaging.Query) (me
 	return res, nil
 }
 
-func (p *PubSubQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+func (p PubSubQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {
@@ -41,5 +41,5 @@ func (p *PubSubQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandl
 		}
 		return h.Handle(ctx, query)
 	})
-	return p.PubSubMessageBus.SubscribeWithReply(ctx, wrappedHandler)
+	return p.SubscribeWithReply(ctx, wrappedHandler)
 }

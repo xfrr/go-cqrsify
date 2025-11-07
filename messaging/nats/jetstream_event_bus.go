@@ -10,21 +10,21 @@ import (
 var _ messaging.MessageBus = (*JetStreamMessageBus)(nil)
 
 type JetstreamEventBus struct {
-	*JetStreamMessageBus
+	JetStreamMessageBus
 }
 
 func NewJetStreamEventBus(
 	publisher *JetstreamMessagePublisher,
 	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
-) *JetstreamEventBus {
+) JetstreamEventBus {
 	jmb := NewJetstreamMessageBus(publisher, consumer)
-	return &JetstreamEventBus{
+	return JetstreamEventBus{
 		JetStreamMessageBus: jmb,
 	}
 }
 
 // Publish implements messaging.MessageBus.
-func (p *JetstreamEventBus) Publish(ctx context.Context, events ...messaging.Event) error {
+func (p JetstreamEventBus) Publish(ctx context.Context, events ...messaging.Event) error {
 	msgs := make([]messaging.Message, len(events))
 	for i, e := range events {
 		msgs[i] = e
@@ -33,7 +33,7 @@ func (p *JetstreamEventBus) Publish(ctx context.Context, events ...messaging.Eve
 }
 
 // Subscribe implements messaging.MessageBus.
-func (p *JetstreamEventBus) Subscribe(ctx context.Context, handler messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
+func (p JetstreamEventBus) Subscribe(ctx context.Context, handler messaging.MessageHandler[messaging.Event]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		event, ok := msg.(messaging.Event)
 		if !ok {

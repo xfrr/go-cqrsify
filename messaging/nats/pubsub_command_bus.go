@@ -14,19 +14,19 @@ var _ messaging.CommandConsumerReplier = (*PubSubCommandBus)(nil)
 // PubSubMessageBus is a NATS-based implementation of the MessageBus interface.
 // It provides methods for publishing and subscribing to messages using NATS as the underlying message bus.
 type PubSubCommandBus struct {
-	*PubSubMessageBus
+	PubSubMessageBus
 }
 
 func NewPubSubCommandBus(
 	publisher *PubSubMessagePublisher,
 	consumer *PubSubMessageConsumer,
-) *PubSubCommandBus {
-	return &PubSubCommandBus{
+) PubSubCommandBus {
+	return PubSubCommandBus{
 		PubSubMessageBus: NewPubSubMessageBus(publisher, consumer),
 	}
 }
 
-func (p *PubSubCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
+func (p PubSubCommandBus) Dispatch(ctx context.Context, commands ...messaging.Command) error {
 	msgs := make([]messaging.Message, len(commands))
 	for i, e := range commands {
 		msgs[i] = e
@@ -34,7 +34,7 @@ func (p *PubSubCommandBus) Dispatch(ctx context.Context, commands ...messaging.C
 	return p.Publish(ctx, msgs...)
 }
 
-func (p *PubSubCommandBus) DispatchRequest(ctx context.Context, command messaging.Command) (messaging.Message, error) {
+func (p PubSubCommandBus) DispatchRequest(ctx context.Context, command messaging.Command) (messaging.Message, error) {
 	reply, err := p.PubSubMessageBus.PublishRequest(ctx, command)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (p *PubSubCommandBus) DispatchRequest(ctx context.Context, command messagin
 	return reply, nil
 }
 
-func (p *PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
+func (p PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.MessageHandler[messaging.Command]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerFn[messaging.Message](func(ctx context.Context, msg messaging.Message) error {
 		command, ok := msg.(messaging.Command)
 		if !ok {
@@ -53,7 +53,7 @@ func (p *PubSubCommandBus) Subscribe(ctx context.Context, handler messaging.Mess
 	return p.PubSubMessageBus.Subscribe(ctx, wrappedHandler)
 }
 
-func (p *PubSubCommandBus) SubscribeWithReply(
+func (p PubSubCommandBus) SubscribeWithReply(
 	ctx context.Context,
 	handler messaging.MessageHandlerWithReply[messaging.Command, messaging.CommandReply],
 ) (messaging.UnsubscribeFunc, error) {

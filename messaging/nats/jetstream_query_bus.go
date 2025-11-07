@@ -10,24 +10,24 @@ import (
 var _ messaging.QueryBus = (*JetstreamQueryBus)(nil)
 
 type JetstreamQueryBus struct {
-	*JetStreamMessageBus
+	JetStreamMessageBus
 }
 
 func NewJetstreamQueryBus(
 	publisher *JetstreamMessagePublisher,
 	consumer *JetStreamMessageConsumer[jetstream.ConsumerConfig],
-) *JetstreamQueryBus {
+) JetstreamQueryBus {
 	jmb := NewJetstreamMessageBus(publisher, consumer)
-	return &JetstreamQueryBus{
+	return JetstreamQueryBus{
 		JetStreamMessageBus: jmb,
 	}
 }
 
-func (p *JetstreamQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
+func (p JetstreamQueryBus) Request(ctx context.Context, query messaging.Query) (messaging.Message, error) {
 	return p.PublishRequest(ctx, query)
 }
 
-func (p *JetstreamQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
+func (p JetstreamQueryBus) Subscribe(ctx context.Context, h messaging.MessageHandlerWithReply[messaging.Query, messaging.QueryReply]) (messaging.UnsubscribeFunc, error) {
 	wrappedHandler := messaging.MessageHandlerWithReplyFn[messaging.Message, messaging.QueryReply](func(ctx context.Context, msg messaging.Message) (messaging.QueryReply, error) {
 		query, ok := msg.(messaging.Query)
 		if !ok {
