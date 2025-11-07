@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1762475379370,
+  "lastUpdate": 1762477431837,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4742,6 +4742,48 @@ window.BENCHMARK_DATA = {
             "value": 134.9,
             "unit": "ns/op",
             "extra": "8941656 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "492a6cde122627fd9686042bf0c5e89db08e6606",
+          "message": "feat: modify NATS messaging components to integrate OpenTelemetry for tracing\n\n- Updated JetStreamCommandBus, JetstreamEventBus, and related components to use value receivers instead of pointer receivers for better performance and simplicity.\n- Introduced OpenTelemetry propagation in JetStream and PubSub message publishers and consumers to support distributed tracing.\n- Refactored error handling in message consumers to improve clarity and maintainability.\n- Removed deprecated MessageConsumerConfig and related code.\n- Enhanced message serialization and deserialization processes with improved error handling.\n- Added support for injecting tracing headers in both request and response messages.\n- Updated configuration structs to include OpenTelemetry propagator.",
+          "timestamp": "2025-11-07T02:02:35+01:00",
+          "tree_id": "db635a797e2ccd88ae4eb30d199e15e9f270355c",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/492a6cde122627fd9686042bf0c5e89db08e6606"
+        },
+        "date": 1762477431502,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6238,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.87,
+            "unit": "ns/op",
+            "extra": "16420797 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.2,
+            "unit": "ns/op",
+            "extra": "8949542 times\n4 procs"
           }
         ]
       }
