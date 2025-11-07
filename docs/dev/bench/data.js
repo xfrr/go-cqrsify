@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1762477431837,
+  "lastUpdate": 1762478356201,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4784,6 +4784,48 @@ window.BENCHMARK_DATA = {
             "value": 134.2,
             "unit": "ns/op",
             "extra": "8949542 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "44fb091c236ccb1f282c4c4f7b2642fac9e700dc",
+          "message": "feat(lock): add in-memory locker implementation",
+          "timestamp": "2025-11-07T02:16:00+01:00",
+          "tree_id": "5114fcf8594e1a6668021a8958136626434fd0fd",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/44fb091c236ccb1f282c4c4f7b2642fac9e700dc"
+        },
+        "date": 1762478355717,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6239,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.97,
+            "unit": "ns/op",
+            "extra": "16425314 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.4,
+            "unit": "ns/op",
+            "extra": "8936732 times\n4 procs"
           }
         ]
       }
