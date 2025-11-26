@@ -47,7 +47,7 @@ type RemoteResultData struct {
 	Outputs map[string]any `json:"outputs,omitempty"`
 }
 
-func RemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects) StepAction {
+func MessagingRemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects) StepAction {
 	return func(ctx context.Context, ex *Execution) error {
 		cmd := RemotePayload{
 			BaseCommand: messaging.NewBaseCommand(subj.Action),
@@ -87,7 +87,7 @@ func RemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects) StepActi
 	}
 }
 
-func RemoteCompensation(bus messaging.CommandBusReplier, subj RemoteSubjects) StepCompensation {
+func MessagingRemoteCompensation(bus messaging.CommandBusReplier, subj RemoteSubjects) StepCompensation {
 	return func(ctx context.Context, ex *Execution) error {
 		cmd := RemotePayload{
 			BaseCommand: messaging.NewBaseCommand(subj.Compensate),
