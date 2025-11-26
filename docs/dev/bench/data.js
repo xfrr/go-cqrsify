@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764186834117,
+  "lastUpdate": 1764193675560,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4868,6 +4868,48 @@ window.BENCHMARK_DATA = {
             "value": 134.1,
             "unit": "ns/op",
             "extra": "8941651 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "27288c89b71d9ed124569c7eea73701c2e6d5d6d",
+          "message": "refactor: enhance domain repository interfaces for better type safety and clarity",
+          "timestamp": "2025-11-26T22:47:23+01:00",
+          "tree_id": "26d7e0eda6c576cfd08a9f42552cd1c180a2393b",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/27288c89b71d9ed124569c7eea73701c2e6d5d6d"
+        },
+        "date": 1764193674351,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9329,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.72,
+            "unit": "ns/op",
+            "extra": "16485164 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.4,
+            "unit": "ns/op",
+            "extra": "8878014 times\n4 procs"
           }
         ]
       }
