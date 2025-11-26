@@ -12,7 +12,7 @@ type Repository[T Aggregate[ID], ID comparable] interface {
 	// Get retrieves an aggregate by its ID.
 	Get(context.Context, ID) (T, error)
 	// Save saves the aggregate to the repository.
-	Save(context.Context, Aggregate[ID]) error
+	Save(context.Context, T) error
 }
 
 // VersionedRepository is the interface that wraps the basic methods for managing the
