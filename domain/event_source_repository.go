@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var _ EventSourcedRepository[any] = (*EventSourceRepository[any])(nil)
+var _ EventSourcedRepository[EventSourcedAggregate[any], any] = (*EventSourceRepository[any])(nil)
 
 // EventSourceRepository represents a repository that provides access to an EventStore.
 type EventSourceRepository[ID comparable] struct {

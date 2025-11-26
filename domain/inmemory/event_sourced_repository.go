@@ -8,7 +8,7 @@ import (
 	"github.com/xfrr/go-cqrsify/domain"
 )
 
-var _ domain.EventSourcedRepository[string] = (*EventSourcedAggregateRepository)(nil)
+var _ domain.EventSourcedRepository[domain.EventSourcedAggregate[string], string] = (*EventSourcedAggregateRepository)(nil)
 
 var (
 	ErrInvalidAggregateEventID = errors.New("invalid aggregate event id")
