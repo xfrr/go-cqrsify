@@ -6,6 +6,11 @@ Lightweight, easy-to-use Go library designed to facilitate the implementation of
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/go-cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Coverage/0ec3a3638a2c4f0792d8356744ffe06d)](https://app.codacy.com/gh/xfrr/go-cqrsify/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
+> [!IMPORTANT]  
+> This project is currently in its early stages of development. While it provides foundational tools and structures, it may not yet cover all edge cases or be fully optimized for production use. Users are encouraged to contribute, provide feedback, and help shape the future of this library.
+>
+> Public API is not stable and may change until version 1.0.0 is released.
+
 ## Purpose
 
 The goal is to provide Go developers with tools that simplify the integration of these complex concepts into their applications, promoting cleaner, more maintainable, and scalable code.
