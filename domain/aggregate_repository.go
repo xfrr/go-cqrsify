@@ -11,8 +11,6 @@ type Repository[ID comparable] interface {
 	Exists(context.Context, Aggregate[ID]) (bool, error)
 	// Load loads the aggregate with the given id from the repository.
 	Load(context.Context, Aggregate[ID]) error
-	// Search loads all the aggregates from the repository that match the given options.
-	Search(context.Context, *SearchCriteriaOptions) ([]Aggregate[ID], error)
 	// Save saves the aggregate to the repository.
 	Save(context.Context, Aggregate[ID]) error
 }
@@ -27,6 +25,15 @@ type VersionedRepository[ID comparable] interface {
 
 	// ExistsVersion checks if the aggregate with the given id and version exists in the repository.
 	ExistsVersion(context.Context, VersionedAggregate[ID], AggregateVersion) (bool, error)
+}
+
+// SearchableRepository is the interface that wraps the basic methods for managing the
+// lifecycle of an aggregate with search capabilities.
+type SearchableRepository[ID comparable] interface {
+	Repository[ID]
+
+	// Search loads all the aggregates from the repository that match the given options.
+	Search(context.Context, *SearchCriteriaOptions) ([]Aggregate[ID], error)
 }
 
 // EventSourcedRepository is the interface that wraps the basic methods for managing the
