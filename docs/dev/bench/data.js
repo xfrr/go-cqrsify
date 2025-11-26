@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764195129763,
+  "lastUpdate": 1764195348859,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4952,6 +4952,48 @@ window.BENCHMARK_DATA = {
             "value": 134.3,
             "unit": "ns/op",
             "extra": "8940906 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "e46ab53c915661454df9f7bb306c77f5fdac1642",
+          "message": "refactor: update Save method signature in Repository interface for improved type consistency",
+          "timestamp": "2025-11-26T23:15:19+01:00",
+          "tree_id": "56c22cf9c0f52b783788567545d9b3f2bc400f12",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/e46ab53c915661454df9f7bb306c77f5fdac1642"
+        },
+        "date": 1764195347804,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9349,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.79,
+            "unit": "ns/op",
+            "extra": "16450358 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.2,
+            "unit": "ns/op",
+            "extra": "8904992 times\n4 procs"
           }
         ]
       }
