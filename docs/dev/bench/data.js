@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764195348859,
+  "lastUpdate": 1764195610434,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4994,6 +4994,48 @@ window.BENCHMARK_DATA = {
             "value": 135.2,
             "unit": "ns/op",
             "extra": "8904992 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "80826486710709cf16e2e275b4215066ae11393c",
+          "message": "docs: update README to clarify project status",
+          "timestamp": "2025-11-26T23:19:45+01:00",
+          "tree_id": "183eae2828413c764cc66f4c7b8a952175089a2a",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/80826486710709cf16e2e275b4215066ae11393c"
+        },
+        "date": 1764195610131,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9341,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.72,
+            "unit": "ns/op",
+            "extra": "16507135 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 135.4,
+            "unit": "ns/op",
+            "extra": "8854336 times\n4 procs"
           }
         ]
       }
