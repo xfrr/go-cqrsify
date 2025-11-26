@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1762478356201,
+  "lastUpdate": 1764186834117,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4826,6 +4826,48 @@ window.BENCHMARK_DATA = {
             "value": 134.4,
             "unit": "ns/op",
             "extra": "8936732 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "a3c0cdd58df5abd9360eab73defe6beab519a2ac",
+          "message": "refactor: add SearchableRepository",
+          "timestamp": "2025-11-26T20:53:08+01:00",
+          "tree_id": "45689f28a2e6a2385ae24e29ef0d840da3f86299",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/a3c0cdd58df5abd9360eab73defe6beab519a2ac"
+        },
+        "date": 1764186833042,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9397,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.97,
+            "unit": "ns/op",
+            "extra": "16429485 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.1,
+            "unit": "ns/op",
+            "extra": "8941651 times\n4 procs"
           }
         ]
       }
