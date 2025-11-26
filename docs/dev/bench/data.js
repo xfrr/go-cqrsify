@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764193675560,
+  "lastUpdate": 1764195129763,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -4910,6 +4910,48 @@ window.BENCHMARK_DATA = {
             "value": 135.4,
             "unit": "ns/op",
             "extra": "8878014 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "81a56b85d94a2874671dd2de3b911b7c038a97a8",
+          "message": "chore: remove unused NATS saga example implementation",
+          "timestamp": "2025-11-26T23:11:45+01:00",
+          "tree_id": "c861a8cd74259f8ea506d53d7a605dd155ae9f96",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/81a56b85d94a2874671dd2de3b911b7c038a97a8"
+        },
+        "date": 1764195129296,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9346,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.76,
+            "unit": "ns/op",
+            "extra": "16493907 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.3,
+            "unit": "ns/op",
+            "extra": "8940906 times\n4 procs"
           }
         ]
       }
