@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764207461130,
+  "lastUpdate": 1764208043214,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5120,6 +5120,48 @@ window.BENCHMARK_DATA = {
             "value": 134.4,
             "unit": "ns/op",
             "extra": "8920347 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "d467203c073eed289d3e09402c9824745a9098ee",
+          "message": "refactor: simplify MessageHandlerTypedRouter and MessageHandlerWithReplyTypedRouter types",
+          "timestamp": "2025-11-27T02:46:58+01:00",
+          "tree_id": "0688a6cf59610186b985bdff7fcf8e2cf13e19cc",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/d467203c073eed289d3e09402c9824745a9098ee"
+        },
+        "date": 1764208042646,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9341,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.78,
+            "unit": "ns/op",
+            "extra": "16522650 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 141.9,
+            "unit": "ns/op",
+            "extra": "8495876 times\n4 procs"
           }
         ]
       }
