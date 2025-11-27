@@ -90,3 +90,18 @@ func (r *MessageHandlerWithReplyTypedRouter) Handle(ctx context.Context, msg Mes
 
 	return handlers[0].Handle(ctx, msg)
 }
+
+// RegisterCommandHandlerTypedRouter  is a helper function to register a CommandHandler in a MessageHandlerTypedRouter.
+func RegisterCommandHandlerTypedRouter[T Command](router *MessageHandlerTypedRouter, commandType string, handler MessageHandler[T]) {
+	router.Register(commandType, CommandHandlerFn(handler.Handle))
+}
+
+// RegisterEventHandlerTypedRouter is a helper function to register an EventHandler in a MessageHandlerTypedRouter.
+func RegisterEventHandlerTypedRouter[T Event](router *MessageHandlerTypedRouter, eventType string, handler MessageHandler[T]) {
+	router.Register(eventType, EventHandlerFn(handler.Handle))
+}
+
+// RegisterQueryHandlerTypedRouter is a helper function to register a QueryHandler in a MessageHandlerWithReplyTypedRouter.
+func RegisterQueryHandlerTypedRouter[E Query, R QueryReply](router *MessageHandlerWithReplyTypedRouter, queryType string, handler MessageHandlerWithReply[E, R]) error {
+	return router.Register(queryType, QueryHandlerFn(handler.Handle))
+}
