@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764206697732,
+  "lastUpdate": 1764207461130,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5078,6 +5078,48 @@ window.BENCHMARK_DATA = {
             "value": 134.4,
             "unit": "ns/op",
             "extra": "8894932 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "89d6903f73eae6c7460b4dd899bb1deff2f46f60",
+          "message": "refactor: generic MessageHandlerTypedRouter",
+          "timestamp": "2025-11-27T02:37:08+01:00",
+          "tree_id": "5f2d52408fc61486847062cae1eaa5945590ff68",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/89d6903f73eae6c7460b4dd899bb1deff2f46f60"
+        },
+        "date": 1764207460271,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.935,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.84,
+            "unit": "ns/op",
+            "extra": "16490827 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.4,
+            "unit": "ns/op",
+            "extra": "8920347 times\n4 procs"
           }
         ]
       }
