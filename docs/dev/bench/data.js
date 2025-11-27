@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764195610434,
+  "lastUpdate": 1764206697732,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5036,6 +5036,48 @@ window.BENCHMARK_DATA = {
             "value": 135.4,
             "unit": "ns/op",
             "extra": "8854336 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "e18267e7e9fefd8ca50f2c70818b5d274ca5a0a8",
+          "message": "feat: add helper functions to register Command, Event, and Query handlers in MessageHandlerTyped router",
+          "timestamp": "2025-11-27T02:24:32+01:00",
+          "tree_id": "d5ac62c3c554e9258c5af28e32e1c71c67a433e4",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/e18267e7e9fefd8ca50f2c70818b5d274ca5a0a8"
+        },
+        "date": 1764206697194,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9336,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.9,
+            "unit": "ns/op",
+            "extra": "16486504 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.4,
+            "unit": "ns/op",
+            "extra": "8894932 times\n4 procs"
           }
         ]
       }
