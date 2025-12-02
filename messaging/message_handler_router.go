@@ -10,23 +10,23 @@ import (
 )
 
 var (
-	_ MessageHandler[Message]                        = (*MessageHandlerTypedRouter)(nil)
-	_ MessageHandlerWithReply[Message, MessageReply] = (*MessageHandlerWithReplyTypedRouter)(nil)
+	_ MessageHandler[Message]                        = (*MessageHandlerTypedRouter[Message])(nil)
+	_ MessageHandlerWithReply[Message, MessageReply] = (*MessageHandlerWithReplyTypedRouter[Message, MessageReply])(nil)
 )
 
 // MessageHandlerTypedRouter routes messages to handlers based on message type.
-type MessageHandlerTypedRouter struct {
+type MessageHandlerTypedRouter[T Message] struct {
 	mu     sync.RWMutex
-	byType map[string][]MessageHandler[Message]
+	byType map[string][]MessageHandler[T]
 }
 
 // NewMessageHandlerTypedRouter creates a new MessageHandlerTypedRouter.
-func NewMessageHandlerTypedRouter() *MessageHandlerTypedRouter {
-	return &MessageHandlerTypedRouter{byType: make(map[string][]MessageHandler[Message])}
+func NewMessageHandlerTypedRouter[T Message]() *MessageHandlerTypedRouter[T] {
+	return &MessageHandlerTypedRouter[T]{byType: make(map[string][]MessageHandler[T])}
 }
 
 // Register adds a MessageHandler for the given message type.
-func (r *MessageHandlerTypedRouter) Register(messageType string, h MessageHandler[Message]) {
+func (r *MessageHandlerTypedRouter[T]) Register(messageType string, h MessageHandler[T]) {
 	r.mu.Lock()
 	r.byType[messageType] = append(r.byType[messageType], h)
 	r.mu.Unlock()
@@ -34,9 +34,9 @@ func (r *MessageHandlerTypedRouter) Register(messageType string, h MessageHandle
 
 // Handle routes the message to the appropriate handlers based on message type.
 // It implements the MessageHandler interface.
-func (r *MessageHandlerTypedRouter) Handle(ctx context.Context, msg Message) error {
+func (r *MessageHandlerTypedRouter[T]) Handle(ctx context.Context, msg T) error {
 	r.mu.RLock()
-	handlers := append([]MessageHandler[Message](nil), r.byType[msg.MessageType()]...)
+	handlers := append([]MessageHandler[T](nil), r.byType[msg.MessageType()]...)
 	r.mu.RUnlock()
 
 	if len(handlers) == 0 {
@@ -53,39 +53,39 @@ func (r *MessageHandlerTypedRouter) Handle(ctx context.Context, msg Message) err
 }
 
 // MessageHandlerWithReplyTypedRouter routes messages to handlers with reply based on message type.
-type MessageHandlerWithReplyTypedRouter struct {
+type MessageHandlerWithReplyTypedRouter[T Message, R MessageReply] struct {
 	mu     sync.RWMutex
-	byType map[string][]MessageHandlerWithReply[Message, MessageReply]
+	byType map[string][]MessageHandlerWithReply[T, R]
 }
 
 // NewMessageHandlerWithReplyTypedRouter creates a new MessageHandlerWithReplyTypedRouter.
-func NewMessageHandlerWithReplyTypedRouter() *MessageHandlerWithReplyTypedRouter {
-	return &MessageHandlerWithReplyTypedRouter{byType: make(map[string][]MessageHandlerWithReply[Message, MessageReply])}
+func NewMessageHandlerWithReplyTypedRouter[T Message, R MessageReply]() *MessageHandlerWithReplyTypedRouter[T, R] {
+	return &MessageHandlerWithReplyTypedRouter[T, R]{byType: make(map[string][]MessageHandlerWithReply[T, R])}
 }
 
 // Register adds a MessageHandlerWithReply for the given message type.
 //
 // It only supports one handler per message type.
-func (r *MessageHandlerWithReplyTypedRouter) Register(messageType string, h MessageHandlerWithReply[Message, MessageReply]) error {
+func (r *MessageHandlerWithReplyTypedRouter[T, R]) Register(messageType string, h MessageHandlerWithReply[T, R]) error {
 	r.mu.Lock()
 	if _, exists := r.byType[messageType]; exists {
 		r.mu.Unlock()
 		return errors.New("handler already exists for message type: " + messageType)
 	}
-	r.byType[messageType] = []MessageHandlerWithReply[Message, MessageReply]{h}
+	r.byType[messageType] = []MessageHandlerWithReply[T, R]{h}
 	r.mu.Unlock()
 	return nil
 }
 
 // Handle routes the message to the appropriate handler based on message type.
 // It implements the MessageHandlerWithReply interface.
-func (r *MessageHandlerWithReplyTypedRouter) Handle(ctx context.Context, msg Message) (MessageReply, error) {
+func (r *MessageHandlerWithReplyTypedRouter[T, R]) Handle(ctx context.Context, msg T) (R, error) {
 	r.mu.RLock()
-	handlers := append([]MessageHandlerWithReply[Message, MessageReply](nil), r.byType[msg.MessageType()]...)
+	handlers := append([]MessageHandlerWithReply[T, R](nil), r.byType[msg.MessageType()]...)
 	r.mu.RUnlock()
 
 	if len(handlers) == 0 {
-		var zero MessageReply
+		var zero R
 		return zero, fmt.Errorf("%w for message type: %s", ErrHandlerNotFound, msg.MessageType())
 	}
 
@@ -93,31 +93,61 @@ func (r *MessageHandlerWithReplyTypedRouter) Handle(ctx context.Context, msg Mes
 }
 
 // RegisterCommandHandlerTypedRouter  is a helper function to register a CommandHandler in a MessageHandlerTypedRouter.
-func RegisterCommandHandlerTypedRouter[T Command](router *MessageHandlerTypedRouter, commandType string, handler MessageHandler[T]) {
-	router.Register(commandType, CommandHandlerFn(handler.Handle))
+func RegisterCommandHandlerTypedRouter[T Command](router *MessageHandlerTypedRouter[Command], commandType string, handler MessageHandler[T]) {
+	router.Register(commandType, MessageHandlerFn[Command](func(ctx context.Context, msg Command) error {
+		castedMsg, ok := msg.(T)
+		if !ok {
+			var zero T
+			return InvalidMessageTypeError{
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", zero),
+			}
+		}
+		return handler.Handle(ctx, castedMsg)
+	}))
 }
 
 // RegisterEventHandlerTypedRouter is a helper function to register an EventHandler in a MessageHandlerTypedRouter.
-func RegisterEventHandlerTypedRouter[T Event](router *MessageHandlerTypedRouter, eventType string, handler MessageHandler[T]) {
-	router.Register(eventType, EventHandlerFn(handler.Handle))
+func RegisterEventHandlerTypedRouter[T Event](router *MessageHandlerTypedRouter[Event], eventType string, handler MessageHandler[T]) {
+	router.Register(eventType, MessageHandlerFn[Event](func(ctx context.Context, msg Event) error {
+		castedMsg, ok := msg.(T)
+		if !ok {
+			var zero T
+			return InvalidMessageTypeError{
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", zero),
+			}
+		}
+		return handler.Handle(ctx, castedMsg)
+	}))
 }
 
 // RegisterQueryHandlerTypedRouter is a helper function to register a QueryHandler in a MessageHandlerWithReplyTypedRouter.
-func RegisterQueryHandlerTypedRouter[T Query, R QueryReply](router *MessageHandlerWithReplyTypedRouter, queryType string, handler MessageHandlerWithReply[T, R]) error {
-	return router.Register(queryType, QueryHandlerFn(handler.Handle))
+func RegisterQueryHandlerTypedRouter[T Query, R QueryReply](router *MessageHandlerWithReplyTypedRouter[Query, QueryReply], queryType string, handler MessageHandlerWithReply[T, R]) error {
+	return router.Register(queryType, MessageHandlerWithReplyFn[Query, QueryReply](func(ctx context.Context, msg Query) (QueryReply, error) {
+		castedMsg, ok := msg.(T)
+		if !ok {
+			var zero T
+			return nil, InvalidMessageTypeError{
+				Actual:   fmt.Sprintf("%T", msg),
+				Expected: fmt.Sprintf("%T", zero),
+			}
+		}
+		return handler.Handle(ctx, castedMsg)
+	}))
 }
 
 // NewCommandHandlerTypedRouter creates a new MessageHandlerTypedRouter for Commands.
-func NewCommandHandlerTypedRouter() *MessageHandlerTypedRouter {
-	return NewMessageHandlerTypedRouter()
+func NewCommandHandlerTypedRouter() *MessageHandlerTypedRouter[Command] {
+	return NewMessageHandlerTypedRouter[Command]()
 }
 
 // NewEventHandlerTypedRouter creates a new MessageHandlerTypedRouter for Events.
-func NewEventHandlerTypedRouter() *MessageHandlerTypedRouter {
-	return NewMessageHandlerTypedRouter()
+func NewEventHandlerTypedRouter() *MessageHandlerTypedRouter[Event] {
+	return NewMessageHandlerTypedRouter[Event]()
 }
 
 // NewQueryHandlerTypedRouter creates a new MessageHandlerWithReplyTypedRouter for Queries.
-func NewQueryHandlerTypedRouter() *MessageHandlerWithReplyTypedRouter {
-	return NewMessageHandlerWithReplyTypedRouter()
+func NewQueryHandlerTypedRouter() *MessageHandlerWithReplyTypedRouter[Query, QueryReply] {
+	return NewMessageHandlerWithReplyTypedRouter[Query, QueryReply]()
 }

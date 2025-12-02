@@ -105,8 +105,8 @@ func (s *ServeHTTPSuite) Test_Success_Returns202_AndPublishes() {
 
 	h := messaginghttp.NewMessageHandler(pub)
 
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ping",
-		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+	err := messaginghttp.RegisterJSONSingleDocumentMessageDecoder(h, "ping",
+		func(_ context.Context, _ apix.SingleDocument[struct{}]) (messaging.Message, error) {
 			return &mockMessage{
 				BaseMessage: messaging.NewMessage("ping"),
 			}, nil
@@ -135,8 +135,8 @@ func (s *ServeHTTPSuite) Test_PublishError_DefaultsTo500() {
 
 	h := messaginghttp.NewMessageHandler(pub)
 
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "ok",
-		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+	err := messaginghttp.RegisterJSONSingleDocumentMessageDecoder(h, "ok",
+		func(_ context.Context, _ apix.SingleDocument[struct{}]) (messaging.Message, error) {
 			return &mockMessage{}, nil
 		})
 	s.Require().NoError(err)
@@ -154,11 +154,15 @@ func TestRegisterJSONAPIMessageDecoder_DuplicateReturnsError(t *testing.T) {
 	pub := &messagingmock.MessagePublisher{}
 	h := messaginghttp.NewMessageHandler(pub)
 
-	require.NoError(t, messaginghttp.RegisterJSONAPIMessageDecoder(h, "dup",
-		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) { return &mockMessage{}, nil }))
+	require.NoError(t, messaginghttp.RegisterJSONSingleDocumentMessageDecoder(h, "dup",
+		func(_ context.Context, _ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+			return &mockMessage{}, nil
+		}))
 
-	err := messaginghttp.RegisterJSONAPIMessageDecoder(h, "dup",
-		func(_ apix.SingleDocument[struct{}]) (messaging.Message, error) { return &mockMessage{}, nil })
+	err := messaginghttp.RegisterJSONSingleDocumentMessageDecoder(h, "dup",
+		func(_ context.Context, _ apix.SingleDocument[struct{}]) (messaging.Message, error) {
+			return &mockMessage{}, nil
+		})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already exists")

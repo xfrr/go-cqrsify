@@ -2,6 +2,7 @@ package messaginghttp
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -176,7 +177,7 @@ func (handler *MessageHandler) decodeJSONAPIMessage(r *http.Request, encoding HT
 	return msg, nil
 }
 
-func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messaging.Message, error)) func(*http.Request) (messaging.Message, error) {
+func makeMessageDecoder[P any](decodeFunc func(context.Context, apix.SingleDocument[P]) (messaging.Message, error)) func(*http.Request) (messaging.Message, error) {
 	return func(r *http.Request) (messaging.Message, error) {
 		defer r.Body.Close()
 
@@ -190,16 +191,40 @@ func makeMessageDecoder[P any](decodeFunc func(apix.SingleDocument[P]) (messagin
 			return nil, err
 		}
 
-		return decodeFunc(doc)
+		return decodeFunc(r.Context(), doc)
 	}
 }
 
-// RegisterJSONAPIMessageDecoder registers a JSON:API message decoder for the given message type.
+// RegisterJSONSingleDocumentMessageDecoder registers a JSON:API message decoder for the given message type.
 // If a decoder for the same message type and encoding already exists, an error is returned.
-func RegisterJSONAPIMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Message, error)) error {
+func RegisterJSONSingleDocumentMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(context.Context, apix.SingleDocument[A]) (messaging.Message, error)) error {
 	return handler.decoderRegistry.Register(
 		msgType,
 		HTTPMessageEncodingJSONAPI,
 		makeMessageDecoder(decodeFunc),
+	)
+}
+
+// RegisterJSONManyDocumentMessageDecoder registers a JSON:API message decoder for the given message type that decodes ManyDocument.
+// If a decoder for the same message type and encoding already exists, an error is returned.
+func RegisterJSONManyDocumentMessageDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.ManyDocument[A]) (messaging.Message, error)) error {
+	return handler.decoderRegistry.Register(
+		msgType,
+		HTTPMessageEncodingJSONAPI,
+		func(r *http.Request) (messaging.Message, error) {
+			defer r.Body.Close()
+
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				return nil, err
+			}
+
+			doc, err := apix.UnmarshalManyDocument[A](bodyBytes)
+			if err != nil {
+				return nil, err
+			}
+
+			return decodeFunc(doc)
+		},
 	)
 }
