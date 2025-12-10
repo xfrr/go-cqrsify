@@ -18,8 +18,8 @@ func NewCommandHandler(dispatcher messaging.CommandDispatcher, opts ...HTTPMessa
 
 // RegisterJSONAPICommandDecoder registers a JSON:API command decoder for the given command type.
 // If a decoder for the same command type and encoding already exists, an error is returned.
-func RegisterJSONAPICommandDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(apix.SingleDocument[A]) (messaging.Command, error)) error {
+func RegisterJSONAPICommandDecoder[A any](handler *MessageHandler, msgType string, decodeFunc func(context.Context, apix.SingleDocument[A]) (messaging.Command, error)) error {
 	return RegisterJSONSingleDocumentMessageDecoder(handler, msgType, func(ctx context.Context, sd apix.SingleDocument[A]) (messaging.Message, error) {
-		return decodeFunc(sd)
+		return decodeFunc(ctx, sd)
 	})
 }

@@ -42,6 +42,42 @@ func (p Problem) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m)
 }
 
+// UnmarshalJSON custom unmarshaller to handle extensions.
+func (p *Problem) UnmarshalJSON(data []byte) error {
+	type base Problem
+	b := base{}
+	if err := json.Unmarshal(data, &b); err != nil {
+		return err
+	}
+	*p = Problem(b)
+
+	// Unmarshal into map to extract extensions
+	m := map[string]any{}
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+
+	// Remove standard fields
+	delete(m, "type")
+	delete(m, "title")
+	delete(m, "status")
+	delete(m, "detail")
+	delete(m, "instance")
+
+	// Remaining are extensions
+	if len(m) > 0 {
+		p.Extensions = m
+	} else {
+		p.Extensions = nil
+	}
+	return nil
+}
+
+// WriteTo writes the Problem to the given ResponseWriter.
+func (p Problem) WriteTo(w http.ResponseWriter) {
+	WriteProblem(w, p)
+}
+
 // NewProblem builds a minimal Problem with optional extensions.
 func NewProblem(status int, title, detail string, opts ...func(*Problem)) Problem {
 	p := Problem{

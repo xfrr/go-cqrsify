@@ -64,7 +64,7 @@ func main() {
 	messaginghttp.RegisterJSONAPICommandDecoder(
 		cmdHandler,
 		sampleCommandType,
-		func(sd apix.SingleDocument[sampleCommandAttributes]) (messaging.Command, error) {
+		func(_ context.Context, sd apix.SingleDocument[sampleCommandAttributes]) (messaging.Command, error) {
 			cmd := sampleCommand{
 				BaseCommand:             messaginghttp.CreateBaseCommandFromSingleDocument(sampleCommandType, sd),
 				sampleCommandAttributes: sd.Data.Attributes,

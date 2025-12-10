@@ -59,16 +59,17 @@ type SingleDocument[T any] struct {
 	Meta     Meta        `json:"meta,omitempty"`
 }
 
-// ManyDocument for multiple resources of the same type.
-type ManyDocument[T any] struct {
-	Data     []Resource[T] `json:"data"`
-	Links    *Links        `json:"links,omitempty"`
-	Included []any         `json:"included,omitempty"`
-	Meta     Meta          `json:"meta,omitempty"`
+// WriteTo implements io.WriterTo for SingleDocument.
+func (d SingleDocument[T]) WriteTo(w http.ResponseWriter, opts ...WriteOption) (int, error) {
+	opts = append([]WriteOption{
+		WithContentType(ContentTypeJSONAPI),
+	}, opts...)
+
+	return WriteJSON(w, d, opts...)
 }
 
-// NewSingle creates a minimal single resource document.
-func NewSingle[T any](typ, id string, attrs T) SingleDocument[T] {
+// NewSingleDocument creates a minimal single resource document.
+func NewSingleDocument[T any](typ, id string, attrs T) SingleDocument[T] {
 	return SingleDocument[T]{
 		Data: Resource[T]{
 			Type:       typ,
@@ -78,8 +79,25 @@ func NewSingle[T any](typ, id string, attrs T) SingleDocument[T] {
 	}
 }
 
-// NewMany creates a minimal many-resource document from a slice of ID+Attrs pairs.
-func NewMany[T any](typ string, items []struct {
+// ManyDocument for multiple resources of the same type.
+type ManyDocument[T any] struct {
+	Data     []Resource[T] `json:"data"`
+	Links    *Links        `json:"links,omitempty"`
+	Included []any         `json:"included,omitempty"`
+	Meta     Meta          `json:"meta,omitempty"`
+}
+
+// WriteTo implements io.WriterTo for ManyDocument.
+func (d ManyDocument[T]) WriteTo(w http.ResponseWriter, opts ...WriteOption) (int, error) {
+	opts = append([]WriteOption{
+		WithContentType(ContentTypeJSONAPI),
+	}, opts...)
+
+	return WriteJSON(w, d, opts...)
+}
+
+// NewManyDocument creates a minimal many-resource document from a slice of ID+Attrs pairs.
+func NewManyDocument[T any](typ string, items []struct {
 	ID    string
 	Attrs T
 }) ManyDocument[T] {

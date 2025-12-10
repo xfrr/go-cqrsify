@@ -25,14 +25,13 @@ const (
 //
 // If no ContentType is set, defaults to application/vnd.api+json.
 // If no Status is set, defaults to 200 OK.
-func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) {
+func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) (int, error) {
 	options := new(WriteOptions)
 	options.apply(opts...)
 
 	b, err := json.Marshal(v)
 	if err != nil {
-		WriteProblem(w, NewProblem(http.StatusInternalServerError, "Encoding error", err.Error()))
-		return
+		return 0, err
 	}
 
 	switch {
@@ -67,5 +66,5 @@ func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) {
 	}
 
 	w.WriteHeader(options.Status)
-	_, _ = w.Write(b)
+	return w.Write(b)
 }

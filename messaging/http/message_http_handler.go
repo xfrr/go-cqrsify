@@ -155,7 +155,7 @@ func (handler *MessageHandler) decodeJSONAPIMessage(r *http.Request, encoding HT
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrMessageDecoderNotFoundForType):
-			problem := apix.NewBadRequestProblem(fmt.Sprintf("no decoder registered for message type: %s", msgType))
+			problem := apix.NewNotFoundProblem(fmt.Sprintf("no decoder registered for message type: %s", msgType))
 			return nil, &problem
 		case errors.Is(err, ErrMessageDecoderNotFoundForEncoding):
 			problem := apix.NewUnsupportedMediaTypeProblem(fmt.Sprintf("no decoder registered for message type %q and encoding %q", msgType, encoding))

@@ -43,7 +43,7 @@ func (s *DocumentSuite) SetupTest() {
 }
 
 func (s *DocumentSuite) Test_NewSingle_BuildsMinimalDocument() {
-	doc := apix.NewSingle("users", "u1", s.attrsA)
+	doc := apix.NewSingleDocument("users", "u1", s.attrsA)
 
 	s.Equal("users", doc.Data.Type)
 	s.Equal("u1", doc.Data.ID)
@@ -61,7 +61,7 @@ func (s *DocumentSuite) Test_NewMany_BuildsMinimalDocumentAndPreservesOrder() {
 		{ID: "u1", Attrs: s.attrsA},
 		{ID: "u2", Attrs: s.attrsB},
 	}
-	doc := apix.NewMany("users", items)
+	doc := apix.NewManyDocument("users", items)
 
 	s.Require().Len(doc.Data, 2)
 	s.Equal("users", doc.Data[0].Type)
@@ -73,7 +73,7 @@ func (s *DocumentSuite) Test_NewMany_BuildsMinimalDocumentAndPreservesOrder() {
 }
 
 func (s *DocumentSuite) Test_Single_MarshalThenUnmarshal_RoundTrip() {
-	in := apix.NewSingle("users", "u1", s.attrsA)
+	in := apix.NewSingleDocument("users", "u1", s.attrsA)
 
 	data, err := in.MarshalJSON()
 	s.Require().NoError(err)
@@ -84,7 +84,7 @@ func (s *DocumentSuite) Test_Single_MarshalThenUnmarshal_RoundTrip() {
 }
 
 func (s *DocumentSuite) Test_Many_MarshalThenUnmarshal_RoundTrip() {
-	in := apix.NewMany("users", []struct {
+	in := apix.NewManyDocument("users", []struct {
 		ID    string
 		Attrs userAttrs
 	}{
