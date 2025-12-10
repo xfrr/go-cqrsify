@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1764208043214,
+  "lastUpdate": 1765326043120,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5162,6 +5162,48 @@ window.BENCHMARK_DATA = {
             "value": 141.9,
             "unit": "ns/op",
             "extra": "8495876 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "654f89c6cce293c94341b667a45301d34190294b",
+          "message": "refactor: enhance context handling in command decoders and JSON responses",
+          "timestamp": "2025-12-10T01:20:15+01:00",
+          "tree_id": "24e68662155e891a7c57501988b7d7f0e8f79ac5",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/654f89c6cce293c94341b667a45301d34190294b"
+        },
+        "date": 1765326042627,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9367,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.73,
+            "unit": "ns/op",
+            "extra": "16489102 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.3,
+            "unit": "ns/op",
+            "extra": "8933787 times\n4 procs"
           }
         ]
       }
