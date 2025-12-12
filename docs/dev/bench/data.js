@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1765326043120,
+  "lastUpdate": 1765499317233,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5204,6 +5204,48 @@ window.BENCHMARK_DATA = {
             "value": 134.3,
             "unit": "ns/op",
             "extra": "8933787 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "981e5ba613d6ed3d29134d59c7a7026f4f82431b",
+          "message": "refactor: update Test_EncodingError_WritesRFC7807_500 to check error handling for invalid input",
+          "timestamp": "2025-12-12T01:27:19+01:00",
+          "tree_id": "6eba96a738795aa2eb4cfa6ab181847e4b84d152",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/981e5ba613d6ed3d29134d59c7a7026f4f82431b"
+        },
+        "date": 1765499316937,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9356,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.78,
+            "unit": "ns/op",
+            "extra": "16458414 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 134.7,
+            "unit": "ns/op",
+            "extra": "8928474 times\n4 procs"
           }
         ]
       }
