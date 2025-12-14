@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1765499317233,
+  "lastUpdate": 1765712070926,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5246,6 +5246,48 @@ window.BENCHMARK_DATA = {
             "value": 134.7,
             "unit": "ns/op",
             "extra": "8928474 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "3d6d03f909af1d822c0ba2cba6b11c0fb54d6f61",
+          "message": "feat: implement messaging http query handler and related resources",
+          "timestamp": "2025-12-14T12:34:06+01:00",
+          "tree_id": "a1615cc2504c2e27bb48e5c1e6728307f0a288fe",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/3d6d03f909af1d822c0ba2cba6b11c0fb54d6f61"
+        },
+        "date": 1765712070639,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.9345,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.9,
+            "unit": "ns/op",
+            "extra": "16524769 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 136.3,
+            "unit": "ns/op",
+            "extra": "8848521 times\n4 procs"
           }
         ]
       }
