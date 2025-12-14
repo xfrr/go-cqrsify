@@ -35,7 +35,7 @@ func (s *WriteJSONSuite) Test_StrongETag_DefaultAndBody_ContentType_Status() {
 		rec,
 		p,
 		apix.WithContentType(apix.ContentTypeJSON),
-		apix.WithStatus(http.StatusOK),
+		apix.WithStatusCode(http.StatusOK),
 	)
 
 	// Status and Content-Type
@@ -60,7 +60,7 @@ func (s *WriteJSONSuite) Test_WeakETag_HeaderSet_WhenOptionEnabled() {
 		rec,
 		p,
 		apix.WithContentType(apix.ContentTypeJSON),
-		apix.WithStatus(http.StatusAccepted),
+		apix.WithStatusCode(http.StatusAccepted),
 		apix.WithWeakETag(true),
 	)
 
@@ -80,7 +80,7 @@ func (s *WriteJSONSuite) Test_ExplicitETag_Overrides_ComputedETags() {
 		rec,
 		p,
 		apix.WithContentType(apix.ContentTypeJSON),
-		apix.WithStatus(http.StatusOK),
+		apix.WithStatusCode(http.StatusOK),
 		apix.WithETag(`"my-custom-etag"`),
 	)
 
@@ -99,7 +99,7 @@ func (s *WriteJSONSuite) Test_Cache_LastModified_Vary_IfModifiedSince_CustomHead
 		rec,
 		p,
 		apix.WithContentType(apix.ContentTypeJSON),
-		apix.WithStatus(http.StatusOK),
+		apix.WithStatusCode(http.StatusOK),
 		apix.WithCacheControl("public, max-age=60"),
 		apix.WithLastModified(lm),
 		apix.WithVary("Accept, Accept-Language"),

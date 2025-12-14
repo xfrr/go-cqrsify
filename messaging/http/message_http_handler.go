@@ -45,18 +45,22 @@ type MessageHandler struct {
 }
 
 // NewMessageHandler creates a new MessageHandler with the given MessagePublisher and options.
-func NewMessageHandler(msgPublisher messaging.MessagePublisher, opts ...HTTPMessageServerOption) *MessageHandler {
-	s := &MessageHandler{
+func NewMessageHandler(msgPublisher messaging.MessagePublisher, opts ...MessageHandlerOption) *MessageHandler {
+	cfg := &MessageHandlerOptions{
+		maxBodyBytes:    defaultMaxBodyBytes,
+		decoderRegistry: NewMessageDecoderRegistry(),
+	}
+	for _, opt := range opts {
+		opt.apply(cfg)
+	}
+
+	return &MessageHandler{
 		messagePublisher: msgPublisher,
-		maxBodyBytes:     defaultMaxBodyBytes,
-		errorMapper:      nil,
-		messageValidator: nil,
-		decoderRegistry:  NewMessageDecoderRegistry(),
+		maxBodyBytes:     cfg.maxBodyBytes,
+		decoderRegistry:  cfg.decoderRegistry,
+		errorMapper:      cfg.errorMapper,
+		messageValidator: cfg.messageValidator,
 	}
-	for _, o := range opts {
-		o(s)
-	}
-	return s
 }
 
 // ServeHTTP implements http.Handler.

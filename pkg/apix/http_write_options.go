@@ -1,6 +1,9 @@
 package apix
 
-import "time"
+import (
+	"maps"
+	"time"
+)
 
 type WriteOptions struct {
 	// EscapeHTML tells the JSON encoder to escape HTML characters.
@@ -87,8 +90,8 @@ func WithContentType(ct ContentType) WriteOption {
 	}
 }
 
-// WithStatus sets the HTTP status code.
-func WithStatus(status int) WriteOption {
+// WithStatusCode sets the HTTP status code.
+func WithStatusCode(status int) WriteOption {
 	return func(o *WriteOptions) {
 		o.Status = status
 	}
@@ -142,8 +145,16 @@ func WithHeaders(headers map[string]string) WriteOption {
 		if o.Headers == nil {
 			o.Headers = make(map[string]string)
 		}
-		for k, v := range headers {
-			o.Headers[k] = v
+		maps.Copy(o.Headers, headers)
+	}
+}
+
+// WithHeader adds a single custom header to the response.
+func WithHeader(key, value string) WriteOption {
+	return func(o *WriteOptions) {
+		if o.Headers == nil {
+			o.Headers = make(map[string]string)
 		}
+		o.Headers[key] = value
 	}
 }

@@ -111,7 +111,7 @@ func WithExtensions(ext map[string]any) func(*Problem) {
 func WriteProblem(w http.ResponseWriter, p Problem) {
 	WriteJSON(w, p,
 		WithContentType(ContentTypeProblemJSON),
-		WithStatus(p.Status),
+		WithStatusCode(p.Status),
 		WithCacheControl("no-store"),
 	)
 }

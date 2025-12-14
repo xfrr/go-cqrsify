@@ -32,46 +32,61 @@ const (
 //
 // - If a Meta field is defined both in the resource and the document, the document's value takes precedence.
 func CreateBaseCommandFromSingleDocument[A any](cmdType string, sd apix.SingleDocument[A]) messaging.BaseCommand {
-	var (
-		source           string
-		schema           string
-		timestamp        = time.Now()
-		resourceMetadata = make(map[string]string)
-		keys             = []string{
-			jsonAPISingleDocumentMetadataSchemaKey,
-			jsonAPISingleDocumentMetadataSourceKey,
-			jsonAPISingleDocumentMetadataTimestampKey,
-		}
-	)
-
-	if sd.Data.Meta != nil {
-		if sch, ok := sd.Data.Meta[jsonAPISingleDocumentMetadataSchemaKey].(string); ok {
-			schema = sch
-		}
-
-		if s, ok := sd.Data.Meta[jsonAPISingleDocumentMetadataSourceKey].(string); ok {
-			source = s
-		}
-
-		if ts, ok := sd.Data.Meta[jsonAPISingleDocumentMetadataTimestampKey].(string); ok {
-			if t, err := time.Parse(time.RFC3339, ts); err == nil {
-				timestamp = t
-			}
-		}
-
-		resourceMetadata = filterAndParseMetadata(sd.Data.Meta, keys)
-		documentMetadata := filterAndParseMetadata(sd.Meta, keys)
-		maps.Copy(resourceMetadata, documentMetadata)
-	}
+	schema, source, timestamp, metadata := extractJSONAPISingleDocumentMetadata(sd)
 
 	return messaging.NewBaseCommand(
 		cmdType,
 		messaging.WithID(sd.Data.ID),
-		messaging.WithMetadata(resourceMetadata),
+		messaging.WithMetadata(metadata),
 		messaging.WithSchema(schema),
 		messaging.WithSource(source),
 		messaging.WithTimestamp(timestamp),
 	)
+}
+
+// extractJSONAPISingleDocumentMetadata extracts schema, source, timestamp, and metadata from a JSON:API single document.
+// It handles metadata merging and timestamp parsing from RFC3339 format.
+func extractJSONAPISingleDocumentMetadata[A any](sd apix.SingleDocument[A]) (string, string, time.Time, map[string]string) {
+	schema := ""
+	source := ""
+	timestamp := time.Now()
+
+	keys := []string{
+		jsonAPISingleDocumentMetadataSchemaKey,
+		jsonAPISingleDocumentMetadataSourceKey,
+		jsonAPISingleDocumentMetadataTimestampKey,
+	}
+
+	// Resource metadata (lower precedence)
+	metadata := filterAndParseMetadata(sd.Data.Meta, keys)
+	applyReservedJSONAPIMetadata(sd.Data.Meta, &schema, &source, &timestamp)
+
+	// Document metadata (higher precedence)
+	documentMetadata := filterAndParseMetadata(sd.Meta, keys)
+	maps.Copy(metadata, documentMetadata)
+	applyReservedJSONAPIMetadata(sd.Meta, &schema, &source, &timestamp)
+
+	return schema, source, timestamp, metadata
+}
+
+func applyReservedJSONAPIMetadata(meta map[string]any, schema *string, source *string, timestamp *time.Time) {
+	if meta == nil {
+		return
+	}
+
+	if sch, ok := meta[jsonAPISingleDocumentMetadataSchemaKey].(string); ok {
+		*schema = sch
+	}
+
+	if s, ok := meta[jsonAPISingleDocumentMetadataSourceKey].(string); ok {
+		*source = s
+	}
+
+	if ts, ok := meta[jsonAPISingleDocumentMetadataTimestampKey].(string); ok {
+		if t, err := time.Parse(time.RFC3339, ts); err == nil {
+			*timestamp = t
+		}
+	}
 }
 
 func filterAndParseMetadata(sd map[string]any, excludeKeys []string) map[string]string {

@@ -26,21 +26,30 @@ const (
 // If no ContentType is set, defaults to application/vnd.api+json.
 // If no Status is set, defaults to 200 OK.
 func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) (int, error) {
-	options := new(WriteOptions)
-	options.apply(opts...)
-
 	b, err := json.Marshal(v)
 	if err != nil {
 		return 0, err
 	}
 
+	return Write(w, b, opts...)
+}
+
+// Write writes raw bytes response with the given status and content type.
+// Additional options can be provided via WriteOption.
+//
+// If no ContentType is set, defaults to application/vnd.api+json.
+// If no Status is set, defaults to 200 OK.
+func Write(w http.ResponseWriter, data []byte, opts ...WriteOption) (int, error) {
+	options := new(WriteOptions)
+	options.apply(opts...)
+
 	switch {
 	case options.UseWeakETag:
-		w.Header().Set(ETagHeaderKey, WeakETagFromBytes(b))
+		w.Header().Set(ETagHeaderKey, WeakETagFromBytes(data))
 	case options.ETag != "":
 		w.Header().Set(ETagHeaderKey, options.ETag)
 	default:
-		w.Header().Set(ETagHeaderKey, StrongETagFromBytes(b))
+		w.Header().Set(ETagHeaderKey, StrongETagFromBytes(data))
 	}
 
 	w.Header().Set(ContentTypeHeaderKey, options.ContentType.String())
@@ -66,5 +75,5 @@ func WriteJSON(w http.ResponseWriter, v any, opts ...WriteOption) (int, error) {
 	}
 
 	w.WriteHeader(options.Status)
-	return w.Write(b)
+	return w.Write(data)
 }

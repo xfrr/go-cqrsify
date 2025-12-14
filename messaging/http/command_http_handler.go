@@ -12,7 +12,7 @@ type CommandHandler = MessageHandler
 
 // NewCommandHandler creates a new CommandHTTPServer with the given CommandBus and options.
 // If no decoders are registered, the server will return 500 Internal Server Error.
-func NewCommandHandler(dispatcher messaging.CommandDispatcher, opts ...HTTPMessageServerOption) *CommandHandler {
+func NewCommandHandler(dispatcher messaging.CommandDispatcher, opts ...MessageHandlerOption) *CommandHandler {
 	return NewMessageHandler(&commandDispatcherWrapper{dispatcher}, opts...)
 }
 
