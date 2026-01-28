@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1765712070926,
+  "lastUpdate": 1769602563200,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5288,6 +5288,48 @@ window.BENCHMARK_DATA = {
             "value": 136.3,
             "unit": "ns/op",
             "extra": "8848521 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "3d638f68737cc968a7df06c85dc24f67d07d9781",
+          "message": "refactor: rename subscription functions to improve clarity and fix message bus request blocking behaviour",
+          "timestamp": "2026-01-28T13:15:14+01:00",
+          "tree_id": "0996ac0b6f7fb0b5e0fd0d3a54405ad78d492ddc",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/3d638f68737cc968a7df06c85dc24f67d07d9781"
+        },
+        "date": 1769602562816,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6235,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.98,
+            "unit": "ns/op",
+            "extra": "16369648 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 133.8,
+            "unit": "ns/op",
+            "extra": "8974287 times\n4 procs"
           }
         ]
       }
