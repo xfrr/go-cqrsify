@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// SubscribeQuery is a shorthand for handling queries of a specific type.
-func SubscribeQuery[Q Query, R QueryReply](
+// RegisterQueryHandler is a shorthand for handling queries of a specific type.
+func RegisterQueryHandler[Q Query, R QueryReply](
 	ctx context.Context,
 	consumer QueryConsumer,
 	handler MessageHandlerWithReply[Q, R],

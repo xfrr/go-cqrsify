@@ -54,7 +54,7 @@ func main() {
 	defer closeCommandBus()
 
 	// Subscribe to messages of type "CreateOrder"
-	unsub, err := messaging.SubscribeCommand(
+	unsub, err := messaging.RegisterCommandHandler(
 		ctx,
 		commandBus,
 		messaging.MessageHandlerFn[CreateOrderCommand](func(ctx context.Context, command CreateOrderCommand) error {

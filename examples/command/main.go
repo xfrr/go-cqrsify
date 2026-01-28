@@ -71,7 +71,7 @@ func main() {
 
 	// Create an in-memory command bus and subscribe a handler to it.
 	bus := messaging.NewInMemoryCommandBus(messaging.ConfigureInMemoryMessageBusSubjects("com.org.test_command"))
-	unsub, err := messaging.SubscribeCommand(
+	unsub, err := messaging.RegisterCommandHandler(
 		rootCtx,
 		bus,
 		PrintSpeechCommandHandler{wg: wg},

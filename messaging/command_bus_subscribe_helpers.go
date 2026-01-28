@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-// SubscribeCommand is a shorthand for handling commands.
-func SubscribeCommand[E Command](
+// RegisterCommandHandler is a shorthand for handling commands.
+func RegisterCommandHandler[E Command](
 	ctx context.Context,
 	consumer CommandConsumer,
 	handler MessageHandler[E],
@@ -27,8 +27,8 @@ func SubscribeCommand[E Command](
 	)
 }
 
-// SubscribeCommandWithReply is a shorthand for handling commands with reply.
-func SubscribeCommandWithReply[E Command, R CommandReply](
+// RegisterCommandHandlerWithReply is a shorthand for handling commands with reply.
+func RegisterCommandHandlerWithReply[E Command, R CommandReply](
 	ctx context.Context,
 	consumer CommandConsumerReplier,
 	handler MessageHandlerWithReply[E, R],

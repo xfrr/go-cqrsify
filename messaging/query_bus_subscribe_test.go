@@ -23,13 +23,12 @@ func TestSubscribeQuery_Success(t *testing.T) {
 		return messaging.NewMessage(query.MessageType() + ".reply"), nil
 	})
 
-	unsub, err := messaging.SubscribeQuery(
+	unsub, err := messaging.RegisterQueryHandler(
 		t.Context(),
 		queryBus,
 		handler,
 	)
 	require.NoError(t, err)
-	defer unsub()
 
 	testQuery := messaging.NewBaseQuery("test.query")
 	res, err := queryBus.Request(t.Context(), testQuery)
@@ -38,4 +37,7 @@ func TestSubscribeQuery_Success(t *testing.T) {
 	assert.NotNil(t, res)
 	assert.Equal(t, 1, calls)
 	assert.Equal(t, "test.query.reply", res.MessageType())
+
+	err = unsub()
+	require.NoError(t, err)
 }

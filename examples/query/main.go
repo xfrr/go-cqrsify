@@ -56,7 +56,7 @@ func main() {
 
 	// Create an in-memory query bus and subscribe a handler to it.
 	bus := messaging.NewInMemoryQueryBus(messaging.ConfigureInMemoryMessageBusSubjects("com.org.test_query"))
-	unsub, err := messaging.SubscribeQuery(
+	unsub, err := messaging.RegisterQueryHandler(
 		ctx,
 		bus,
 		GetSpeechQueryHandler{wg: wg},

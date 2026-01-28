@@ -53,6 +53,11 @@ type worker struct {
 	id int
 }
 
+type replyEnvelope struct {
+	MessageReply
+	replyCh chan MessageReply
+}
+
 func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageBus {
 	cfg := MessageBusConfig{
 		AsyncWorkers: 0,
@@ -74,7 +79,7 @@ func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageB
 			qSize = 1
 		}
 		b.queue = make(chan queued, qSize)
-		for i := 0; i < cfg.AsyncWorkers; i++ {
+		for i := range cfg.AsyncWorkers {
 			b.addWorker(i)
 		}
 	}
@@ -148,13 +153,20 @@ func (b *InMemoryMessageBus) PublishRequest(ctx context.Context, msg Message) (M
 		}
 	}
 
+	replyCh := make(chan MessageReply, 1)
+	envelopedMsg := replyEnvelope{
+		MessageReply: msg,
+		replyCh:      replyCh,
+	}
+
+	// Use the wrapped handler to ensure middleware is applied.
 	wrappedHandler := b.wrap(wrapper)
-	if err := wrappedHandler.Handle(ctx, msg); err != nil {
+	if err := wrappedHandler.Handle(ctx, envelopedMsg); err != nil {
 		return nil, err
 	}
 
 	select {
-	case reply := <-wrapper.out:
+	case reply := <-replyCh:
 		return reply, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -219,6 +231,9 @@ func (b *InMemoryMessageBus) SubscribeWithReply(_ context.Context, h MessageHand
 func (b *InMemoryMessageBus) Close() error {
 	b.closeMu.Lock()
 	defer b.closeMu.Unlock()
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
 	if b.closed {
 		return nil
@@ -300,25 +315,31 @@ func (b *InMemoryMessageBus) unsubscribeByRefs(refs []subRef) error {
 }
 
 type inMemoryMessageBusHandlerWithReplyWrapper struct {
-	h   MessageHandlerWithReply[Message, MessageReply]
-	out chan MessageReply
+	h MessageHandlerWithReply[Message, MessageReply]
 }
 
 func wrapMessageHandlerWithReply(h MessageHandlerWithReply[Message, MessageReply]) MessageHandler[Message] {
 	return &inMemoryMessageBusHandlerWithReplyWrapper{
-		h:   h,
-		out: make(chan MessageReply, 1),
+		h: h,
 	}
 }
 
 func (w *inMemoryMessageBusHandlerWithReplyWrapper) Handle(ctx context.Context, msg Message) error {
-	reply, err := w.h.Handle(ctx, msg)
+	env, ok := msg.(replyEnvelope)
+	if !ok {
+		return &InvalidMessageTypeError{
+			Expected: "replyEnvelope",
+			Actual:   fmt.Sprintf("%T", msg),
+		}
+	}
+
+	reply, err := w.h.Handle(ctx, env.MessageReply)
 	if err != nil {
 		return err
 	}
 
 	select {
-	case w.out <- reply:
+	case env.replyCh <- reply:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()

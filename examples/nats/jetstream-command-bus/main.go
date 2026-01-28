@@ -53,7 +53,7 @@ func main() {
 	defer closeCommandBus()
 
 	// Subscribe to messages of type "CreateOrder"
-	unsub, err := messaging.SubscribeCommand(ctx, commandBus, messaging.MessageHandlerFn[CreateOrderCommand](func(ctx context.Context, command CreateOrderCommand) error {
+	unsub, err := messaging.RegisterCommandHandler(ctx, commandBus, messaging.MessageHandlerFn[CreateOrderCommand](func(ctx context.Context, command CreateOrderCommand) error {
 		fmt.Println("Handling command:")
 		fmt.Printf("- Command Type: %s\n", command.MessageType())
 		fmt.Printf("- Order ID: %d\n", command.OrderID)

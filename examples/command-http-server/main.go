@@ -49,7 +49,7 @@ func main() {
 		))
 
 	// Register command handler
-	unsub, err := messaging.SubscribeCommand(
+	unsub, err := messaging.RegisterCommandHandler(
 		ctx,
 		cmdbus,
 		&sampleCommandHandler{},
