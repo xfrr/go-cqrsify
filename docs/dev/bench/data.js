@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769602563200,
+  "lastUpdate": 1769645661304,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5330,6 +5330,48 @@ window.BENCHMARK_DATA = {
             "value": 133.8,
             "unit": "ns/op",
             "extra": "8974287 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "f05c8db44ad993399947e302229b9712940054c7",
+          "message": "deps: update go mod dependencies\n\n- Updated go-cqrsify from v0.9.1 to v0.9.9 in both modules.\n- Updated bytedance/sonic from v1.14.1 to v1.15.0 and loader from v0.3.0 to v0.5.0 in messaging/http.\n- Updated gabriel-vasile/mimetype from v1.4.10 to v1.4.12 in messaging/http.\n- Updated go-playground/validator from v10.28.0 to v10.30.1 in messaging/http.\n- Updated go-cy/yaml from v1.18.0 to v1.19.2 in messaging/http.\n- Updated quic-go/qpack from v0.5.1 to v0.6.0 and quic-go from v0.55.0 to v0.59.0 in messaging/http.\n- Updated ugorji/go/codec from v1.3.0 to v1.3.1 in messaging/http.\n- Updated nats.go from v1.47.0 to v1.48.0 in messaging/nats.\n- Updated opentelemetry dependencies in messaging/nats to v1.39.0.\n- Updated klauspost/compress from v1.18.0 to v1.18.3 in messaging/nats.\n- Updated nkeys from v0.4.11 to v0.4.14 in messaging/nats.\n- Added cespare/xxhash/v2 v2.3.0 as an indirect dependency in messaging/nats.",
+          "timestamp": "2026-01-29T01:13:51+01:00",
+          "tree_id": "7f413d5d2dafa3cbf90b226db91837b7d9c015f4",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/f05c8db44ad993399947e302229b9712940054c7"
+        },
+        "date": 1769645660713,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.6232,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 72.97,
+            "unit": "ns/op",
+            "extra": "16448293 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 133.6,
+            "unit": "ns/op",
+            "extra": "8988560 times\n4 procs"
           }
         ]
       }
