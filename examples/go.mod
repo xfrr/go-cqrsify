@@ -1,6 +1,6 @@
 module github.com/xfrr/go-cqrsify/examples
 
-go 1.25.1
+go 1.26
 
 require (
 	github.com/gin-gonic/gin v1.11.0

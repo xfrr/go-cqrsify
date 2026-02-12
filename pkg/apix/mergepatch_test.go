@@ -21,12 +21,12 @@ func asAny(s *suite.Suite, b []byte) any {
 }
 
 type User struct {
-	ID      string                 `json:"id,omitempty"`
-	Name    string                 `json:"name,omitempty"`
-	Age     int                    `json:"age,omitempty"`
-	Address map[string]any         `json:"address,omitempty"`
-	Tags    []string               `json:"tags,omitempty"`
-	Meta    map[string]interface{} `json:"meta,omitempty"`
+	ID      string         `json:"id,omitempty"`
+	Name    string         `json:"name,omitempty"`
+	Age     int            `json:"age,omitempty"`
+	Address map[string]any `json:"address,omitempty"`
+	Tags    []string       `json:"tags,omitempty"`
+	Meta    map[string]any `json:"meta,omitempty"`
 }
 
 type ApplyMergePatchSuite struct {

@@ -8,12 +8,12 @@ import (
 type HistoryIntegrityError struct {
 	desc          string
 	EventIndex    int
-	ExpectedValue interface{}
-	ActualValue   interface{}
+	ExpectedValue any
+	ActualValue   any
 	ErrorType     string // "ID_MISMATCH", "TYPE_MISMATCH", "VERSION_MISMATCH"
 }
 
-func (e *HistoryIntegrityError) WithDetails(eventIndex int, expected, actual interface{}, errorType string) *HistoryIntegrityError {
+func (e *HistoryIntegrityError) WithDetails(eventIndex int, expected, actual any, errorType string) *HistoryIntegrityError {
 	e.EventIndex = eventIndex
 	e.ExpectedValue = expected
 	e.ActualValue = actual

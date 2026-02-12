@@ -1,6 +1,6 @@
 module github.com/xfrr/go-cqrsify/messaging/http
 
-go 1.25.1
+go 1.26
 
 require (
 	github.com/stretchr/testify v1.11.1

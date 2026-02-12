@@ -178,7 +178,7 @@ func (s *InMemoryMessageBusTestSuite) TestNewMessageBus_SubscribeAndPublish_Work
 	err = bus.Publish(s.T().Context(), msg1, msg2)
 	s.Require().NoError(err)
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		select {
 		case got := <-seen:
 			s.Require().Equal(subject, got.MessageType())

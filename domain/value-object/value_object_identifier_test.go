@@ -20,8 +20,8 @@ func TestIdentifierSuite(t *testing.T) {
 func (suite *IdentifierTestSuite) TestNewIdentifier() {
 	tests := []struct {
 		name     string
-		value    interface{}
-		expected interface{}
+		value    any
+		expected any
 	}{
 		{"string identifier", "test-id", "test-id"},
 		{"int identifier", 123, 123},
@@ -66,7 +66,7 @@ func (suite *IdentifierTestSuite) TestNewIdentifier() {
 func (suite *IdentifierTestSuite) TestString() {
 	tests := []struct {
 		name     string
-		id       interface{}
+		id       any
 		expected string
 	}{
 		// String types
@@ -167,7 +167,7 @@ func (suite *IdentifierTestSuite) TestValidate() {
 	// Valid cases
 	validCases := []struct {
 		name string
-		id   interface{}
+		id   any
 	}{
 		{"valid string", valueobject.NewIdentifier("valid-id")},
 		{"valid positive int", valueobject.NewIdentifier(123)},
@@ -192,11 +192,11 @@ func (suite *IdentifierTestSuite) TestValidate() {
 	// Invalid cases
 	invalidCases := []struct {
 		name          string
-		id            interface{}
+		id            any
 		expectedError string
 	}{
 		{"empty string", valueobject.NewIdentifier(""), `validation error on field 'identifier': cannot be empty`},
-		{"nil value", valueobject.NewIdentifier[interface{}](nil), "validation error on field 'identifier': cannot be nil"},
+		{"nil value", valueobject.NewIdentifier[any](nil), "validation error on field 'identifier': cannot be nil"},
 		{"zero int", valueobject.NewIdentifier(0), "validation error on field 'identifier': invalid identifier: 0"},
 		{"zero uint", valueobject.NewIdentifier(uint(0)), "validation error on field 'identifier': invalid identifier: 0"},
 		{"zero float", valueobject.NewIdentifier(0.0), "validation error on field 'identifier': invalid identifier: 0.000000"},

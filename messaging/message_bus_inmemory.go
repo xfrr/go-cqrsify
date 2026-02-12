@@ -74,10 +74,7 @@ func NewInMemoryMessageBus(optFns ...MessageBusConfigConfiger) *InMemoryMessageB
 	}
 
 	if cfg.AsyncWorkers > 0 {
-		qSize := cfg.QueueSize
-		if qSize < 1 {
-			qSize = 1
-		}
+		qSize := max(cfg.QueueSize, 1)
 		b.queue = make(chan queued, qSize)
 		for i := range cfg.AsyncWorkers {
 			b.addWorker(i)
@@ -254,16 +251,14 @@ func (b *InMemoryMessageBus) Use(mw ...MessageHandlerMiddleware) {
 func (b *InMemoryMessageBus) addWorker(id int) {
 	b.workers = append(b.workers, worker{id: id})
 
-	b.wg.Add(1)
-	go func() {
-		defer b.wg.Done()
+	b.wg.Go(func() {
 		for q := range b.queue {
 			h := b.wrap(q.h)
 			if err := h.Handle(q.ctx, q.msg); err != nil && b.opts.ErrorHandler != nil {
 				b.opts.ErrorHandler(q.msg.MessageType(), err)
 			}
 		}
-	}()
+	})
 }
 
 func (b *InMemoryMessageBus) wrap(h MessageHandler[Message]) MessageHandler[Message] {

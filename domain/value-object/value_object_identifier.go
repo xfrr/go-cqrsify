@@ -95,7 +95,7 @@ func (id Identifier[T]) Validate() error {
 		if val.Float() == 0 {
 			errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %f", val.Float())})
 		}
-	case reflect.Bool, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Struct, reflect.UnsafePointer:
+	case reflect.Bool, reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice, reflect.Struct, reflect.UnsafePointer:
 		errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %v", id.value)})
 	default:
 		errs = append(errs, ValidationError{Field: "identifier", Message: fmt.Sprintf("invalid identifier: %v", id.value)})

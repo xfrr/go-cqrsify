@@ -68,7 +68,6 @@ func DoN[T any](
 
 	wg.Add(n)
 	for i := range items {
-		i := i
 		sem <- struct{}{}
 		go func() {
 			defer func() { <-sem; wg.Done() }()

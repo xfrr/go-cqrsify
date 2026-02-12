@@ -96,7 +96,7 @@ func (me *MultiError) Is(target error) bool {
 
 // As implements error unwrapping for Go 1.13+ errors.As functionality.
 // It finds the first error in the chain that matches the target type.
-func (me *MultiError) As(target interface{}) bool {
+func (me *MultiError) As(target any) bool {
 	if me == nil {
 		return false
 	}

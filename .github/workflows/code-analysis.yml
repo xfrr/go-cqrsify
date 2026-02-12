@@ -26,7 +26,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.25.x"
+          go-version: "1.26.x"
       - name: Run Codacy Aligncheck
         uses: codacy/codacy-analysis-cli-action@v4
         with:

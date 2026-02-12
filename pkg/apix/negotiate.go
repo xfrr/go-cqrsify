@@ -112,9 +112,9 @@ func parseAccept(s string) []mediaRange {
 func parseMediaRange(p string) (*mediaRange, bool) {
 	typ := p
 	q := 1.0
-	if semi := strings.IndexByte(p, ';'); semi >= 0 {
-		typ = strings.TrimSpace(p[:semi])
-		paramStr := p[semi+1:]
+	if before, after, ok := strings.Cut(p, ";"); ok {
+		typ = strings.TrimSpace(before)
+		paramStr := after
 		ps := strings.SplitSeq(paramStr, ";")
 		for kv := range ps {
 			kv = strings.TrimSpace(kv)
@@ -130,10 +130,10 @@ func parseMediaRange(p string) (*mediaRange, bool) {
 			}
 		}
 	}
-	if slash := strings.IndexByte(typ, '/'); slash >= 0 {
+	if before, after, ok := strings.Cut(typ, "/"); ok {
 		return &mediaRange{
-			Type: strings.ToLower(strings.TrimSpace(typ[:slash])),
-			Sub:  strings.ToLower(strings.TrimSpace(typ[slash+1:])),
+			Type: strings.ToLower(strings.TrimSpace(before)),
+			Sub:  strings.ToLower(strings.TrimSpace(after)),
 			Q:    q,
 		}, true
 	}
