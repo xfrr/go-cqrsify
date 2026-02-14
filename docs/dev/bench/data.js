@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1769645661304,
+  "lastUpdate": 1771106903609,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5372,6 +5372,48 @@ window.BENCHMARK_DATA = {
             "value": 133.6,
             "unit": "ns/op",
             "extra": "8988560 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "83269299168a041aa7e411b4097dd3bae21db8d6",
+          "message": "chore: update Go version to 1.26 across all modules and workflows\n\n- refactor: replace interface{} with any in multiple files for improved type safety\n- test: update identifier tests to use any for consistency",
+          "timestamp": "2026-02-12T10:14:44+01:00",
+          "tree_id": "e24076d7940039eeeb743b304f56ffe7739a4db3",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/83269299168a041aa7e411b4097dd3bae21db8d6"
+        },
+        "date": 1771106902696,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.4333,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 53.49,
+            "unit": "ns/op",
+            "extra": "22422730 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 141.7,
+            "unit": "ns/op",
+            "extra": "8562484 times\n4 procs"
           }
         ]
       }
