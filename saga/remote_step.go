@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/xfrr/go-cqrsify/messaging"
@@ -47,6 +48,43 @@ type RemoteResultData struct {
 	Outputs map[string]any `json:"outputs,omitempty"`
 }
 
+type StepResponseError struct {
+	SagaID   string
+	StepName string
+	StepType string
+	Reason   string
+}
+
+func (e StepResponseError) Error() string {
+	return fmt.Sprintf(
+		"remote %s failed (saga_id=%s step=%s): %s",
+		e.StepType,
+		e.SagaID,
+		e.StepName,
+		e.Reason,
+	)
+}
+
+// AsStepResponseError attempts to cast an error to StepResponseError,
+// returning the error and a boolean indicating success.
+func AsStepResponseError(err error) (StepResponseError, bool) {
+	return errors.AsType[StepResponseError](err)
+}
+
+func newRemoteStepResponseError(ex *Execution, stepType string, resp RemoteResult) error {
+	remoteErr := strings.TrimSpace(resp.Error)
+	if remoteErr == "" {
+		remoteErr = "remote replied with ok=false and empty error"
+	}
+
+	return StepResponseError{
+		SagaID:   ex.SagaID,
+		StepName: ex.Def.Steps[ex.StepIndex].Name,
+		StepType: stepType,
+		Reason:   remoteErr,
+	}
+}
+
 func MessagingRemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects) StepAction {
 	return func(ctx context.Context, ex *Execution) error {
 		cmd := RemotePayload{
@@ -77,7 +115,7 @@ func MessagingRemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects)
 		}
 
 		if !resp.OK {
-			return errors.New(resp.Error)
+			return newRemoteStepResponseError(ex, "ACTION", resp)
 		}
 
 		// merge outputs into step data
@@ -117,7 +155,7 @@ func MessagingRemoteCompensation(bus messaging.CommandBusReplier, subj RemoteSub
 			return fmt.Errorf("remote compensation request failed: %w", err)
 		}
 		if !resp.OK {
-			return errors.New(resp.Error)
+			return newRemoteStepResponseError(ex, "COMPENSATE", resp)
 		}
 		return nil
 	}
