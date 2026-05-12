@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778616184100,
+  "lastUpdate": 1778622401810,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5654,6 +5654,44 @@ window.BENCHMARK_DATA = {
             "value": 178.3,
             "unit": "ns/op",
             "extra": "6754291 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "id": "cc615496b08a86e4f026f4ca5e632a4b4b39478f",
+          "message": "feat: implement saga pattern",
+          "timestamp": "2026-05-12T16:20:56Z",
+          "url": "https://github.com/xfrr/go-cqrsify/pull/8/commits/cc615496b08a86e4f026f4ca5e632a4b4b39478f"
+        },
+        "date": 1778622400828,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.3744,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 78.85,
+            "unit": "ns/op",
+            "extra": "15236295 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 178.9,
+            "unit": "ns/op",
+            "extra": "6727320 times\n4 procs"
           }
         ]
       }
