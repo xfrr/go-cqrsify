@@ -48,37 +48,39 @@ type Definition struct {
 }
 
 type StepState struct {
-	Index      int
-	Name       string
-	Status     Status
-	Attempt    int
-	StartedAt  time.Time
-	FinishedAt time.Time
-	ErrorMsg   string
+	Index              int
+	Name               string
+	Status             Status
+	Attempt            int
+	LastIdempotencyKey string
+	StartedAt          time.Time
+	FinishedAt         time.Time
+	ErrorMsg           string
 	// TODO: use generics instead of map[string]any
 	Data map[string]any // step-scoped stored values (serialized by Store)
 }
 
 type Instance struct {
-	ID        string
-	Name      string
-	Input     map[string]any
-	Status    Status
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Current   int // index of next step to run, 0..len(Steps)
-	Revision  int // optimistic concurrency control
-	Steps     []StepState
-	Metadata  map[string]string
+	ID            string
+	Name          string
+	Input         map[string]any
+	Status        Status
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Current       int // index of next step to run, 0..len(Steps)
+	Revision      int // optimistic concurrency control
+	FailureReason string
+	Steps         []StepState
+	Metadata      map[string]string
 }
 
 func (si *Instance) IncrementRevision() { si.Revision++ }
 
 func (si *Instance) Terminal() bool {
 	switch si.Status {
-	case StatusCompleted, StatusFailed, StatusCancelled:
+	case StatusCompleted, StatusFailed, StatusCancelled, StatusCompensateSuccess, StatusCompensateFailed:
 		return true
-	case StatusCompensating, StatusPending, StatusRunning, StatusCompensateSuccess, StatusCompensateFailed:
+	case StatusCompensating, StatusPending, StatusRunning:
 		return false
 	default:
 		return false

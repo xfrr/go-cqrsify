@@ -105,11 +105,17 @@ func (c *Coordinator) Run(ctx context.Context, sagaID string) error {
 	}
 
 	if stepExecutionErr := c.runSteps(lockCtx, inst, keepaliveLost); stepExecutionErr != nil {
+		if c.cfg.Hooks.OnSagaFailed != nil {
+			c.cfg.Hooks.OnSagaFailed(ctx, inst, stepExecutionErr)
+		}
 		// mark failed and compensate
 		if setErr := c.setSagaStatus(ctx, inst, StatusFailed); setErr != nil {
 			return setErr
 		}
-		return c.compensate(lockCtx, inst)
+		if compensationErr := c.compensate(lockCtx, inst); compensationErr != nil {
+			return fmt.Errorf("step execution failed: %w; compensation failed: %v", stepExecutionErr, compensationErr)
+		}
+		return stepExecutionErr
 	}
 
 	if setStatusError := c.setSagaStatus(ctx, inst, StatusCompleted); setStatusError != nil {
@@ -231,7 +237,7 @@ func (c *Coordinator) keepalive(
 			if err != nil || !ok {
 				select {
 				case keepaliveLost <- ifErr(err, ErrLockLost):
-				default:
+				case <-ctx.Done():
 				}
 				return
 			}
@@ -242,6 +248,7 @@ func (c *Coordinator) keepalive(
 func (c *Coordinator) runSteps(ctx context.Context, inst *Instance, keepaliveLost <-chan error) error {
 	for inst.Current < len(c.def.Steps) {
 		if err := c.checkKeepalive(keepaliveLost); err != nil {
+			inst.FailureReason = "lock_lost"
 			return err
 		}
 
@@ -270,16 +277,12 @@ func (c *Coordinator) runSingleStep(ctx context.Context, inst *Instance, step *S
 			defer cancel()
 		}
 
-		if err := c.markStepAttemptStart(execCtx, inst, ss); err != nil {
+		ex := c.buildExecution(inst, ss)
+		if err := c.markStepAttemptStart(execCtx, inst, *step, ss, ex.IdempotencyKey()); err != nil {
 			return err
 		}
 
-		ex := c.buildExecution(inst, ss)
-		defer c.recoverActionPanic(execCtx, inst, ss, step.Name)
-
-		if err := step.Action(ex.WithStepContext(execCtx), ex); err != nil {
-			c.onStepFailure(execCtx, inst, ss, err)
-			_ = c.store.Save(execCtx, inst) // best-effort visibility
+		if err := c.executeAction(execCtx, inst, ss, step, ex); err != nil {
 			return err
 		}
 		return c.markStepSuccess(execCtx, inst, ss, ex.StepData)
@@ -312,7 +315,6 @@ func (c *Coordinator) buildExecution(inst *Instance, ss *StepState) *Execution {
 		Instance:  inst,
 		StepIndex: inst.Current,
 		StepData:  ss.Data,
-		Store:     c.store,
 	}
 }
 
@@ -397,7 +399,9 @@ func (c *Coordinator) compensateStep(
 	ss.Status = StatusCompensating
 	ss.StartedAt = c.now()
 	inst.UpdatedAt = ss.StartedAt
-	_ = c.store.Save(ctx, inst) // best-effort
+	if err := c.store.Save(ctx, inst); err != nil {
+		return err
+	}
 
 	ex := &Execution{
 		SagaID:    inst.ID,
@@ -405,34 +409,23 @@ func (c *Coordinator) compensateStep(
 		Instance:  inst,
 		StepIndex: index,
 		StepData:  ss.Data,
-		Store:     c.store,
 	}
 
-	var lastErr error
 	cr := stepCompensationRetryFactory(*step)
-	_ = cr.Do(ctx, func(runCtx context.Context) error {
-		lastErr = nil
-		defer c.recoverCompensationPanic(runCtx, inst, ss, step.Name)
-
-		if err := step.Compensate(ex.WithStepContext(runCtx), ex); err != nil {
-			lastErr = err
-		}
-		if lastErr != nil {
-			c.onCompensationFailure(runCtx, inst, ss, lastErr)
-			return lastErr
-		}
-		return nil
+	compensationErr := cr.Do(ctx, func(runCtx context.Context) error {
+		return c.executeCompensation(runCtx, inst, ss, step, ex)
 	})
 
-	if lastErr != nil {
+	if compensationErr != nil {
 		ss.Status = StatusCompensateFailed
-		ss.ErrorMsg = "compensation: " + lastErr.Error()
+		ss.ErrorMsg = "compensation: " + compensationErr.Error()
+		inst.FailureReason = "compensation_failed"
 		ss.FinishedAt = c.now()
 		inst.UpdatedAt = ss.FinishedAt
 		if err := c.store.Save(ctx, inst); err != nil {
 			return err
 		}
-		return lastErr
+		return compensationErr
 	}
 
 	ss.Status = StatusCompensateSuccess
@@ -450,27 +443,65 @@ func (c *Coordinator) finishCompensationStatus(inst *Instance, hasErrors bool, d
 	switch {
 	case hasErrors:
 		inst.Status = StatusFailed
+		if inst.FailureReason == "" {
+			inst.FailureReason = "compensation_failed"
+		}
 	case deadlineExceeded && attempted != succeeded:
 		inst.Status = StatusFailed
+		inst.FailureReason = "compensation_deadline_exceeded"
 	default:
 		inst.Status = StatusCompleted
 	}
 }
 
-func (c *Coordinator) recoverActionPanic(ctx context.Context, inst *Instance, ss *StepState, stepName string) {
-	if r := recover(); r != nil {
-		err := fmt.Errorf("step %q panicked: %v", stepName, r)
-		c.onStepFailure(ctx, inst, ss, err)
-		_ = c.store.Save(ctx, inst)
+func (c *Coordinator) executeAction(ctx context.Context, inst *Instance, ss *StepState, step *Step, ex *Execution) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			panicErr := fmt.Errorf("step %q panicked: %v", step.Name, r)
+			c.onStepFailure(ctx, inst, ss, panicErr)
+			if saveErr := c.store.Save(ctx, inst); saveErr != nil {
+				err = fmt.Errorf("step panic and save failure state: %w: %v", panicErr, saveErr)
+				return
+			}
+			err = panicErr
+		}
+	}()
+
+	if actionErr := step.Action(ex.WithStepContext(ctx), ex); actionErr != nil {
+		c.onStepFailure(ctx, inst, ss, actionErr)
+		inst.FailureReason = "step_action_failed"
+		if saveErr := c.store.Save(ctx, inst); saveErr != nil {
+			return fmt.Errorf("step action failed: %w; save failure state failed: %v", actionErr, saveErr)
+		}
+		return actionErr
 	}
+
+	return nil
 }
 
-func (c *Coordinator) recoverCompensationPanic(ctx context.Context, inst *Instance, ss *StepState, stepName string) {
-	if r := recover(); r != nil {
-		err := fmt.Errorf("compensation of step %q panicked: %v", stepName, r)
-		c.onCompensationFailure(ctx, inst, ss, err)
-		_ = c.store.Save(ctx, inst)
+func (c *Coordinator) executeCompensation(ctx context.Context, inst *Instance, ss *StepState, step *Step, ex *Execution) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			panicErr := fmt.Errorf("compensation of step %q panicked: %v", step.Name, r)
+			c.onCompensationFailure(ctx, inst, ss, panicErr)
+			if saveErr := c.store.Save(ctx, inst); saveErr != nil {
+				err = fmt.Errorf("compensation panic and save failure state: %w: %v", panicErr, saveErr)
+				return
+			}
+			err = panicErr
+		}
+	}()
+
+	if compensationErr := step.Compensate(ex.WithStepContext(ctx), ex); compensationErr != nil {
+		c.onCompensationFailure(ctx, inst, ss, compensationErr)
+		inst.FailureReason = "compensation_failed"
+		if saveErr := c.store.Save(ctx, inst); saveErr != nil {
+			return fmt.Errorf("compensation failed: %w; save failure state failed: %v", compensationErr, saveErr)
+		}
+		return compensationErr
 	}
+
+	return nil
 }
 
 func (c *Coordinator) setSagaStatus(ctx context.Context, inst *Instance, s Status) error {
@@ -479,9 +510,12 @@ func (c *Coordinator) setSagaStatus(ctx context.Context, inst *Instance, s Statu
 	return c.store.Save(ctx, inst)
 }
 
-func (c *Coordinator) markStepAttemptStart(ctx context.Context, inst *Instance, ss *StepState) error {
+func (c *Coordinator) markStepAttemptStart(ctx context.Context, inst *Instance, step Step, ss *StepState, idempotencyKey string) error {
 	ss.Status = StatusRunning
 	ss.Attempt++
+	if step.IdempotencyFn != nil {
+		ss.LastIdempotencyKey = idempotencyKey
+	}
 	ss.StartedAt = c.now()
 	inst.UpdatedAt = ss.StartedAt
 

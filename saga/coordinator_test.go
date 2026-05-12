@@ -20,6 +20,9 @@ type mockLocker struct {
 	tryOK     bool
 	tryErr    error
 	unlockErr error
+	failRenewAt int
+	renewErr    error
+	renewCalls  int
 }
 
 func (l *mockLocker) TryLock(_ context.Context, key string, _ time.Duration) (bool, error) {
@@ -53,10 +56,28 @@ func (l *mockLocker) Refresh(_ context.Context, key string, _ time.Duration) (bo
 	return true, nil
 }
 
+func (l *mockLocker) Renew(_ context.Context, key string, _ time.Duration) (bool, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if key != l.lockedKey {
+		return false, nil
+	}
+	l.renewCalls++
+	if l.failRenewAt > 0 && l.renewCalls >= l.failRenewAt {
+		if l.renewErr != nil {
+			return false, l.renewErr
+		}
+		return false, nil
+	}
+	return true, nil
+}
+
 type mockStore struct {
-	mu    sync.Mutex
-	data  map[string]*saga.Instance
-	failC bool
+	mu         sync.Mutex
+	data       map[string]*saga.Instance
+	failC      bool
+	failSaveAt int
+	saveCalls  int
 }
 
 func newMemStore() *mockStore {
@@ -86,6 +107,10 @@ func (s *mockStore) Load(_ context.Context, id string) (*saga.Instance, error) {
 func (s *mockStore) Save(_ context.Context, inst *saga.Instance) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.saveCalls++
+	if s.failSaveAt > 0 && s.saveCalls == s.failSaveAt {
+		return errors.New("save error")
+	}
 	s.data[inst.ID] = inst
 	return nil
 }
@@ -131,7 +156,7 @@ func (c *mockClock) Now() time.Time {
 
 type hookRecorder struct {
 	mu                         sync.Mutex
-	started, completed         int
+	started, completed, failed int
 	compensating, compFinished int
 	stepStart, stepOK, stepKO  int
 	compOK, compKO             int
@@ -142,6 +167,9 @@ func (h *hookRecorder) hooks() saga.Hooks {
 		OnSagaStarted: func(_ context.Context, _ *saga.Instance) { h.inc(&h.started) },
 		OnSagaCompleted: func(_ context.Context, _ *saga.Instance) {
 			h.inc(&h.completed)
+		},
+		OnSagaFailed: func(_ context.Context, _ *saga.Instance, _ error) {
+			h.inc(&h.failed)
 		},
 		OnSagaCompensating: func(_ context.Context, _ *saga.Instance, _ int) {
 			h.inc(&h.compensating)
@@ -311,7 +339,8 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	s.Require().NoError(err)
 
 	err = c.Run(s.T().Context(), id)
-	s.Require().NoError(err)
+	s.Require().Error(err)
+	s.ErrorContains(err, "boom")
 
 	inst, err := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
@@ -319,11 +348,154 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	// Final status should be one of compensation terminal states; with all compensations OK -> success
 	s.Equal(saga.StatusCompleted, inst.Status)
 	s.Equal(1, s.hrec.stepKO) // one failure
+	s.Equal(1, s.hrec.failed)
 	s.Equal(1, s.hrec.compOK) // one successful compensation
 	s.Equal(0, s.hrec.compKO) // no failed compensations
 	s.Equal(1, callsComp)     // only first step compensated
 	s.Equal(1, inst.Current)  // failed at step index 1
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+}
+
+func (s *CoordinatorSuite) TestRun_ActionPanic_TriggersCompensationAndReturnsError() {
+	s.def.Steps[1].Action = func(_ context.Context, _ *saga.Execution) error {
+		panic("kaboom")
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "panicked")
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(1, s.hrec.failed)
+	s.Equal(1, s.hrec.compOK)
+}
+
+func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
+	s.def.Steps[1].Action = func(_ context.Context, _ *saga.Execution) error {
+		return errors.New("step boom")
+	}
+	s.def.Steps[0].Compensate = func(_ context.Context, _ *saga.Execution) error {
+		panic("compensate panic")
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "compensation")
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal(saga.StatusFailed, inst.Status)
+	s.Equal("compensation_failed", inst.FailureReason)
+	s.Equal(saga.StatusCompensateFailed, inst.Steps[0].Status)
+	s.GreaterOrEqual(s.hrec.compKO, 1)
+}
+
+func (s *CoordinatorSuite) TestRun_StepTimeout_ReturnsError() {
+	s.def.Steps = []saga.Step{
+		{
+			Name:    "slow-step",
+			Timeout: 10 * time.Millisecond,
+			Action: func(ctx context.Context, _ *saga.Execution) error {
+				<-time.After(30 * time.Millisecond)
+				return ctx.Err()
+			},
+		},
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, context.DeadlineExceeded.Error())
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal("step_action_failed", inst.FailureReason)
+}
+
+func (s *CoordinatorSuite) TestRun_SaveFailureOnStepError_IsReturned() {
+	s.def.Steps[0].Action = func(_ context.Context, _ *saga.Execution) error {
+		return errors.New("boom")
+	}
+	s.store.failSaveAt = 3 // running-status save, step-start save, failure-save
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "save failure state failed")
+}
+
+func (s *CoordinatorSuite) TestRun_LeaseLost_ReturnsErrLockLost() {
+	s.cfg.LockTTL = 15 * time.Millisecond
+	s.locker.failRenewAt = 1
+	s.def.Steps[0].Action = func(_ context.Context, _ *saga.Execution) error {
+		<-time.After(40 * time.Millisecond)
+		return nil
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorIs(err, saga.ErrLockLost)
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal("lock_lost", inst.FailureReason)
+}
+
+func (s *CoordinatorSuite) TestRun_TracksIdempotencyAndStepContext() {
+	s.def.Steps = []saga.Step{
+		{
+			Name: "ctx-step",
+			IdempotencyFn: func(ex *saga.Execution) string {
+				return "idemp-" + ex.SagaID
+			},
+			Action: func(ctx context.Context, ex *saga.Execution) error {
+				sagaID, ok := saga.SagaIDFromContext(ctx)
+				if !ok || sagaID != ex.SagaID {
+					return errors.New("missing saga id in context")
+				}
+				stepName, ok := saga.StepNameFromContext(ctx)
+				if !ok || stepName != "ctx-step" {
+					return errors.New("missing step name in context")
+				}
+				attempt, ok := saga.StepAttemptFromContext(ctx)
+				if !ok || attempt != 1 {
+					return errors.New("missing step attempt in context")
+				}
+				return nil
+			},
+		},
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal("idemp-"+id, inst.Steps[0].LastIdempotencyKey)
 }
 
 func (s *CoordinatorSuite) TestCancel_MarksCancelledAndCompensates() {

@@ -4,13 +4,17 @@ import (
 	"context"
 )
 
+type contextKeySagaID struct{}
+type contextKeyStepIndex struct{}
+type contextKeyStepName struct{}
+type contextKeyStepAttempt struct{}
+
 type Execution struct {
 	SagaID    string
 	Def       *Definition
 	Instance  *Instance
 	StepIndex int
 	StepData  map[string]any
-	Store     Store
 }
 
 // Accessors for shared data.
@@ -39,5 +43,29 @@ func (e *Execution) IdempotencyKey() string {
 
 // Provide a step-scoped context if needed (e.g., propagating saga IDs).
 func (e *Execution) WithStepContext(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, contextKeySagaID{}, e.SagaID)
+	ctx = context.WithValue(ctx, contextKeyStepIndex{}, e.StepIndex)
+	ctx = context.WithValue(ctx, contextKeyStepName{}, e.Def.Steps[e.StepIndex].Name)
+	ctx = context.WithValue(ctx, contextKeyStepAttempt{}, e.Instance.Steps[e.StepIndex].Attempt)
 	return ctx
+}
+
+func SagaIDFromContext(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(contextKeySagaID{}).(string)
+	return v, ok
+}
+
+func StepIndexFromContext(ctx context.Context) (int, bool) {
+	v, ok := ctx.Value(contextKeyStepIndex{}).(int)
+	return v, ok
+}
+
+func StepNameFromContext(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(contextKeyStepName{}).(string)
+	return v, ok
+}
+
+func StepAttemptFromContext(ctx context.Context) (int, bool) {
+	v, ok := ctx.Value(contextKeyStepAttempt{}).(int)
+	return v, ok
 }
