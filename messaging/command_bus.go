@@ -67,9 +67,9 @@ func CommandHandlerFn[C Command](fn func(ctx context.Context, cmd C) error) Mess
 }
 
 // NewCommandHandlerWithReplyFn wraps the given CommandHandlerWithReplyFn into a MessageHandlerWithReplyFn.
-func CommandHandlerWithReplyFn[E Command, R CommandReply](fn func(ctx context.Context, cmd E) (R, error)) MessageHandlerWithReply[Message, MessageReply] {
+func CommandHandlerWithReplyFn[E Command, R CommandReply](fn func(ctx context.Context, cmd E) (R, error)) MessageHandlerWithReply[Command, CommandReply] {
 	var zeroCmd E
-	return MessageHandlerWithReplyFn[Message, MessageReply](func(ctx context.Context, msg Message) (MessageReply, error) {
+	return MessageHandlerWithReplyFn[Command, CommandReply](func(ctx context.Context, msg Command) (CommandReply, error) {
 		castCmd, ok := msg.(E)
 		if !ok {
 			return nil, InvalidMessageTypeError{

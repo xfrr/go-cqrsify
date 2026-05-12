@@ -36,7 +36,7 @@ func RegisterCommandHandlerWithReply[E Command, R CommandReply](
 	var zero E
 	return consumer.SubscribeWithReply(
 		ctx,
-		MessageHandlerWithReplyFn[Command, CommandReply](func(ctx context.Context, cmd Command) (CommandReply, error) {
+		CommandHandlerWithReplyFn(func(ctx context.Context, cmd Command) (CommandReply, error) {
 			castCmd, ok := cmd.(E)
 			if !ok {
 				return nil, InvalidMessageTypeError{

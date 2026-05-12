@@ -30,9 +30,9 @@ type QueryConsumer interface {
 }
 
 // QueryHandlerFn wraps the given QueryHandlerFn into a MessageHandlerWithReplyFn.
-func QueryHandlerFn[Q Query, R QueryReply](fn func(ctx context.Context, qry Q) (R, error)) MessageHandlerWithReply[Message, MessageReply] {
+func QueryHandlerFn[Q Query, R QueryReply](fn func(ctx context.Context, qry Q) (R, error)) MessageHandlerWithReply[Query, QueryReply] {
 	var zeroQry Q
-	return MessageHandlerWithReplyFn[Message, MessageReply](func(ctx context.Context, msg Message) (MessageReply, error) {
+	return MessageHandlerWithReplyFn[Query, QueryReply](func(ctx context.Context, msg Query) (QueryReply, error) {
 		castQry, ok := msg.(Q)
 		if !ok {
 			return nil, InvalidMessageTypeError{

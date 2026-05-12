@@ -122,12 +122,21 @@ func RegisterEventHandlerTypedRouter[T Event](router *MessageHandlerTypedRouter[
 	}))
 }
 
+// NewEventHandlerTypedRouter creates a new MessageHandlerTypedRouter for Events.
+func NewEventHandlerTypedRouter() *MessageHandlerTypedRouter[Event] {
+	return NewMessageHandlerTypedRouter[Event]()
+}
+
 // RegisterQueryHandlerTypedRouter is a helper function to register a QueryHandler in a MessageHandlerWithReplyTypedRouter.
-func RegisterQueryHandlerTypedRouter[T Query, R QueryReply](router *MessageHandlerWithReplyTypedRouter[Query, QueryReply], queryType string, handler MessageHandlerWithReply[T, R]) error {
+func RegisterQueryHandlerTypedRouter[Q Query, R QueryReply](
+	router *MessageHandlerWithReplyTypedRouter[Query, QueryReply],
+	queryType string,
+	handler MessageHandlerWithReply[Q, R],
+) error {
 	return router.Register(queryType, MessageHandlerWithReplyFn[Query, QueryReply](func(ctx context.Context, msg Query) (QueryReply, error) {
-		castedMsg, ok := msg.(T)
+		castedMsg, ok := msg.(Q)
 		if !ok {
-			var zero T
+			var zero Q
 			return nil, InvalidMessageTypeError{
 				Actual:   fmt.Sprintf("%T", msg),
 				Expected: fmt.Sprintf("%T", zero),
@@ -135,19 +144,4 @@ func RegisterQueryHandlerTypedRouter[T Query, R QueryReply](router *MessageHandl
 		}
 		return handler.Handle(ctx, castedMsg)
 	}))
-}
-
-// NewCommandHandlerTypedRouter creates a new MessageHandlerTypedRouter for Commands.
-func NewCommandHandlerTypedRouter() *MessageHandlerTypedRouter[Command] {
-	return NewMessageHandlerTypedRouter[Command]()
-}
-
-// NewEventHandlerTypedRouter creates a new MessageHandlerTypedRouter for Events.
-func NewEventHandlerTypedRouter() *MessageHandlerTypedRouter[Event] {
-	return NewMessageHandlerTypedRouter[Event]()
-}
-
-// NewQueryHandlerTypedRouter creates a new MessageHandlerWithReplyTypedRouter for Queries.
-func NewQueryHandlerTypedRouter() *MessageHandlerWithReplyTypedRouter[Query, QueryReply] {
-	return NewMessageHandlerWithReplyTypedRouter[Query, QueryReply]()
 }
