@@ -401,8 +401,8 @@ func createJsonDeserializer() messaging.MessageDeserializer {
 	return jsonDeserializer
 }
 
-func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
-	cmdRouter := messaging.NewMessageHandlerWithReplyTypedRouter()
+func newCommandRoutedHandler() *messaging.CommandHandlerWithReplyTypedRouter {
+	cmdRouter := messaging.NewCommandHandlerWithReplyTypedRouter()
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.order.reserve.cmd",
 		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
@@ -459,16 +459,15 @@ func newCommandRoutedHandler() *messaging.MessageHandlerWithReplyTypedRouter {
 			return remoteResultOK, nil
 		}),
 	)
-	// Disabled shipping to simulate failure and trigger compensation
-	// cmdRouter.Register(
-	// 	"cqrsify.examples.sagas.delivery.ship.cmd",
-	// 	messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
-	// 		remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
-	// 			"shipment_id": "shipment-54321",
-	// 		})
-	// 		return remoteResultOK, nil
-	// 	}),
-	// )
+	cmdRouter.Register(
+		"cqrsify.examples.sagas.delivery.ship.cmd",
+		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
+			remoteResultOK := saga.RemoteResultOK(cmd, map[string]any{
+				"shipment_id": "shipment-54321",
+			})
+			return remoteResultOK, nil
+		}),
+	)
 	cmdRouter.Register(
 		"cqrsify.examples.sagas.delivery.cancel.cmd",
 		messaging.CommandHandlerWithReplyFn(func(ctx context.Context, cmd saga.RemotePayload) (messaging.CommandReply, error) {
