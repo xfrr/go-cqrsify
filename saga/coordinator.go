@@ -562,6 +562,9 @@ func (c *Coordinator) executeAction(ctx context.Context, inst *Instance, ss *Ste
 		if r := recover(); r != nil {
 			panicErr := fmt.Errorf("step %q panicked: %v", step.Name, r)
 			c.onStepFailure(ctx, inst, ss, panicErr)
+			ss.Status = StatusFailed
+			ss.FinishedAt = c.now()
+			inst.FailureReason = "step_action_panicked"
 			if saveErr := c.store.Save(ctx, inst); saveErr != nil {
 				err = fmt.Errorf("step panic and save failure state: %w: %v", panicErr, saveErr)
 				return
@@ -572,6 +575,8 @@ func (c *Coordinator) executeAction(ctx context.Context, inst *Instance, ss *Ste
 
 	if actionErr := step.Action(ex.WithStepContext(ctx), ex); actionErr != nil {
 		c.onStepFailure(ctx, inst, ss, actionErr)
+		ss.Status = StatusFailed
+		ss.FinishedAt = c.now()
 		inst.FailureReason = "step_action_failed"
 		if saveErr := c.store.Save(ctx, inst); saveErr != nil {
 			return fmt.Errorf("step action failed: %w; save failure state failed: %v", actionErr, saveErr)

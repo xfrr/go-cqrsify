@@ -349,7 +349,7 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "boom")
+	s.Require().ErrorContains(err, "boom")
 
 	inst, err := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
@@ -363,6 +363,10 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	s.Equal(1, callsComp)     // only first step compensated
 	s.Equal(1, inst.Current)  // failed at step index 1
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+	s.Equal(saga.StatusFailed, inst.Steps[1].Status)
+	s.Equal("boom", inst.Steps[1].ErrorMsg)
+	s.False(inst.Steps[1].FinishedAt.IsZero())
+	s.Equal("step_action_failed", inst.FailureReason)
 	s.Require().Len(s.hrec.compFinishedStatuses, 1)
 	s.Equal(saga.StatusCompensateSuccess, s.hrec.compFinishedStatuses[0])
 }
@@ -378,11 +382,15 @@ func (s *CoordinatorSuite) TestRun_ActionPanic_TriggersCompensationAndReturnsErr
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "panicked")
+	s.Require().ErrorContains(err, "panicked")
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
 	s.Equal(saga.StatusCompensateSuccess, inst.Status)
+	s.Equal(saga.StatusFailed, inst.Steps[1].Status)
+	s.Contains(inst.Steps[1].ErrorMsg, "panicked")
+	s.False(inst.Steps[1].FinishedAt.IsZero())
+	s.Equal("step_action_panicked", inst.FailureReason)
 	s.Equal(1, s.hrec.failed)
 	s.Equal(1, s.hrec.compOK)
 }
@@ -401,7 +409,7 @@ func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "compensation")
+	s.Require().ErrorContains(err, "compensation")
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
@@ -522,7 +530,7 @@ func (s *CoordinatorSuite) TestRun_UsesCoordinatorCompensationRetryFactory() {
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "boom")
+	s.Require().ErrorContains(err, "boom")
 	s.Equal(1, factoryCalls)
 }
 
@@ -554,7 +562,7 @@ func (s *CoordinatorSuite) TestRun_CustomCompensationRetryFactory_RetriesCompens
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "boom")
+	s.Require().ErrorContains(err, "boom")
 	s.Equal(2, compAttempts)
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
@@ -588,7 +596,7 @@ func (s *CoordinatorSuite) TestRun_StepCompensationRetryOptions_OverrideCoordina
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "compensation failed")
+	s.Require().ErrorContains(err, "compensation failed")
 	s.Equal(1, compAttempts)
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
@@ -615,7 +623,7 @@ func (s *CoordinatorSuite) TestRun_StepTimeout_ReturnsError() {
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, context.DeadlineExceeded.Error())
+	s.Require().ErrorContains(err, context.DeadlineExceeded.Error())
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
@@ -634,7 +642,7 @@ func (s *CoordinatorSuite) TestRun_SaveFailureOnStepError_IsReturned() {
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorContains(err, "save failure state failed")
+	s.Require().ErrorContains(err, "save failure state failed")
 }
 
 func (s *CoordinatorSuite) TestRun_LeaseLost_ReturnsErrLockLost() {
@@ -651,7 +659,7 @@ func (s *CoordinatorSuite) TestRun_LeaseLost_ReturnsErrLockLost() {
 
 	err = c.Run(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorIs(err, saga.ErrLockLost)
+	s.Require().ErrorIs(err, saga.ErrLockLost)
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
@@ -756,7 +764,7 @@ func (s *CoordinatorSuite) TestCancel_RespectsLock_ReturnsErrLocked() {
 	s.locker.tryOK = false
 	err = c.Cancel(s.T().Context(), id)
 	s.Require().Error(err)
-	s.ErrorIs(err, saga.ErrLocked)
+	s.Require().ErrorIs(err, saga.ErrLocked)
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
