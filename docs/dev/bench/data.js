@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778622401810,
+  "lastUpdate": 1778623934158,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5692,6 +5692,48 @@ window.BENCHMARK_DATA = {
             "value": 178.9,
             "unit": "ns/op",
             "extra": "6727320 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "35836929+xfrr@users.noreply.github.com",
+            "name": "Fran",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c0ca7bde465394512236b89850af4fac301853f7",
+          "message": "feat: implement saga pattern (#8)\n\n- Added Coordinator and Execution structures to manage saga instances.\n- Implemented hooks for saga lifecycle events (start, complete, fail, compensate).\n- Created in-memory store for saga instances with optimistic concurrency control.\n- Introduced remote step actions and compensations with messaging support.\n- Added retry factories for step actions and compensations with customizable options.\n- Developed unit tests for saga coordinator functionalities, ensuring correct behavior for various scenarios.\n- Defined interfaces for UUID and Time providers to allow for flexible implementations.",
+          "timestamp": "2026-05-13T00:11:23+02:00",
+          "tree_id": "371e5f1ffe0a5fdd2dffd79668673bfb9b499859",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/c0ca7bde465394512236b89850af4fac301853f7"
+        },
+        "date": 1778623933084,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.3748,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 78.92,
+            "unit": "ns/op",
+            "extra": "15210916 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 178.4,
+            "unit": "ns/op",
+            "extra": "6760360 times\n4 procs"
           }
         ]
       }
