@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778579839601,
+  "lastUpdate": 1778598587827,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5498,6 +5498,48 @@ window.BENCHMARK_DATA = {
             "value": 186.6,
             "unit": "ns/op",
             "extra": "6471746 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "ed49daf99b6c3d4d9317e04e95b6ce30571fc633",
+          "message": "feat: implement typed routers for command and query handlers with reply support",
+          "timestamp": "2026-05-12T17:09:06+02:00",
+          "tree_id": "aa9447b003af7e5895a2c08be5218402ec103cc3",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/ed49daf99b6c3d4d9317e04e95b6ce30571fc633"
+        },
+        "date": 1778598587390,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.4236,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 77.17,
+            "unit": "ns/op",
+            "extra": "15522352 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 185,
+            "unit": "ns/op",
+            "extra": "6470404 times\n4 procs"
           }
         ]
       }
