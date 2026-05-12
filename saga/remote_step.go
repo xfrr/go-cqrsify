@@ -63,11 +63,12 @@ func MessagingRemoteAction(bus messaging.CommandBusReplier, subj RemoteSubjects)
 			},
 		}
 
-		if subj.Timeout <= 0 {
-			subj.Timeout = defaultRemoteStepTimeout
+		timeout := subj.Timeout
+		if timeout <= 0 {
+			timeout = defaultRemoteStepTimeout
 		}
 
-		requestCtx, cancel := context.WithTimeout(ctx, subj.Timeout)
+		requestCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
 		resp, err := messaging.Request[RemoteResult](requestCtx, bus, cmd)
@@ -103,11 +104,12 @@ func MessagingRemoteCompensation(bus messaging.CommandBusReplier, subj RemoteSub
 			},
 		}
 
-		if subj.Timeout <= 0 {
-			subj.Timeout = defaultRemoteStepTimeout
+		timeout := subj.Timeout
+		if timeout <= 0 {
+			timeout = defaultRemoteStepTimeout
 		}
 
-		requestCtx, cancel := context.WithTimeout(ctx, subj.Timeout)
+		requestCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
 		resp, err := messaging.Request[RemoteResult](requestCtx, bus, cmd)
