@@ -120,11 +120,11 @@ type mockUUID struct {
 	cur int
 }
 
-func (g *mockUUID) New() string {
+func (g *mockUUID) New() (string, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.cur++
-	return "saga-" + strconv.Itoa(g.cur)
+	return "saga-" + strconv.Itoa(g.cur), nil
 }
 
 type mockClock struct {

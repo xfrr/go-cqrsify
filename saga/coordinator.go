@@ -73,10 +73,15 @@ func (c *Coordinator) Start(ctx context.Context, input map[string]any, metadata 
 		return "", ErrNilDefinition
 	}
 
-	inst := c.newInstance(input, metadata)
+	inst, err := c.newInstance(input, metadata)
+	if err != nil {
+		return "", err
+	}
+
 	if createErr := c.store.Create(ctx, inst); createErr != nil {
 		return "", createErr
 	}
+
 	if c.cfg.Hooks.OnSagaStarted != nil {
 		c.cfg.Hooks.OnSagaStarted(ctx, inst)
 	}
@@ -149,9 +154,13 @@ func (c *Coordinator) Cancel(ctx context.Context, sagaID string) error {
 	return c.compensate(ctx, inst)
 }
 
-func (c *Coordinator) newInstance(input map[string]any, metadata map[string]string) *Instance {
+func (c *Coordinator) newInstance(input map[string]any, metadata map[string]string) (*Instance, error) {
 	now := c.now()
-	id := c.cfg.UUIDProvider.New()
+	id, err := c.cfg.UUIDProvider.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate saga ID: %w", err)
+	}
+
 	inst := &Instance{
 		ID:        id,
 		Name:      c.def.Name,
@@ -172,7 +181,7 @@ func (c *Coordinator) newInstance(input map[string]any, metadata map[string]stri
 			Data:   map[string]any{},
 		}
 	}
-	return inst
+	return inst, nil
 }
 
 func (c *Coordinator) ensureRunningStatus(ctx context.Context, inst *Instance) error {
