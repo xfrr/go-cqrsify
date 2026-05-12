@@ -48,6 +48,13 @@ type Coordinator struct {
 	cfg    CoordinatorConfig
 }
 
+type compensationTrigger string
+
+const (
+	compensationTriggerFailure compensationTrigger = "failure"
+	compensationTriggerCancel  compensationTrigger = "cancel"
+)
+
 // NewCoordinator creates a new saga Coordinator.
 func NewCoordinator(def *Definition, store Store, locker lock.Locker, cfg CoordinatorConfig) *Coordinator {
 	if cfg.RetryFactory == nil {
@@ -123,7 +130,7 @@ func (c *Coordinator) Run(ctx context.Context, sagaID string) error {
 		if setErr := c.setSagaStatus(ctx, inst, StatusFailed); setErr != nil {
 			return setErr
 		}
-		if compensationErr := c.compensate(lockCtx, inst); compensationErr != nil {
+		if compensationErr := c.compensate(lockCtx, inst, compensationTriggerFailure); compensationErr != nil {
 			return fmt.Errorf("step execution failed: %w; compensation failed: %v", stepExecutionErr, compensationErr)
 		}
 		return stepExecutionErr
@@ -141,17 +148,30 @@ func (c *Coordinator) Run(ctx context.Context, sagaID string) error {
 // Cancel aborts the saga with the given ID and triggers compensation.
 // It returns an immediate error if the saga is already in a terminal state.
 func (c *Coordinator) Cancel(ctx context.Context, sagaID string) error {
-	inst, err := c.store.Load(ctx, sagaID)
+	if c.def == nil {
+		return ErrNilDefinition
+	}
+	if sagaID == "" {
+		return ErrEmptySagaID
+	}
+
+	lockCtx, cleanup, _, err := c.acquireLockWithKeepalive(ctx, sagaID)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	inst, err := c.store.Load(lockCtx, sagaID)
 	if err != nil {
 		return err
 	}
 	if inst.Terminal() {
 		return ErrAlreadyTerminal
 	}
-	if sagaStatusErr := c.setSagaStatus(ctx, inst, StatusCancelled); sagaStatusErr != nil {
+	if sagaStatusErr := c.setSagaStatus(lockCtx, inst, StatusCancelled); sagaStatusErr != nil {
 		return sagaStatusErr
 	}
-	return c.compensate(ctx, inst)
+	return c.compensate(lockCtx, inst, compensationTriggerCancel)
 }
 
 func (c *Coordinator) newInstance(input map[string]any, metadata map[string]string) (*Instance, error) {
@@ -333,11 +353,8 @@ func (c *Coordinator) buildExecution(inst *Instance, ss *StepState) *Execution {
 	}
 }
 
-func (c *Coordinator) compensate(ctx context.Context, inst *Instance) error {
-	startIdx := inst.Current - 1
-	if startIdx < 0 {
-		startIdx = 0
-	}
+func (c *Coordinator) compensate(ctx context.Context, inst *Instance, trigger compensationTrigger) error {
+	startIdx := max(inst.Current-1, 0)
 
 	if c.cfg.Hooks.OnSagaCompensating != nil {
 		c.cfg.Hooks.OnSagaCompensating(ctx, inst, startIdx)
@@ -348,7 +365,7 @@ func (c *Coordinator) compensate(ctx context.Context, inst *Instance) error {
 	}
 
 	merr, attempted, succeeded, deadlineExceeded := c.compensateSteps(ctx, inst, startIdx)
-	c.finishCompensationStatus(inst, merr.HasErrors(), deadlineExceeded, attempted, succeeded)
+	c.finishCompensationStatus(inst, trigger, merr.HasErrors(), deadlineExceeded, attempted, succeeded)
 
 	if err := c.store.Save(ctx, inst); err != nil {
 		return err
@@ -452,7 +469,14 @@ func (c *Coordinator) compensateStep(
 	return c.store.Save(ctx, inst)
 }
 
-func (c *Coordinator) finishCompensationStatus(inst *Instance, hasErrors bool, deadlineExceeded bool, attempted, succeeded int) {
+func (c *Coordinator) finishCompensationStatus(
+	inst *Instance,
+	trigger compensationTrigger,
+	hasErrors bool,
+	deadlineExceeded bool,
+	attempted,
+	succeeded int,
+) {
 	inst.UpdatedAt = c.now()
 	switch {
 	case hasErrors:
@@ -464,6 +488,10 @@ func (c *Coordinator) finishCompensationStatus(inst *Instance, hasErrors bool, d
 		inst.Status = StatusFailed
 		inst.FailureReason = "compensation_deadline_exceeded"
 	default:
+		if trigger == compensationTriggerCancel {
+			inst.Status = StatusCancelled
+			return
+		}
 		inst.Status = StatusCompleted
 	}
 }

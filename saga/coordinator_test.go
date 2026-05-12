@@ -3,6 +3,7 @@ package saga_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -635,9 +636,46 @@ func (s *CoordinatorSuite) TestCancel_MarksCancelledAndCompensates() {
 
 	inst, err = s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
-	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCancelled, inst.Status)
 	s.Equal(1, s.hrec.compensating)
 	s.Equal(1, s.hrec.compFinished)
+	s.Require().Len(s.hrec.compFinishedStatuses, 1)
+	s.Equal(saga.StatusCancelled, s.hrec.compFinishedStatuses[0])
+}
+
+func (s *CoordinatorSuite) TestCancel_AcquiresSagaLockKey() {
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Cancel(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, err := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	s.Equal(saga.StatusCancelled, inst.Status)
+
+	s.locker.mu.Lock()
+	lockedKey := s.locker.lockedKey
+	s.locker.mu.Unlock()
+	s.Equal(fmt.Sprintf("saga:%s", id), lockedKey)
+}
+
+func (s *CoordinatorSuite) TestCancel_RespectsLock_ReturnsErrLocked() {
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	s.locker.tryOK = false
+	err = c.Cancel(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorIs(err, saga.ErrLocked)
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal(saga.StatusPending, inst.Status)
 }
 
 func (s *CoordinatorSuite) TestRun_RespectsLock_ReturnsErrLocked() {
