@@ -115,6 +115,14 @@ func (c *Coordinator) Run(ctx context.Context, sagaID string) error {
 	if err != nil {
 		return err
 	}
+	if shouldResume, trigger := c.resumeCompensationTrigger(inst); shouldResume {
+		if compensationErr := c.compensate(lockCtx, inst, trigger); compensationErr != nil {
+			return compensationErr
+		}
+		if trigger == compensationTriggerCancel {
+			return nil
+		}
+	}
 	if inst.Terminal() {
 		return nil
 	}
@@ -353,8 +361,61 @@ func (c *Coordinator) buildExecution(inst *Instance, ss *StepState) *Execution {
 	}
 }
 
+func (c *Coordinator) resumeCompensationTrigger(inst *Instance) (bool, compensationTrigger) {
+	if inst == nil {
+		return false, ""
+	}
+
+	if !c.hasIncompleteCompensation(inst) {
+		return false, ""
+	}
+
+	switch inst.Status {
+	case StatusCompensating:
+		return true, compensationTriggerFailure
+	case StatusCancelled:
+		return true, compensationTriggerCancel
+	default:
+		return false, ""
+	}
+}
+
+func (c *Coordinator) hasIncompleteCompensation(inst *Instance) bool {
+	for i := c.compensationStartIndex(inst); i >= 0; i-- {
+		if i >= len(inst.Steps) {
+			continue
+		}
+		ss := inst.Steps[i]
+		if ss.Status == StatusCompleted {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Coordinator) compensationStartIndex(inst *Instance) int {
+	if inst == nil {
+		return -1
+	}
+	if len(inst.Steps) == 0 {
+		return -1
+	}
+	if inst.Current <= 0 {
+		return 0
+	}
+	startIdx := inst.Current - 1
+	if startIdx >= len(inst.Steps) {
+		return len(inst.Steps) - 1
+	}
+	return startIdx
+}
+
 func (c *Coordinator) compensate(ctx context.Context, inst *Instance, trigger compensationTrigger) error {
-	startIdx := max(inst.Current-1, 0)
+	startIdx := c.compensationStartIndex(inst)
+	if startIdx < 0 {
+		c.finishCompensationStatus(inst, trigger, false, false, 0, 0)
+		return c.store.Save(ctx, inst)
+	}
 
 	if c.cfg.Hooks.OnSagaCompensating != nil {
 		c.cfg.Hooks.OnSagaCompensating(ctx, inst, startIdx)

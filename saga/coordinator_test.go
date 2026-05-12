@@ -413,6 +413,91 @@ func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
 	s.Equal(saga.StatusFailed, s.hrec.compFinishedStatuses[0])
 }
 
+func (s *CoordinatorSuite) TestRun_ResumesCompensationWhenStatusCompensating() {
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	inst, err := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	inst.Status = saga.StatusCompensating
+	inst.Current = 2
+	inst.Steps[0].Status = saga.StatusCompleted
+	inst.Steps[1].Status = saga.StatusCompleted
+	err = s.store.Save(s.T().Context(), inst)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, err = s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[1].Status)
+	s.Equal(2, s.hrec.compOK)
+	s.Equal(0, s.hrec.compKO)
+	s.Require().Len(s.hrec.compFinishedStatuses, 1)
+	s.Equal(saga.StatusCompleted, s.hrec.compFinishedStatuses[0])
+}
+
+func (s *CoordinatorSuite) TestRun_ResumesCompensationWhenStatusCancelledAndIncomplete() {
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	inst, err := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	inst.Status = saga.StatusCancelled
+	inst.Current = 2
+	inst.Steps[0].Status = saga.StatusCompleted
+	inst.Steps[1].Status = saga.StatusCompensateSuccess
+	err = s.store.Save(s.T().Context(), inst)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, err = s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	s.Equal(saga.StatusCancelled, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[1].Status)
+	s.Equal(1, s.hrec.compOK)
+	s.Equal(0, s.hrec.compKO)
+	s.Require().Len(s.hrec.compFinishedStatuses, 1)
+	s.Equal(saga.StatusCancelled, s.hrec.compFinishedStatuses[0])
+}
+
+func (s *CoordinatorSuite) TestRun_CancelledAndFullyCompensated_NoOp() {
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	inst, err := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	inst.Status = saga.StatusCancelled
+	inst.Current = 2
+	inst.Steps[0].Status = saga.StatusCompensateSuccess
+	inst.Steps[1].Status = saga.StatusCompensateSuccess
+	err = s.store.Save(s.T().Context(), inst)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, err = s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	s.Equal(saga.StatusCancelled, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[1].Status)
+	s.Equal(0, s.hrec.compensating)
+	s.Equal(0, s.hrec.compFinished)
+}
+
 func (s *CoordinatorSuite) TestRun_UsesCoordinatorCompensationRetryFactory() {
 	factoryCalls := 0
 	s.cfg.CompensationRetryFactory = func(_ saga.Step) *retry.Retrier {
