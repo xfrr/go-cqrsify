@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1771106903609,
+  "lastUpdate": 1778579472026,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5414,6 +5414,48 @@ window.BENCHMARK_DATA = {
             "value": 141.7,
             "unit": "ns/op",
             "extra": "8562484 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "640f9456668caa9ed322d0b9a9140483525b55d3",
+          "message": "fix: add conditions to benchmark job for push events on main branch",
+          "timestamp": "2026-05-12T11:50:18+02:00",
+          "tree_id": "830522524bb71b6cf27590d7f2b43fa84d88d09a",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/640f9456668caa9ed322d0b9a9140483525b55d3"
+        },
+        "date": 1778579470483,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.328,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 59.85,
+            "unit": "ns/op",
+            "extra": "20107336 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 143,
+            "unit": "ns/op",
+            "extra": "8437297 times\n4 procs"
           }
         ]
       }
