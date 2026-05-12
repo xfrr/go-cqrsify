@@ -354,8 +354,8 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	inst, err := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
 
-	// Saga-level terminal status after compensation is COMPLETED when all compensations succeed.
-	s.Equal(saga.StatusCompleted, inst.Status)
+	// Saga-level terminal status after compensation is COMPENSATE_SUCCESS when all compensations succeed.
+	s.Equal(saga.StatusCompensateSuccess, inst.Status)
 	s.Equal(1, s.hrec.stepKO) // one failure
 	s.Equal(1, s.hrec.failed)
 	s.Equal(1, s.hrec.compOK) // one successful compensation
@@ -364,7 +364,7 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	s.Equal(1, inst.Current)  // failed at step index 1
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
 	s.Require().Len(s.hrec.compFinishedStatuses, 1)
-	s.Equal(saga.StatusCompleted, s.hrec.compFinishedStatuses[0])
+	s.Equal(saga.StatusCompensateSuccess, s.hrec.compFinishedStatuses[0])
 }
 
 func (s *CoordinatorSuite) TestRun_ActionPanic_TriggersCompensationAndReturnsError() {
@@ -382,7 +382,7 @@ func (s *CoordinatorSuite) TestRun_ActionPanic_TriggersCompensationAndReturnsErr
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
-	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Status)
 	s.Equal(1, s.hrec.failed)
 	s.Equal(1, s.hrec.compOK)
 }
@@ -405,12 +405,12 @@ func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
-	s.Equal(saga.StatusFailed, inst.Status)
+	s.Equal(saga.StatusCompensateFailed, inst.Status)
 	s.Equal("compensation_failed", inst.FailureReason)
 	s.Equal(saga.StatusCompensateFailed, inst.Steps[0].Status)
 	s.GreaterOrEqual(s.hrec.compKO, 1)
 	s.Require().Len(s.hrec.compFinishedStatuses, 1)
-	s.Equal(saga.StatusFailed, s.hrec.compFinishedStatuses[0])
+	s.Equal(saga.StatusCompensateFailed, s.hrec.compFinishedStatuses[0])
 }
 
 func (s *CoordinatorSuite) TestRun_ResumesCompensationWhenStatusCompensating() {
@@ -433,13 +433,13 @@ func (s *CoordinatorSuite) TestRun_ResumesCompensationWhenStatusCompensating() {
 
 	inst, err = s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
-	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Status)
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[1].Status)
 	s.Equal(2, s.hrec.compOK)
 	s.Equal(0, s.hrec.compKO)
 	s.Require().Len(s.hrec.compFinishedStatuses, 1)
-	s.Equal(saga.StatusCompleted, s.hrec.compFinishedStatuses[0])
+	s.Equal(saga.StatusCompensateSuccess, s.hrec.compFinishedStatuses[0])
 }
 
 func (s *CoordinatorSuite) TestRun_ResumesCompensationWhenStatusCancelledAndIncomplete() {
@@ -559,7 +559,7 @@ func (s *CoordinatorSuite) TestRun_CustomCompensationRetryFactory_RetriesCompens
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
-	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Status)
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
 }
 
@@ -593,7 +593,7 @@ func (s *CoordinatorSuite) TestRun_StepCompensationRetryOptions_OverrideCoordina
 
 	inst, loadErr := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(loadErr)
-	s.Equal(saga.StatusFailed, inst.Status)
+	s.Equal(saga.StatusCompensateFailed, inst.Status)
 	s.Equal(saga.StatusCompensateFailed, inst.Steps[0].Status)
 }
 

@@ -174,9 +174,9 @@ func main() {
 			},
 			OnSagaCompensatingFinished: func(ctx context.Context, si *saga.Instance) {
 				switch si.Status {
-				case saga.StatusCompleted:
+				case saga.StatusCompensateSuccess:
 					fmt.Printf("✔ saga %q compensated successfully\n", si.Name)
-				case saga.StatusFailed:
+				case saga.StatusCompensateFailed:
 					fmt.Printf("⚠ saga %q compensated with errors\n", si.Name)
 				default:
 					fmt.Printf("↶ saga %q compensation finished with status %s\n", si.Name, si.Status)

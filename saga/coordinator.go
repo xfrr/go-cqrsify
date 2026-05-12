@@ -541,19 +541,19 @@ func (c *Coordinator) finishCompensationStatus(
 	inst.UpdatedAt = c.now()
 	switch {
 	case hasErrors:
-		inst.Status = StatusFailed
+		inst.Status = StatusCompensateFailed
 		if inst.FailureReason == "" {
 			inst.FailureReason = "compensation_failed"
 		}
 	case deadlineExceeded && attempted != succeeded:
-		inst.Status = StatusFailed
+		inst.Status = StatusCompensateFailed
 		inst.FailureReason = "compensation_deadline_exceeded"
 	default:
 		if trigger == compensationTriggerCancel {
 			inst.Status = StatusCancelled
 			return
 		}
-		inst.Status = StatusCompleted
+		inst.Status = StatusCompensateSuccess
 	}
 }
 
