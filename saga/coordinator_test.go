@@ -506,6 +506,34 @@ func (s *CoordinatorSuite) TestRun_CancelledAndFullyCompensated_NoOp() {
 	s.Equal(0, s.hrec.compFinished)
 }
 
+func (s *CoordinatorSuite) TestRun_CancelledWithCompletedStepWithoutCompensator_NoReentry() {
+	s.def.Steps[0].Compensate = nil
+	c := s.newCoordinator()
+
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	inst, err := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	inst.Status = saga.StatusCancelled
+	inst.Current = 1
+	inst.Steps[0].Status = saga.StatusCompleted
+	err = s.store.Save(s.T().Context(), inst)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().NoError(err)
+
+	inst, err = s.store.Load(s.T().Context(), id)
+	s.Require().NoError(err)
+	s.Equal(saga.StatusCancelled, inst.Status)
+	s.Equal(saga.StatusCompleted, inst.Steps[0].Status)
+	s.Equal(0, s.hrec.compensating)
+	s.Equal(0, s.hrec.compFinished)
+	s.Equal(0, s.hrec.compOK)
+	s.Equal(0, s.hrec.compKO)
+}
+
 func (s *CoordinatorSuite) TestRun_UsesCoordinatorCompensationRetryFactory() {
 	factoryCalls := 0
 	s.cfg.CompensationRetryFactory = func(_ saga.Step) *retry.Retrier {

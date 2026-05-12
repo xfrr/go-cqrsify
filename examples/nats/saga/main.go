@@ -1,4 +1,3 @@
-// orchestrator/main.go
 package main
 
 import (
@@ -23,7 +22,7 @@ const (
 )
 
 func main() {
-	ctx, signalCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGKILL, os.Interrupt)
+	ctx, signalCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer signalCancel()
 
 	// Create NATS connection

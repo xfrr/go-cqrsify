@@ -51,8 +51,9 @@ type Coordinator struct {
 type compensationTrigger string
 
 const (
-	compensationTriggerFailure compensationTrigger = "failure"
-	compensationTriggerCancel  compensationTrigger = "cancel"
+	compensationTriggerFailure      compensationTrigger = "failure"
+	compensationTriggerCancel       compensationTrigger = "cancel"
+	FailureReasonCompensationFailed                     = "compensation_failed"
 )
 
 // NewCoordinator creates a new saga Coordinator.
@@ -139,7 +140,7 @@ func (c *Coordinator) Run(ctx context.Context, sagaID string) error {
 			return setErr
 		}
 		if compensationErr := c.compensate(lockCtx, inst, compensationTriggerFailure); compensationErr != nil {
-			return fmt.Errorf("step execution failed: %w; compensation failed: %v", stepExecutionErr, compensationErr)
+			return fmt.Errorf("step execution failed: %w; compensation failed: %s", stepExecutionErr, compensationErr.Error())
 		}
 		return stepExecutionErr
 	}
@@ -223,7 +224,7 @@ func (c *Coordinator) ensureRunningStatus(ctx context.Context, inst *Instance) e
 func (c *Coordinator) acquireLockWithKeepalive(
 	ctx context.Context,
 	sagaID string,
-) (lockCtx context.Context, cleanup func(), keepaliveLost <-chan error, err error) {
+) (context.Context, func(), <-chan error, error) {
 	lockKey := fmt.Sprintf("saga:%s", sagaID)
 
 	// 	try to acquire lock
@@ -244,7 +245,7 @@ func (c *Coordinator) acquireLockWithKeepalive(
 		wg.Go(func() { c.keepalive(lockCtx, renewer, lockKey, stopKeepalive, keepAliveLost) })
 	}
 
-	cleanup = func() {
+	cleanup := func() {
 		cancel()
 		close(stopKeepalive)
 		wg.Wait()
@@ -262,9 +263,12 @@ func (c *Coordinator) keepalive(
 	stop <-chan struct{},
 	keepaliveLost chan<- error,
 ) {
-	interval := c.cfg.LockTTL / 3
+	const minInterval = time.Second
+	const keepAliveIntervalDivisor = 3
+
+	interval := c.cfg.LockTTL / keepAliveIntervalDivisor
 	if interval <= 0 {
-		interval = time.Second
+		interval = minInterval
 	}
 	t := time.NewTicker(interval)
 	defer t.Stop()
@@ -382,11 +386,11 @@ func (c *Coordinator) resumeCompensationTrigger(inst *Instance) (bool, compensat
 
 func (c *Coordinator) hasIncompleteCompensation(inst *Instance) bool {
 	for i := c.compensationStartIndex(inst); i >= 0; i-- {
-		if i >= len(inst.Steps) {
+		if i >= len(inst.Steps) || c.def == nil || i >= len(c.def.Steps) {
 			continue
 		}
 		ss := inst.Steps[i]
-		if ss.Status == StatusCompleted {
+		if ss.Status == StatusCompleted && c.def.Steps[i].Compensate != nil {
 			return true
 		}
 	}
@@ -511,7 +515,7 @@ func (c *Coordinator) compensateStep(
 	if compensationErr != nil {
 		ss.Status = StatusCompensateFailed
 		ss.ErrorMsg = "compensation: " + compensationErr.Error()
-		inst.FailureReason = "compensation_failed"
+		inst.FailureReason = FailureReasonCompensationFailed
 		ss.FinishedAt = c.now()
 		inst.UpdatedAt = ss.FinishedAt
 		if err := c.store.Save(ctx, inst); err != nil {
@@ -543,7 +547,7 @@ func (c *Coordinator) finishCompensationStatus(
 	case hasErrors:
 		inst.Status = StatusCompensateFailed
 		if inst.FailureReason == "" {
-			inst.FailureReason = "compensation_failed"
+			inst.FailureReason = FailureReasonCompensationFailed
 		}
 	case deadlineExceeded && attempted != succeeded:
 		inst.Status = StatusCompensateFailed
@@ -602,7 +606,7 @@ func (c *Coordinator) executeCompensation(ctx context.Context, inst *Instance, s
 
 	if compensationErr := step.Compensate(ex.WithStepContext(ctx), ex); compensationErr != nil {
 		c.onCompensationFailure(ctx, inst, ss, compensationErr)
-		inst.FailureReason = "compensation_failed"
+		inst.FailureReason = FailureReasonCompensationFailed
 		if saveErr := c.store.Save(ctx, inst); saveErr != nil {
 			return fmt.Errorf("compensation failed: %w; save failure state failed: %v", compensationErr, saveErr)
 		}
