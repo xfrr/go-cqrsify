@@ -36,6 +36,9 @@ type CoordinatorConfig struct {
 	// RetryFactory builds a retrier for saga step executions.
 	// If nil, a default retrier factory is used.
 	RetryFactory RetryFactory
+	// CompensationRetryFactory builds a retrier for saga step compensations.
+	// If nil, a default retrier factory is used.
+	CompensationRetryFactory RetryFactory
 }
 
 type Coordinator struct {
@@ -49,6 +52,9 @@ type Coordinator struct {
 func NewCoordinator(def *Definition, store Store, locker lock.Locker, cfg CoordinatorConfig) *Coordinator {
 	if cfg.RetryFactory == nil {
 		cfg.RetryFactory = stepActionRetryFactory()
+	}
+	if cfg.CompensationRetryFactory == nil {
+		cfg.CompensationRetryFactory = stepCompensationRetryFactory()
 	}
 	if cfg.UUIDProvider == nil {
 		cfg.UUIDProvider = DefaultUUIDProvider
@@ -410,7 +416,7 @@ func (c *Coordinator) compensateStep(
 		StepData:  ss.Data,
 	}
 
-	cr := stepCompensationRetryFactory(*step)
+	cr := c.cfg.CompensationRetryFactory(*step)
 	compensationErr := cr.Do(ctx, func(runCtx context.Context) error {
 		return c.executeCompensation(runCtx, inst, ss, step, ex)
 	})

@@ -51,46 +51,48 @@ func stepActionRetryFactory() RetryFactory {
 	}
 }
 
-func stepCompensationRetryFactory(step Step) *retry.Retrier {
-	opts := retry.DefaultOptions()
-	opts.Strategy = retry.ExponentialStrategy{
-		Base:   500 * time.Millisecond,
-		Factor: 2.0,
-		Cap:    10 * time.Second,
-	}
-	opts.Jitter = retry.FullJitter{}
-	opts.MaxAttempts = 5
+func stepCompensationRetryFactory() RetryFactory {
+	return func(step Step) *retry.Retrier {
+		opts := retry.DefaultOptions()
+		opts.Strategy = retry.ExponentialStrategy{
+			Base:   500 * time.Millisecond,
+			Factor: 2.0,
+			Cap:    10 * time.Second,
+		}
+		opts.Jitter = retry.FullJitter{}
+		opts.MaxAttempts = 5
 
-	co := step.CompensationRetryOptions
-	if co.Strategy != nil {
-		opts.Strategy = co.Strategy
+		co := step.CompensationRetryOptions
+		if co.Strategy != nil {
+			opts.Strategy = co.Strategy
+		}
+		if co.Jitter != nil {
+			opts.Jitter = co.Jitter
+		}
+		if co.Classifier != nil {
+			opts.Classifier = co.Classifier
+		}
+		if co.Stopper != nil {
+			opts.Stopper = co.Stopper
+		}
+		if co.MaxAttempts != 0 {
+			opts.MaxAttempts = co.MaxAttempts
+		}
+		if co.MaxElapsed > 0 {
+			opts.MaxElapsed = co.MaxElapsed
+		}
+		if co.Sleeper != nil {
+			opts.Sleeper = co.Sleeper
+		}
+		if co.Hooks.OnAttempt != nil {
+			opts.Hooks.OnAttempt = co.Hooks.OnAttempt
+		}
+		if co.Hooks.OnRetry != nil {
+			opts.Hooks.OnRetry = co.Hooks.OnRetry
+		}
+		if co.Hooks.OnGiveUp != nil {
+			opts.Hooks.OnGiveUp = co.Hooks.OnGiveUp
+		}
+		return retry.New(opts)
 	}
-	if co.Jitter != nil {
-		opts.Jitter = co.Jitter
-	}
-	if co.Classifier != nil {
-		opts.Classifier = co.Classifier
-	}
-	if co.Stopper != nil {
-		opts.Stopper = co.Stopper
-	}
-	if co.MaxAttempts != 0 {
-		opts.MaxAttempts = co.MaxAttempts
-	}
-	if co.MaxElapsed > 0 {
-		opts.MaxElapsed = co.MaxElapsed
-	}
-	if co.Sleeper != nil {
-		opts.Sleeper = co.Sleeper
-	}
-	if co.Hooks.OnAttempt != nil {
-		opts.Hooks.OnAttempt = co.Hooks.OnAttempt
-	}
-	if co.Hooks.OnRetry != nil {
-		opts.Hooks.OnRetry = co.Hooks.OnRetry
-	}
-	if co.Hooks.OnGiveUp != nil {
-		opts.Hooks.OnGiveUp = co.Hooks.OnGiveUp
-	}
-	return retry.New(opts)
 }

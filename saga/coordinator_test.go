@@ -412,6 +412,105 @@ func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
 	s.Equal(saga.StatusFailed, s.hrec.compFinishedStatuses[0])
 }
 
+func (s *CoordinatorSuite) TestRun_UsesCoordinatorCompensationRetryFactory() {
+	factoryCalls := 0
+	s.cfg.CompensationRetryFactory = func(_ saga.Step) *retry.Retrier {
+		factoryCalls++
+		opts := retry.DefaultOptions()
+		opts.MaxAttempts = 1
+		opts.Strategy = retry.ConstantStrategy{Delay: 0}
+		return retry.New(opts)
+	}
+
+	failErr := errors.New("boom")
+	s.def.Steps[1].Action = func(_ context.Context, _ *saga.Execution) error {
+		return failErr
+	}
+	s.def.Steps[0].Compensate = func(_ context.Context, _ *saga.Execution) error {
+		return nil
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "boom")
+	s.Equal(1, factoryCalls)
+}
+
+func (s *CoordinatorSuite) TestRun_CustomCompensationRetryFactory_RetriesCompensation() {
+	failErr := errors.New("boom")
+	s.def.Steps[1].Action = func(_ context.Context, _ *saga.Execution) error {
+		return failErr
+	}
+
+	compAttempts := 0
+	s.def.Steps[0].Compensate = func(_ context.Context, _ *saga.Execution) error {
+		compAttempts++
+		if compAttempts == 1 {
+			return errors.New("transient compensation failure")
+		}
+		return nil
+	}
+
+	s.cfg.CompensationRetryFactory = func(_ saga.Step) *retry.Retrier {
+		opts := retry.DefaultOptions()
+		opts.MaxAttempts = 2
+		opts.Strategy = retry.ConstantStrategy{Delay: 0}
+		return retry.New(opts)
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "boom")
+	s.Equal(2, compAttempts)
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal(saga.StatusCompleted, inst.Status)
+	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+}
+
+func (s *CoordinatorSuite) TestRun_StepCompensationRetryOptions_OverrideCoordinatorDefaults() {
+	failErr := errors.New("boom")
+	s.def.Steps[1].Action = func(_ context.Context, _ *saga.Execution) error {
+		return failErr
+	}
+
+	compAttempts := 0
+	s.def.Steps[0].Compensate = func(_ context.Context, _ *saga.Execution) error {
+		compAttempts++
+		if compAttempts == 1 {
+			return errors.New("transient compensation failure")
+		}
+		return nil
+	}
+	s.def.Steps[0].CompensationRetryOptions = retry.Options{
+		MaxAttempts: 1,
+		Strategy:    retry.ConstantStrategy{Delay: 0},
+	}
+
+	c := s.newCoordinator()
+	id, err := c.Start(s.T().Context(), nil, nil)
+	s.Require().NoError(err)
+
+	err = c.Run(s.T().Context(), id)
+	s.Require().Error(err)
+	s.ErrorContains(err, "compensation failed")
+	s.Equal(1, compAttempts)
+
+	inst, loadErr := s.store.Load(s.T().Context(), id)
+	s.Require().NoError(loadErr)
+	s.Equal(saga.StatusFailed, inst.Status)
+	s.Equal(saga.StatusCompensateFailed, inst.Steps[0].Status)
+}
+
 func (s *CoordinatorSuite) TestRun_StepTimeout_ReturnsError() {
 	s.def.Steps = []saga.Step{
 		{
