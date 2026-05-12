@@ -338,6 +338,9 @@ func (c *Coordinator) compensate(ctx context.Context, inst *Instance) error {
 	if err := c.store.Save(ctx, inst); err != nil {
 		return err
 	}
+	if c.cfg.Hooks.OnSagaCompensatingFinished != nil {
+		c.cfg.Hooks.OnSagaCompensatingFinished(ctx, inst)
+	}
 	return merr.ErrorOrNil()
 }
 
@@ -380,10 +383,6 @@ func (c *Coordinator) compensateSteps(
 			continue
 		}
 		succeeded++
-	}
-
-	if c.cfg.Hooks.OnSagaCompensatingFinished != nil {
-		c.cfg.Hooks.OnSagaCompensatingFinished(ctx, inst)
 	}
 
 	return merr, attempted, succeeded, deadlineExceeded

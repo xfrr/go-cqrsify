@@ -15,11 +15,11 @@ import (
 )
 
 type mockLocker struct {
-	mu        sync.Mutex
-	lockedKey string
-	tryOK     bool
-	tryErr    error
-	unlockErr error
+	mu          sync.Mutex
+	lockedKey   string
+	tryOK       bool
+	tryErr      error
+	unlockErr   error
 	failRenewAt int
 	renewErr    error
 	renewCalls  int
@@ -160,6 +160,7 @@ type hookRecorder struct {
 	compensating, compFinished int
 	stepStart, stepOK, stepKO  int
 	compOK, compKO             int
+	compFinishedStatuses       []saga.Status
 }
 
 func (h *hookRecorder) hooks() saga.Hooks {
@@ -174,8 +175,9 @@ func (h *hookRecorder) hooks() saga.Hooks {
 		OnSagaCompensating: func(_ context.Context, _ *saga.Instance, _ int) {
 			h.inc(&h.compensating)
 		},
-		OnSagaCompensatingFinished: func(_ context.Context, _ *saga.Instance) {
+		OnSagaCompensatingFinished: func(_ context.Context, inst *saga.Instance) {
 			h.inc(&h.compFinished)
+			h.addCompFinishedStatus(inst.Status)
 		},
 		OnStepStart: func(_ context.Context, _ *saga.Instance, _ saga.StepState) {
 			h.inc(&h.stepStart)
@@ -199,6 +201,12 @@ func (h *hookRecorder) inc(p *int) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	*p++
+}
+
+func (h *hookRecorder) addCompFinishedStatus(status saga.Status) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.compFinishedStatuses = append(h.compFinishedStatuses, status)
 }
 
 type CoordinatorSuite struct {
@@ -345,7 +353,7 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	inst, err := s.store.Load(s.T().Context(), id)
 	s.Require().NoError(err)
 
-	// Final status should be one of compensation terminal states; with all compensations OK -> success
+	// Saga-level terminal status after compensation is COMPLETED when all compensations succeed.
 	s.Equal(saga.StatusCompleted, inst.Status)
 	s.Equal(1, s.hrec.stepKO) // one failure
 	s.Equal(1, s.hrec.failed)
@@ -354,6 +362,8 @@ func (s *CoordinatorSuite) TestRun_ActionFails_TriggersCompensationAndMarksStatu
 	s.Equal(1, callsComp)     // only first step compensated
 	s.Equal(1, inst.Current)  // failed at step index 1
 	s.Equal(saga.StatusCompensateSuccess, inst.Steps[0].Status)
+	s.Require().Len(s.hrec.compFinishedStatuses, 1)
+	s.Equal(saga.StatusCompleted, s.hrec.compFinishedStatuses[0])
 }
 
 func (s *CoordinatorSuite) TestRun_ActionPanic_TriggersCompensationAndReturnsError() {
@@ -398,6 +408,8 @@ func (s *CoordinatorSuite) TestRun_CompensationPanic_MarksFailed() {
 	s.Equal("compensation_failed", inst.FailureReason)
 	s.Equal(saga.StatusCompensateFailed, inst.Steps[0].Status)
 	s.GreaterOrEqual(s.hrec.compKO, 1)
+	s.Require().Len(s.hrec.compFinishedStatuses, 1)
+	s.Equal(saga.StatusFailed, s.hrec.compFinishedStatuses[0])
 }
 
 func (s *CoordinatorSuite) TestRun_StepTimeout_ReturnsError() {

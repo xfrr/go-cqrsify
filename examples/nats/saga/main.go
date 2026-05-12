@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -22,7 +23,7 @@ const (
 )
 
 func main() {
-	ctx, signalCancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx, signalCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGKILL, os.Interrupt)
 	defer signalCancel()
 
 	// Create NATS connection
@@ -173,10 +174,12 @@ func main() {
 			},
 			OnSagaCompensatingFinished: func(ctx context.Context, si *saga.Instance) {
 				switch si.Status {
-				case saga.StatusCompensateSuccess:
+				case saga.StatusCompleted:
 					fmt.Printf("✔ saga %q compensated successfully\n", si.Name)
-				case saga.StatusCompensateFailed:
+				case saga.StatusFailed:
 					fmt.Printf("⚠ saga %q compensated with errors\n", si.Name)
+				default:
+					fmt.Printf("↶ saga %q compensation finished with status %s\n", si.Name, si.Status)
 				}
 			},
 			OnSagaCompleted: func(ctx context.Context, si *saga.Instance) {
