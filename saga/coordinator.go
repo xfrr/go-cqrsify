@@ -245,9 +245,9 @@ func (c *Coordinator) acquireLockWithKeepalive(
 	}
 
 	cleanup = func() {
+		cancel()
 		close(stopKeepalive)
 		wg.Wait()
-		cancel()
 		_ = c.locker.Unlock(ctx, lockKey)
 	}
 	return lockCtx, cleanup, keepAliveLost, nil
