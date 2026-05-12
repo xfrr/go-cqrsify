@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778579472026,
+  "lastUpdate": 1778579839601,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5456,6 +5456,48 @@ window.BENCHMARK_DATA = {
             "value": 143,
             "unit": "ns/op",
             "extra": "8437297 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d973f8103a17c16b977518b1f81f55dcb0f86f2d",
+          "message": "chore(deps): bump go.opentelemetry.io/otel in /messaging/nats (#6)\n\nBumps [go.opentelemetry.io/otel](https://github.com/open-telemetry/opentelemetry-go) from 1.39.0 to 1.41.0.\n- [Release notes](https://github.com/open-telemetry/opentelemetry-go/releases)\n- [Changelog](https://github.com/open-telemetry/opentelemetry-go/blob/main/CHANGELOG.md)\n- [Commits](https://github.com/open-telemetry/opentelemetry-go/compare/v1.39.0...v1.41.0)\n\n---\nupdated-dependencies:\n- dependency-name: go.opentelemetry.io/otel\n  dependency-version: 1.41.0\n  dependency-type: direct:production\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-05-12T11:56:56+02:00",
+          "tree_id": "ec9759361bde82c255113942499c8c9d8c159656",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/d973f8103a17c16b977518b1f81f55dcb0f86f2d"
+        },
+        "date": 1778579838696,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.4228,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 77.25,
+            "unit": "ns/op",
+            "extra": "15566240 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 186.6,
+            "unit": "ns/op",
+            "extra": "6471746 times\n4 procs"
           }
         ]
       }
