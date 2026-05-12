@@ -20,11 +20,15 @@ func NewInMemoryStore() *StoreInMemory {
 func (m *StoreInMemory) Create(_ context.Context, s *Instance) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if s == nil {
+		return errors.New("cannot create nil instance")
+	}
+
 	if _, ok := m.data[s.ID]; ok {
 		return ErrConflict
 	}
-	cpy := *s
-	m.data[s.ID] = cpy
+
+	m.data[s.ID] = cloneInstance(*s)
 	return nil
 }
 
