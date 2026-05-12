@@ -7,6 +7,7 @@ import (
 )
 
 var _ Locker = (*InMemoryLocker)(nil)
+var _ Renewer = (*InMemoryLocker)(nil)
 
 // InMemoryLocker is a simple in-memory lock implementation.
 type InMemoryLocker struct {
@@ -38,7 +39,7 @@ func (l *InMemoryLocker) Unlock(_ context.Context, key string) error {
 	return nil
 }
 
-func (l *InMemoryLocker) Refresh(_ context.Context, key string, ttl time.Duration) (bool, error) {
+func (l *InMemoryLocker) Renew(_ context.Context, key string, ttl time.Duration) (bool, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	_, ok := l.keys[key]
@@ -47,4 +48,9 @@ func (l *InMemoryLocker) Refresh(_ context.Context, key string, ttl time.Duratio
 	}
 	l.keys[key] = time.Now().Add(ttl)
 	return true, nil
+}
+
+// Refresh is kept for backward compatibility and proxies to Renew.
+func (l *InMemoryLocker) Refresh(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	return l.Renew(ctx, key, ttl)
 }
