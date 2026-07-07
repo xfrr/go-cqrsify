@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1778623934158,
+  "lastUpdate": 1783459256748,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5734,6 +5734,48 @@ window.BENCHMARK_DATA = {
             "value": 178.4,
             "unit": "ns/op",
             "extra": "6760360 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "francisco.romero.1994@gmail.com",
+            "name": "xfrr",
+            "username": "xfrr"
+          },
+          "distinct": true,
+          "id": "26afc6e255b7f59e3fed5d3e85df69629f0b6e1c",
+          "message": "feat: add HTTP query server implementation with GIN framework",
+          "timestamp": "2026-07-07T23:20:11+02:00",
+          "tree_id": "81e7fa142201fcfda5a73a416a3fc5e87987d03c",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/26afc6e255b7f59e3fed5d3e85df69629f0b6e1c"
+        },
+        "date": 1783459255845,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.3738,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 79.85,
+            "unit": "ns/op",
+            "extra": "15251580 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 179.3,
+            "unit": "ns/op",
+            "extra": "6705038 times\n4 procs"
           }
         ]
       }
