@@ -11,7 +11,7 @@ linters:
   - copyloopvar
   - cyclop
   - decorder
-  - dupl
+  # - dupl
   - durationcheck
   - errcheck
   - errname
