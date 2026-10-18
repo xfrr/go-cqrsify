@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783459710029,
+  "lastUpdate": 1792357376538,
   "repoUrl": "https://github.com/xfrr/go-cqrsify",
   "entries": {
     "CQRS Benchmark": [
@@ -5818,6 +5818,48 @@ window.BENCHMARK_DATA = {
             "value": 178.5,
             "unit": "ns/op",
             "extra": "6708416 times\n4 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "35836929+xfrr@users.noreply.github.com",
+            "name": "Fran",
+            "username": "xfrr"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ac7e078b08aa885f36a2dc59acfd334c2a395b65",
+          "message": "chore: upgrade deps (#13)\n\n- Bump go-cqrsify to v0.10.0 in both modules.\n- Update NATS library to v1.52.0 in messaging/nats.\n- Upgrade various indirect dependencies to their latest versions, including:\n  - bytedance/gopkg from v0.1.3 to v0.1.4\n  - bytedance/sonic from v1.15.0 to v1.15.2\n  - cloudwego/base64x from v0.1.6 to v0.1.7\n  - gabriel-vasile/mimetype from v1.4.12 to v1.4.13\n  - gin-gonic/gin from v1.11.0 to v1.12.0\n  - klauspost/cpuid/v2 from v2.3.0 to v2.4.0\n  - pelletier/go-toml/v2 from v2.2.4 to v2.4.3\n  - quic-go/quic-go from v0.59.0 to v0.60.0\n  - opentelemetry libraries to v1.44.0\n  - golang.org/x libraries to their latest versions",
+          "timestamp": "2026-10-18T23:02:06+02:00",
+          "tree_id": "93a18493cd505cdf9f90f68acb4b09d2787c482f",
+          "url": "https://github.com/xfrr/go-cqrsify/commit/ac7e078b08aa885f36a2dc59acfd334c2a395b65"
+        },
+        "date": 1792357375865,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkPolicyEvaluation",
+            "value": 0.3744,
+            "unit": "ns/op",
+            "extra": "1000000000 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkCompositePolicyEvaluation",
+            "value": 64.84,
+            "unit": "ns/op",
+            "extra": "18417186 times\n4 procs"
+          },
+          {
+            "name": "BenchmarkPolicyEngine",
+            "value": 156.4,
+            "unit": "ns/op",
+            "extra": "7663315 times\n4 procs"
           }
         ]
       }
