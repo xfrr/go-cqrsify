@@ -31,7 +31,7 @@ linters:
   - gocyclo
   # - godot
   - gomoddirectives
-  - gomodguard
+  - gomodguard_v2
   - goprintffuncname
   - gosec
   - govet
@@ -88,7 +88,7 @@ linters:
     exhaustive:
       check:
       - switch
-      - map
+      - mapliteral
     # exhaustruct:
     #   exclude:
     #   - ^.*_test.*
@@ -125,21 +125,20 @@ linters:
           paramsOnly: false
         underef:
           skipRecvDeref: false
-    gomodguard:
-      blocked:
-        modules:
-        - github.com/golang/protobuf:
+    gomodguard_v2:
+        blocked:
+          - module: github.com/golang/protobuf
             recommendations:
-            - google.golang.org/protobuf
+              - google.golang.org/protobuf
             reason: see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
-        - github.com/satori/go.uuid:
+          - module: github.com/satori/go.uuid
             recommendations:
-            - github.com/google/uuid
+              - github.com/google/uuid
             reason: satori's package is not maintained
-        - github.com/gofrs/uuid:
+          - module: github.com/gofrs/uuid
             recommendations:
-            - github.com/gofrs/uuid/v5
-            reason: gofrs' package was not go module before v5
+              - github.com/gofrs/uuid/v5
+            reason: gofrs' package was not go module before v5 
     govet:
       disable:
       - fieldalignment

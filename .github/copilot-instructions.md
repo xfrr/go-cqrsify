@@ -69,7 +69,7 @@ go-cqrsify is a lightweight Go library implementing Domain-Driven Design (DDD), 
 ### Generic Type Parameters
 
 - All core types are generics: `Aggregate[ID]`, `Repository[T, ID]`
-- Go 1.22+ required
+- Go 1.27+ required
 - When implementing repositories/stores, always specify concrete ID type
 - Use `CastAggregate[OutID, InID]()` to safely cast aggregates between ID types
 

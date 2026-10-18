@@ -50,7 +50,7 @@ func TestBase(t *testing.T) {
 			return nil
 		})
 
-		baseAggregate.ApplyEvent(evt)
+		_ =baseAggregate.ApplyEvent(evt)
 		assert.Equal(t, 1, handlerCalls)
 	})
 

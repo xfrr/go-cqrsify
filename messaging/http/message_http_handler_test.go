@@ -57,7 +57,7 @@ func (s *ServeHTTPSuite) Test_NoPublisherConfigured_Returns500() {
 	s.NotEmpty(readBody(s.T(), rr))
 }
 
-func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns400() {
+func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns404() {
 	pub := &messagingmock.MessagePublisher{}
 	h := messaginghttp.NewMessageHandler(pub)
 
@@ -66,7 +66,7 @@ func (s *ServeHTTPSuite) Test_NoDecoderRegistered_Returns400() {
 
 	h.ServeHTTP(rr, req)
 
-	s.Equal(http.StatusBadRequest, rr.Code, "no decoder for message type should yield 400")
+	s.Equal(http.StatusNotFound, rr.Code, "no decoder for message type should yield 404")
 	s.Zero(pub.PublishCalls(), "publisher must not be called")
 }
 
