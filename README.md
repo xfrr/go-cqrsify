@@ -26,7 +26,7 @@ The goal is to provide Go developers with tools that simplify the integration of
 
 ### Prerequisites
 
-- Go 1.22 or later
+- Go 1.27 or later
 
 ### Installation
 
